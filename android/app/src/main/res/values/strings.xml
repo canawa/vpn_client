@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">КОФЕМАНИЯ ВПН</string>
+    <string name="vpn_notification_channel">VPN</string>
+    <string name="vpn_notification_title">КОФЕМАНИЯ ВПН</string>
+    <string name="vpn_starting">Подключение…</string>
+    <string name="vpn_connected">Подключено</string>
+    <string name="vpn_stop">Отключить</string>
+</resources>
