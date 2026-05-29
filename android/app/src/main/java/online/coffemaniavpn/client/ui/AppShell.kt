@@ -3,9 +3,14 @@ package online.coffemaniavpn.client.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
@@ -13,7 +18,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -56,11 +60,15 @@ fun AppShell(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = CoffemaniaColors.Background,
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
-            Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars),
+            ) {
                 CoffemaniaTopBar(
                     title = if (selectedTab == AppTab.Home) "КОФЕМАНИЯ ВПН" else "Серверы",
-                    showCoffeeLeading = selectedTab == AppTab.Home,
                     onSettingsClick = { showSettingsMenu = true },
                 )
                 SettingsMenu(
@@ -82,6 +90,7 @@ fun AppShell(
             CoffemaniaBottomBar(
                 selectedTab = selectedTab,
                 onTabSelected = { selectedTab = it },
+                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
             )
         },
     ) { padding ->

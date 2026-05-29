@@ -19,12 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.LocalCafe
-import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SignalCellularAlt
@@ -53,7 +50,6 @@ enum class AppTab { Home, Servers }
 @Composable
 fun CoffemaniaTopBar(
     title: String,
-    showCoffeeLeading: Boolean,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -74,13 +70,7 @@ fun CoffemaniaTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                if (showCoffeeLeading) {
-                    Icon(
-                        imageVector = Icons.Default.LocalCafe,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                CoffeeLogo(modifier = Modifier.size(28.dp))
                 Text(
                     text = title,
                     style = MaterialTheme.typography.headlineMedium,
@@ -118,9 +108,9 @@ fun CoffemaniaBottomBar(
         ) {
             BottomNavItem(
                 label = "Главная",
-                icon = Icons.Default.Home,
                 selected = selectedTab == AppTab.Home,
                 onClick = { onTabSelected(AppTab.Home) },
+                useCoffeeLogo = true,
             )
             BottomNavItem(
                 label = "Серверы",
@@ -135,9 +125,10 @@ fun CoffemaniaBottomBar(
 @Composable
 private fun BottomNavItem(
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
     selected: Boolean,
     onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    useCoffeeLogo: Boolean = false,
 ) {
     val bg = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
     val fg = if (selected) {
@@ -154,12 +145,16 @@ private fun BottomNavItem(
             .padding(horizontal = 24.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = fg,
-            modifier = Modifier.size(24.dp),
-        )
+        if (useCoffeeLogo) {
+            CoffeeLogo(modifier = Modifier.size(24.dp))
+        } else {
+            Icon(
+                imageVector = icon ?: Icons.Default.Home,
+                contentDescription = label,
+                tint = fg,
+                modifier = Modifier.size(24.dp),
+            )
+        }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
@@ -181,11 +176,6 @@ fun BrewConnectButton(
 
     val outerBorder = if (isConnected) MaterialTheme.colorScheme.primary else CoffemaniaColors.OutlineVariant
     val innerBg = if (isConnected) CoffemaniaColors.SurfaceContainerHigh else CoffemaniaColors.SurfaceContainerLow
-    val iconTint = when {
-        isConnected -> MaterialTheme.colorScheme.primary
-        isBusy -> MaterialTheme.colorScheme.secondary
-        else -> CoffemaniaColors.Outline
-    }
 
     Column(
         modifier = modifier,
@@ -214,12 +204,7 @@ fun BrewConnectButton(
                         strokeWidth = 3.dp,
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.PowerSettingsNew,
-                        contentDescription = null,
-                        modifier = Modifier.size(56.dp),
-                        tint = iconTint,
-                    )
+                    CoffeeLogo(modifier = Modifier.size(88.dp))
                 }
             }
         }
@@ -263,15 +248,7 @@ fun SelectedServerCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(CoffemaniaColors.SurfaceVariant),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(text = display.flag, style = MaterialTheme.typography.titleMedium)
-                }
+                ServerFlagAvatar(flag = display.flag, size = 40.dp)
                 Column {
                     Text(
                         text = display.title,
@@ -336,16 +313,11 @@ fun ServerListCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(CoffemaniaColors.SurfaceContainerLowest)
-                        .border(1.dp, CoffemaniaColors.OutlineVariant.copy(0.3f), CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(text = display.flag, style = MaterialTheme.typography.titleMedium)
-                }
+                ServerFlagAvatar(
+                    flag = display.flag,
+                    size = 40.dp,
+                    background = if (selected) CoffemaniaColors.SurfaceContainerLow else CoffemaniaColors.SurfaceContainerLowest,
+                )
                 Column {
                     Text(
                         text = display.title,
@@ -466,11 +438,7 @@ fun SubscriptionCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.AddCircleOutline,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                )
+                CoffeeLogo(modifier = Modifier.size(22.dp))
                 Text(
                     text = "Добавить подписку",
                     style = MaterialTheme.typography.bodyLarge,

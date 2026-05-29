@@ -11,11 +11,15 @@ data class ServerDisplay(
 )
 
 object ServerDisplayMapper {
-    private val flagRegex = Regex("^(\\p{Extended_Pictographic}+)")
+    /** Первый emoji-флаг в названии (нулевая позиция / первый токен до пробела). */
+    private val firstFlagRegex = Regex("^(\\p{Regional_Indicator}{2}|\\p{Extended_Pictographic})")
 
     fun map(node: ProxyNode, pingMs: Int? = null): ServerDisplay {
-        val flag = flagRegex.find(node.name.trim())?.value ?: "🌐"
-        val withoutFlag = node.name.trim().removePrefix(flag).trim()
+        val trimmed = node.name.trim()
+        val flag = firstFlagRegex.find(trimmed)?.value
+            ?: trimmed.substringBefore(' ').trim().takeIf { it.isNotEmpty() }
+            ?: "🌐"
+        val withoutFlag = trimmed.removePrefix(flag).trim()
         val title = withoutFlag.substringBefore("|").trim().ifBlank { node.host }
         val subtitle = withoutFlag.substringAfter("|", "").trim()
             .ifBlank { "${node.host}:${node.port}" }

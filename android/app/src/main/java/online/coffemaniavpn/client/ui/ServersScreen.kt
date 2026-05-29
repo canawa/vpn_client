@@ -32,7 +32,7 @@ fun ServersScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
-            .padding(top = 16.dp, bottom = 120.dp),
+            .padding(top = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         SortBar()
