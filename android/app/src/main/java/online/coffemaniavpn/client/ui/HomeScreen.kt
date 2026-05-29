@@ -86,7 +86,7 @@ fun HomeScreen(
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.padding(top = 12.dp, start = 8.dp),
                 )
             }

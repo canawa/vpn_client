@@ -16,15 +16,26 @@ object ServerDisplayMapper {
     /** Первый emoji-флаг в названии (нулевая позиция / первый токен до пробела). */
     private val firstFlagRegex = Regex("^(\\p{Regional_Indicator}{2}|\\p{Extended_Pictographic})")
 
+    private fun isAutoSelect(name: String, title: String): Boolean =
+        name.contains("автовыбор", ignoreCase = true) ||
+            title.contains("автовыбор", ignoreCase = true)
+
     fun map(node: ProxyNode, ping: PingState? = null): ServerDisplay {
         val trimmed = node.name.trim()
         val flag = firstFlagRegex.find(trimmed)?.value
             ?: trimmed.substringBefore(' ').trim().takeIf { it.isNotEmpty() }
             ?: "🌐"
         val withoutFlag = trimmed.removePrefix(flag).trim()
-        val title = withoutFlag.substringBefore("|").trim().ifBlank { node.host }
-        val subtitle = withoutFlag.substringAfter("|", "").trim()
-            .ifBlank { "${node.host}:${node.port}" }
+        val autoSelect = isAutoSelect(trimmed, withoutFlag.substringBefore("|").trim())
+
+        val title = withoutFlag.substringBefore("|").trim()
+            .ifBlank { if (autoSelect) "Автовыбор" else node.host }
+
+        val subtitle = when {
+            autoSelect -> ""
+            else -> withoutFlag.substringAfter("|", "").trim()
+                .ifBlank { "${node.host}:${node.port}" }
+        }
 
         val (pingText, pingMs) = when (ping) {
             null -> "—" to null

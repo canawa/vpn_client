@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SignalCellularAlt
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -204,7 +203,7 @@ fun BrewConnectButton(
                 if (isBusy) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(48.dp),
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = MaterialTheme.colorScheme.tertiary,
                         strokeWidth = 3.dp,
                     )
                 } else {
@@ -252,7 +251,7 @@ fun SelectedServerCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                ServerFlagAvatar(flag = display.flag, size = 40.dp)
+                ServerFlag(flag = display.flag, height = 48.dp)
                 Column {
                     Text(
                         text = display.title,
@@ -262,28 +261,22 @@ fun SelectedServerCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
-                        text = display.subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (display.subtitle.isNotBlank()) {
+                        Text(
+                            text = display.subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.SignalCellularAlt,
-                    contentDescription = null,
-                    tint = CoffemaniaColors.OutlineVariant,
-                    modifier = Modifier.size(16.dp),
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -316,11 +309,7 @@ fun ServerListCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                ServerFlagAvatar(
-                    flag = display.flag,
-                    size = 40.dp,
-                    background = if (selected) CoffemaniaColors.SurfaceContainerLow else CoffemaniaColors.SurfaceContainerLowest,
-                )
+                ServerFlag(flag = display.flag, height = 48.dp)
                 Column {
                     Text(
                         text = display.title,
@@ -340,16 +329,18 @@ fun ServerListCard(
                             bg = MaterialTheme.colorScheme.secondaryContainer,
                             fg = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
-                        Text(
-                            text = display.subtitle,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Normal,
-                                letterSpacing = 0.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        if (display.subtitle.isNotBlank()) {
+                            Text(
+                                text = display.subtitle,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Normal,
+                                    letterSpacing = 0.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }
@@ -363,7 +354,7 @@ fun ServerListCard(
                 display.pingMs?.let { pingMs ->
                     PingSparkline(
                         seed = pingMs,
-                        color = if (selected) MaterialTheme.colorScheme.secondary else CoffemaniaColors.Outline,
+                        color = if (selected) MaterialTheme.colorScheme.tertiary else CoffemaniaColors.Outline,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
@@ -612,7 +603,7 @@ private fun TrafficProgressBar(
     modifier: Modifier = Modifier,
 ) {
     val trackColor = CoffemaniaColors.OutlineVariant.copy(alpha = 0.35f)
-    val progressColor = MaterialTheme.colorScheme.secondary
+    val progressColor = MaterialTheme.colorScheme.tertiary
 
     if (subscriptionInfo == null) {
         Box(

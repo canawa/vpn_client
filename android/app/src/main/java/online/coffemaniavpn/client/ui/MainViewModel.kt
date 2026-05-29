@@ -19,6 +19,7 @@ import online.coffemaniavpn.client.data.ProxyNode
 import online.coffemaniavpn.client.data.ServerPinger
 import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.data.SubscriptionRepository
+import online.coffemaniavpn.client.ktx.readClipboardText
 import online.coffemaniavpn.client.util.AppLog
 import online.coffemaniavpn.client.vpn.VpnManager
 import online.coffemaniavpn.client.vpn.VpnStatus
@@ -40,7 +41,7 @@ data class MainUiState(
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppPreferences(application)
-    private val repository = SubscriptionRepository()
+    private val repository = SubscriptionRepository(application)
 
     private val subscriptionUrlInput = MutableStateFlow("")
     private val isLoading = MutableStateFlow(false)
@@ -144,6 +145,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onSubscriptionUrlChange(value: String) {
         subscriptionUrlInput.value = value
+    }
+
+    fun pasteSubscriptionFromClipboard() {
+        val text = getApplication<Application>().readClipboardText()
+        if (text.isNullOrBlank()) {
+            error.value = "Буфер обмена пуст"
+            return
+        }
+        subscriptionUrlInput.value = text
+        message.value = "Ссылка вставлена"
+        AppLog.i("pasteSubscriptionFromClipboard urlLen=${text.length}")
     }
 
     fun refreshSubscription() {

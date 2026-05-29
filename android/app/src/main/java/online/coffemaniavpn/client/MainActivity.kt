@@ -61,7 +61,6 @@ class MainActivity : ComponentActivity() {
 
                     AppShell(
                         state = state,
-                        onSubscriptionUrlChange = viewModel::onSubscriptionUrlChange,
                         onRefreshSubscription = viewModel::refreshSubscription,
                         onSelectNode = viewModel::selectNode,
                         onConnectClick = ::requestConnect,
@@ -69,6 +68,7 @@ class MainActivity : ComponentActivity() {
                         onShowLogs = { showLogs = true },
                         onRefreshPing = viewModel::pingAllNodes,
                         onRefreshConfig = viewModel::refreshConfig,
+                        onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
                     )
 
                     if (showLogs) {

@@ -15,16 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,14 +30,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 @Composable
 fun AppShell(
     state: MainUiState,
-    onSubscriptionUrlChange: (String) -> Unit,
     onRefreshSubscription: () -> Unit,
     onSelectNode: (String) -> Unit,
     onConnectClick: () -> Unit,
@@ -50,9 +45,9 @@ fun AppShell(
     onShowLogs: () -> Unit,
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
+    onPasteLinkClick: () -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
-    var showPasteDialog by remember { mutableStateOf(false) }
     var showSettingsMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -113,7 +108,7 @@ fun AppShell(
                         )
                     }
                 },
-                onPasteLinkClick = { showPasteDialog = true },
+                onPasteLinkClick = onPasteLinkClick,
             )
             AppTab.Servers -> ServersScreen(
                 modifier = Modifier.padding(padding),
@@ -131,19 +126,6 @@ fun AppShell(
                 onRefreshPing = onRefreshPing,
             )
         }
-    }
-
-    if (showPasteDialog) {
-        SubscriptionUrlDialog(
-            url = state.subscriptionUrl,
-            isLoading = state.isLoading,
-            onUrlChange = onSubscriptionUrlChange,
-            onDismiss = { showPasteDialog = false },
-            onConfirm = {
-                onRefreshSubscription()
-                showPasteDialog = false
-            },
-        )
     }
 }
 
@@ -171,44 +153,6 @@ private fun SettingsMenu(
             leadingIcon = { Icon(Icons.Default.BugReport, contentDescription = null) },
         )
     }
-}
-
-@Composable
-fun SubscriptionUrlDialog(
-    url: String,
-    isLoading: Boolean,
-    onUrlChange: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Ссылка подписки") },
-        text = {
-            OutlinedTextField(
-                value = url,
-                onValueChange = onUrlChange,
-                modifier = Modifier.fillMaxSize(),
-                placeholder = { Text("https://…") },
-                singleLine = false,
-                minLines = 2,
-            )
-        },
-        confirmButton = {
-            Button(onClick = onConfirm, enabled = !isLoading && url.isNotBlank()) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
-                } else {
-                    Text("Загрузить")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Отмена")
-            }
-        },
-    )
 }
 
 @Composable

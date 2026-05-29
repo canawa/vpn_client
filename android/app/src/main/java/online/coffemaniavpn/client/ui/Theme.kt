@@ -7,30 +7,47 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 object CoffemaniaColors {
-    val Background = Color(0xFFFFF8F5)
-    val OnBackground = Color(0xFF26190D)
-    val Primary = Color(0xFF33210D)
-    val OnPrimary = Color(0xFFFFFFFF)
-    val PrimaryContainer = Color(0xFF4B3621)
-    val OnPrimaryContainer = Color(0xFFBD9F83)
-    val PrimaryFixedDim = Color(0xFFE1C1A4)
-    val Secondary = Color(0xFF725A39)
-    val OnSecondary = Color(0xFFFFFFFF)
-    val SecondaryContainer = Color(0xFFFBDBB0)
-    val OnSecondaryContainer = Color(0xFF765F3D)
-    val Surface = Color(0xFFFFF8F5)
-    val OnSurface = Color(0xFF26190D)
-    val SurfaceVariant = Color(0xFFF8DECA)
-    val OnSurfaceVariant = Color(0xFF4E453D)
-    val SurfaceContainer = Color(0xFFFFEADC)
-    val SurfaceContainerLow = Color(0xFFFFF1E8)
-    val SurfaceContainerLowest = Color(0xFFFFFFFF)
-    val SurfaceContainerHigh = Color(0xFFFEE3D0)
-    val SurfaceContainerHighest = Color(0xFFF8DECA)
-    val Outline = Color(0xFF80756C)
-    val OutlineVariant = Color(0xFFD2C4BA)
+    // Фоны
+    val Surface = Color(0xFFFEF8F5)
+    val SurfaceBright = Color(0xFFFEF8F5)
+    val SurfaceDim = Color(0xFFDED9D6)
+    val SurfaceContainer = Color(0xFFF4EEEB)
+    val SurfaceContainerLow = Color(0xFFF8F2EF)
+
+    // Акценты и текст
+    val Primary = Color(0xFF422C26)
+    val OnPrimary = Color(0xFFFEF8F5)
+    val OnSurface = Color(0xFF201A18)
+    val OnSurfaceVariant = Color(0xFF52443D)
+    val Outline = Color(0xFF85736B)
+
+    // Дополнительные
+    val SecondaryContainer = Color(0xFFFCE0D4)
+    val Tertiary = Color(0xFF5C6239)
+
+    val Background = Surface
+    val OnBackground = OnSurface
+    val SurfaceVariant = SurfaceDim
+    val SurfaceContainerLowest = SurfaceBright
+    val SurfaceContainerHigh = SurfaceContainerLow
+    val SurfaceContainerHighest = SurfaceDim
+
+    val PrimaryContainer = Color(0xFFFCE0D4)
+    val OnPrimaryContainer = Primary
+    val PrimaryFixedDim = Color(0xFF6B4E45)
+
+    val Secondary = Outline
+    val OnSecondary = SurfaceBright
+    val OnSecondaryContainer = OnSurfaceVariant
+
+    val TertiaryContainer = Color(0xFFE8EBD4)
+    val OnTertiary = SurfaceBright
+    val OnTertiaryContainer = Tertiary
+
+    val OutlineVariant = Color(0xFFDED9D6)
+
     val Error = Color(0xFFBA1A1A)
-    val OnError = Color(0xFFFFFFFF)
+    val OnError = SurfaceBright
     val ErrorContainer = Color(0xFFFFDAD6)
     val OnErrorContainer = Color(0xFF93000A)
 }
@@ -40,6 +57,8 @@ data class CoffemaniaExtraColors(
     val surfaceContainerLowest: Color = CoffemaniaColors.SurfaceContainerLowest,
     val surfaceContainerHigh: Color = CoffemaniaColors.SurfaceContainerHigh,
     val primaryFixedDim: Color = CoffemaniaColors.PrimaryFixedDim,
+    val surfaceDim: Color = CoffemaniaColors.SurfaceDim,
+    val surfaceBright: Color = CoffemaniaColors.SurfaceBright,
 )
 
 val LocalCoffemaniaExtraColors = staticCompositionLocalOf { CoffemaniaExtraColors() }
@@ -53,6 +72,10 @@ private val LightScheme = lightColorScheme(
     onSecondary = CoffemaniaColors.OnSecondary,
     secondaryContainer = CoffemaniaColors.SecondaryContainer,
     onSecondaryContainer = CoffemaniaColors.OnSecondaryContainer,
+    tertiary = CoffemaniaColors.Tertiary,
+    onTertiary = CoffemaniaColors.OnTertiary,
+    tertiaryContainer = CoffemaniaColors.TertiaryContainer,
+    onTertiaryContainer = CoffemaniaColors.OnTertiaryContainer,
     background = CoffemaniaColors.Background,
     onBackground = CoffemaniaColors.OnBackground,
     surface = CoffemaniaColors.Surface,
@@ -65,6 +88,13 @@ private val LightScheme = lightColorScheme(
     onError = CoffemaniaColors.OnError,
     errorContainer = CoffemaniaColors.ErrorContainer,
     onErrorContainer = CoffemaniaColors.OnErrorContainer,
+    surfaceContainer = CoffemaniaColors.SurfaceContainer,
+    surfaceContainerLow = CoffemaniaColors.SurfaceContainerLow,
+    surfaceContainerHigh = CoffemaniaColors.SurfaceContainerHigh,
+    surfaceContainerHighest = CoffemaniaColors.SurfaceContainerHighest,
+    surfaceContainerLowest = CoffemaniaColors.SurfaceContainerLowest,
+    surfaceDim = CoffemaniaColors.SurfaceDim,
+    surfaceBright = CoffemaniaColors.SurfaceBright,
 )
 
 @Composable
