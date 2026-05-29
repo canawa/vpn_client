@@ -18,7 +18,7 @@ object AppLog {
     private var crashFile: File? = null
 
     fun init(context: Context) {
-        val logsDir = File(context.getExternalFilesDir(null), "logs").apply { mkdirs() }
+        val logsDir = File(context.filesDir, "logs").apply { mkdirs() }
         logFile = File(logsDir, "app.log")
         crashFile = File(logsDir, "crash.log")
         i("AppLog init, path=${logFile?.absolutePath}")

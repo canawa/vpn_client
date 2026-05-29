@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,12 +23,14 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SignalCellularAlt
-import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.vpn.VpnStatus
 
 enum class AppTab { Home, Servers }
@@ -288,7 +292,6 @@ fun SelectedServerCard(
 fun ServerListCard(
     display: ServerDisplay,
     selected: Boolean,
-    showFastestBadge: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -332,19 +335,11 @@ fun ServerListCard(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(top = 4.dp),
                     ) {
-                        if (showFastestBadge) {
-                            ProtocolBadge(
-                                text = "FASTEST",
-                                bg = MaterialTheme.colorScheme.primary,
-                                fg = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        } else {
-                            ProtocolBadge(
-                                text = display.protocolLabel,
-                                bg = MaterialTheme.colorScheme.secondaryContainer,
-                                fg = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
-                        }
+                        ProtocolBadge(
+                            text = display.protocolLabel,
+                            bg = MaterialTheme.colorScheme.secondaryContainer,
+                            fg = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
                         Text(
                             text = display.subtitle,
                             style = MaterialTheme.typography.labelSmall.copy(
@@ -360,16 +355,18 @@ fun ServerListCard(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${display.pingMs} ms",
+                    text = display.pingText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                PingSparkline(
-                    seed = display.pingMs,
-                    color = if (selected) MaterialTheme.colorScheme.secondary else CoffemaniaColors.Outline,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+                display.pingMs?.let { pingMs ->
+                    PingSparkline(
+                        seed = pingMs,
+                        color = if (selected) MaterialTheme.colorScheme.secondary else CoffemaniaColors.Outline,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
         }
     }
@@ -505,40 +502,211 @@ private fun SubscriptionActionButton(
 }
 
 @Composable
-fun SortBar(modifier: Modifier = Modifier) {
+fun SubscriptionStatusBar(
+    nodeCount: Int,
+    subscriptionInfo: SubscriptionInfo?,
+    isRefreshing: Boolean,
+    isPinging: Boolean,
+    canRefresh: Boolean,
+    canPing: Boolean,
+    onRefreshConfig: () -> Unit,
+    onRefreshPing: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = CoffemaniaColors.SurfaceContainer,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            CoffemaniaColors.OutlineVariant.copy(0.5f),
+            CoffemaniaColors.OutlineVariant.copy(alpha = 0.5f),
         ),
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Sort,
-                    contentDescription = null,
-                    tint = CoffemaniaColors.Outline,
-                    modifier = Modifier.size(20.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = nodeCount.toString(),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                    Text(
+                        text = "Серверов",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ConfigRefreshButton(
+                        isRefreshing = isRefreshing,
+                        enabled = canRefresh,
+                        onClick = onRefreshConfig,
+                    )
+                    PingTestButton(
+                        isPinging = isPinging,
+                        enabled = canPing,
+                        onClick = onRefreshPing,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (subscriptionInfo != null && subscriptionInfo.isUnlimitedTraffic) {
+                    Text(
+                        text = "∞",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(16.dp)
+                            .background(CoffemaniaColors.OutlineVariant),
+                    )
+                }
+
+                TrafficProgressBar(
+                    subscriptionInfo = subscriptionInfo,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+
                 Text(
-                    text = "Сортировка:",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = subscriptionInfo?.trafficLabel() ?: "— / —",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
-                text = "По пингу",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
+        }
+    }
+}
+
+@Composable
+private fun TrafficProgressBar(
+    subscriptionInfo: SubscriptionInfo?,
+    modifier: Modifier = Modifier,
+) {
+    val trackColor = CoffemaniaColors.OutlineVariant.copy(alpha = 0.35f)
+    val progressColor = MaterialTheme.colorScheme.secondary
+
+    if (subscriptionInfo == null) {
+        Box(
+            modifier = modifier
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(trackColor),
+        )
+        return
+    }
+
+    if (subscriptionInfo.isUnlimitedTraffic) {
+        Box(
+            modifier = modifier
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(trackColor),
+        ) {
+            if (subscriptionInfo.used > 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(0.08f)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(progressColor),
+                )
+            }
+        }
+        return
+    }
+
+    LinearProgressIndicator(
+        progress = { subscriptionInfo.usageFraction },
+        modifier = modifier
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp)),
+        color = progressColor,
+        trackColor = trackColor,
+    )
+}
+
+@Composable
+fun ConfigRefreshButton(
+    isRefreshing: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled && !isRefreshing,
+        modifier = modifier.size(48.dp),
+    ) {
+        if (isRefreshing) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                strokeWidth = 2.dp,
                 color = MaterialTheme.colorScheme.primary,
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Обновить конфиг",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+    }
+}
+
+@Composable
+fun PingTestButton(
+    isPinging: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled && !isPinging,
+        modifier = modifier.size(48.dp),
+    ) {
+        if (isPinging) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.Speed,
+                contentDescription = "Проверить пинг",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp),
             )
         }
     }

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import online.coffemaniavpn.client.data.AppPreferences
+import online.coffemaniavpn.client.data.PingState
 import online.coffemaniavpn.client.data.ProxyNode
+import online.coffemaniavpn.client.data.ServerPinger
+import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.data.SubscriptionRepository
 import online.coffemaniavpn.client.util.AppLog
 import online.coffemaniavpn.client.vpn.VpnManager
@@ -25,6 +29,9 @@ data class MainUiState(
     val selectedNodeId: String? = null,
     val vpnStatus: VpnStatus = VpnStatus.Stopped,
     val isLoading: Boolean = false,
+    val isPinging: Boolean = false,
+    val nodePings: Map<String, PingState> = emptyMap(),
+    val subscriptionInfo: SubscriptionInfo? = null,
     val message: String? = null,
     val error: String? = null,
     val startupCrash: String? = null,
@@ -37,9 +44,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val subscriptionUrlInput = MutableStateFlow("")
     private val isLoading = MutableStateFlow(false)
+    private val isPinging = MutableStateFlow(false)
+    private val nodePings = MutableStateFlow<Map<String, PingState>>(emptyMap())
     private val message = MutableStateFlow<String?>(null)
     private val error = MutableStateFlow<String?>(null)
-    private val startupCrash = MutableStateFlow(AppLog.readLastCrash())
+    private val startupCrash = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<MainUiState> = combine(
         combine(
@@ -50,9 +59,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 emit(emptyList())
             },
             preferences.selectedNodeId,
-        ) { savedUrl, nodes, selectedNodeId ->
+            preferences.subscriptionInfo,
+        ) { savedUrl, nodes, selectedNodeId, subscriptionInfo ->
             AppLog.i("prefs loaded urlLen=${savedUrl.length} nodes=${nodes.size}")
-            Triple(savedUrl, nodes, selectedNodeId)
+            SavedData(savedUrl, nodes, selectedNodeId, subscriptionInfo)
         },
         combine(
             VpnManager.status,
@@ -61,13 +71,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         ) { vpnStatus, vpnError, inputUrl ->
             Triple(vpnStatus, vpnError, inputUrl)
         },
-        combine(isLoading, message, error, startupCrash) { loading, info, localError, crash ->
-            Quad(loading, info, localError, crash)
+        combine(
+            isLoading,
+            isPinging,
+            nodePings,
+            message,
+            error,
+        ) { loading, pinging, pings, info, localError ->
+            LocalUiState(loading, pinging, pings, info, localError)
         },
-    ) { savedData, vpnData, localData ->
-        val (savedUrl, nodes, selectedNodeId) = savedData
+        startupCrash,
+    ) { savedData, vpnData, localData, crash ->
+        val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, inputUrl) = vpnData
-        val (loading, info, localError, crash) = localData
+        val (loading, pinging, pings, info, localError) = localData
 
         MainUiState(
             subscriptionUrl = inputUrl.ifBlank { savedUrl },
@@ -75,6 +92,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
             vpnStatus = vpnStatus,
             isLoading = loading,
+            isPinging = pinging,
+            nodePings = pings,
+            subscriptionInfo = subscriptionInfo,
             message = info,
             error = localError ?: vpnError,
             startupCrash = crash,
@@ -82,11 +102,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = MainUiState(startupCrash = AppLog.readLastCrash()),
+        initialValue = MainUiState(),
     )
 
     init {
         AppLog.i("MainViewModel init")
+        viewModelScope.launch(Dispatchers.IO) {
+            startupCrash.value = AppLog.readLastCrash()
+        }
         viewModelScope.launch {
             preferences.subscriptionUrl.collect { saved ->
                 if (subscriptionUrlInput.value.isBlank() && saved.isNotBlank()) {
@@ -96,14 +119,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun pingAllNodes() {
+        pingAllNodes(uiState.value.nodes)
+    }
+
+    private var pingJob: Job? = null
+
+    private fun pingAllNodes(nodes: List<ProxyNode>) {
+        if (nodes.isEmpty()) return
+
+        pingJob?.cancel()
+        pingJob = viewModelScope.launch(Dispatchers.IO) {
+            isPinging.value = true
+            nodePings.value = nodes.associate { it.id to PingState.Loading }
+            try {
+                ServerPinger.pingAll(nodes) { nodeId, state ->
+                    nodePings.value = nodePings.value + (nodeId to state)
+                }
+            } finally {
+                isPinging.value = false
+            }
+        }
+    }
+
     fun onSubscriptionUrlChange(value: String) {
         subscriptionUrlInput.value = value
     }
 
     fun refreshSubscription() {
-        val url = subscriptionUrlInput.value.trim()
+        refreshConfig(showUrlRequiredError = true)
+    }
+
+    fun refreshConfig(showUrlRequiredError: Boolean = false) {
+        val url = uiState.value.subscriptionUrl.trim()
+            .ifBlank { subscriptionUrlInput.value.trim() }
         if (url.isBlank()) {
-            error.value = "Введите URL подписки"
+            if (showUrlRequiredError) {
+                error.value = "Введите URL подписки"
+            }
             return
         }
 
@@ -112,19 +165,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             error.value = null
             message.value = null
             try {
-                AppLog.i("refreshSubscription start")
-                val nodes = withContext(Dispatchers.IO) {
-                    repository.fetchNodes(url)
+                AppLog.i("refreshConfig start")
+                val result = withContext(Dispatchers.IO) {
+                    repository.fetchSubscription(url)
                 }
                 val selected = uiState.value.selectedNodeId?.takeIf { id ->
-                    nodes.any { it.id == id }
-                } ?: nodes.first().id
-                preferences.saveSubscription(url, nodes, selected)
-                message.value = "Загружено серверов: ${nodes.size}"
-                AppLog.i("refreshSubscription ok, nodes=${nodes.size}")
+                    result.nodes.any { it.id == id }
+                } ?: result.nodes.first().id
+                preferences.saveSubscription(url, result.nodes, selected, result.info)
+                message.value = "Конфиг обновлён: ${result.nodes.size} серверов"
+                AppLog.i("refreshConfig ok, nodes=${result.nodes.size} info=${result.info}")
             } catch (e: Exception) {
-                AppLog.e("refreshSubscription failed", e)
-                error.value = e.message ?: "Не удалось загрузить подписку"
+                AppLog.e("refreshConfig failed", e)
+                error.value = e.message ?: "Не удалось обновить конфиг"
             } finally {
                 isLoading.value = false
             }
@@ -156,10 +209,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return state.nodes.find { it.id == state.selectedNodeId }
     }
 
-    private data class Quad<A, B, C, D>(
-        val first: A,
-        val second: B,
-        val third: C,
-        val fourth: D,
+    private data class SavedData(
+        val subscriptionUrl: String,
+        val nodes: List<ProxyNode>,
+        val selectedNodeId: String?,
+        val subscriptionInfo: SubscriptionInfo?,
+    )
+
+    private data class LocalUiState(
+        val isLoading: Boolean,
+        val isPinging: Boolean,
+        val nodePings: Map<String, PingState>,
+        val message: String?,
+        val error: String?,
     )
 }

@@ -30,20 +30,19 @@ class App : Application() {
         AppLog.installCrashHandler(Thread.getDefaultUncaughtExceptionHandler())
         AppLog.i("Application.onCreate start, version=${BuildConfig.VERSION_NAME}")
 
-        setupLibboxLocale()
+        applicationScope.launch(Dispatchers.IO) {
+            setupLibboxLocale()
+            val baseDir = filesDir.apply { mkdirs() }
+            val workingDir = getExternalFilesDir(null)?.apply { mkdirs() }
+            val tempDir = cacheDir.apply { mkdirs() }
 
-        val baseDir = filesDir.apply { mkdirs() }
-        val workingDir = getExternalFilesDir(null)?.apply { mkdirs() }
-        val tempDir = cacheDir.apply { mkdirs() }
+            AppLog.i("dirs base=$baseDir working=$workingDir temp=$tempDir")
 
-        AppLog.i("dirs base=$baseDir working=$workingDir temp=$tempDir")
-
-        if (workingDir != null) {
-            applicationScope.launch(Dispatchers.IO) {
+            if (workingDir != null) {
                 setupLibbox(baseDir, workingDir, tempDir)
+            } else {
+                AppLog.e("workingDir is null, libbox setup skipped")
             }
-        } else {
-            AppLog.e("workingDir is null, libbox setup skipped")
         }
     }
 

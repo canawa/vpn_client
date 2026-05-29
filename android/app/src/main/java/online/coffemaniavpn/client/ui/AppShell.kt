@@ -48,6 +48,8 @@ fun AppShell(
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onShowLogs: () -> Unit,
+    onRefreshPing: () -> Unit,
+    onRefreshConfig: () -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
     var showPasteDialog by remember { mutableStateOf(false) }
@@ -55,7 +57,9 @@ fun AppShell(
     val context = LocalContext.current
 
     val selectedNode = state.nodes.find { it.id == state.selectedNodeId }
-    val selectedDisplay = selectedNode?.let { ServerDisplayMapper.map(it) }
+    val selectedDisplay = selectedNode?.let {
+        ServerDisplayMapper.map(it, state.nodePings[it.id])
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -115,9 +119,16 @@ fun AppShell(
                 modifier = Modifier.padding(padding),
                 nodes = state.nodes,
                 selectedNodeId = state.selectedNodeId,
+                nodePings = state.nodePings,
+                subscriptionInfo = state.subscriptionInfo,
+                isRefreshing = state.isLoading,
+                isPinging = state.isPinging,
+                canRefreshConfig = state.subscriptionUrl.isNotBlank(),
                 enabled = state.vpnStatus != online.coffemaniavpn.client.vpn.VpnStatus.Starting &&
                     state.vpnStatus != online.coffemaniavpn.client.vpn.VpnStatus.Stopping,
                 onSelectNode = onSelectNode,
+                onRefreshConfig = onRefreshConfig,
+                onRefreshPing = onRefreshPing,
             )
         }
     }

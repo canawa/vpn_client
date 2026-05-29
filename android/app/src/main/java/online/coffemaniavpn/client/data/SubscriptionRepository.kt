@@ -10,7 +10,7 @@ class SubscriptionRepository(
         .readTimeout(20, TimeUnit.SECONDS)
         .build(),
 ) {
-    fun fetchNodes(url: String): List<ProxyNode> {
+    fun fetchSubscription(url: String): SubscriptionFetchResult {
         val request = Request.Builder()
             .url(url.trim())
             .header("User-Agent", "v2rayNG/1.8.29")
@@ -23,9 +23,17 @@ class SubscriptionRepository(
             val body = response.body?.string()?.trim().orEmpty()
             if (body.isBlank()) error("Пустой ответ подписки")
 
-            return SubscriptionParser.parse(body).also { nodes ->
-                if (nodes.isEmpty()) error("В подписке нет поддерживаемых серверов")
+            val nodes = SubscriptionParser.parse(body).also { parsed ->
+                if (parsed.isEmpty()) error("В подписке нет поддерживаемых серверов")
             }
+
+            val info = response.header("subscription-userinfo")
+                ?.let(SubscriptionInfoParser::parseHeader)
+                ?: SubscriptionInfoParser.parseFromBody(body)
+
+            return SubscriptionFetchResult(nodes = nodes, info = info)
         }
     }
+
+    fun fetchNodes(url: String): List<ProxyNode> = fetchSubscription(url).nodes
 }

@@ -67,6 +67,8 @@ class MainActivity : ComponentActivity() {
                         onConnectClick = ::requestConnect,
                         onDisconnectClick = VpnManager::disconnect,
                         onShowLogs = { showLogs = true },
+                        onRefreshPing = viewModel::pingAllNodes,
+                        onRefreshConfig = viewModel::refreshConfig,
                     )
 
                     if (showLogs) {
@@ -77,6 +79,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+            reportFullyDrawn()
             AppLog.i("MainActivity setContent ok")
         } catch (t: Throwable) {
             AppLog.e("MainActivity.onCreate failed", t)
