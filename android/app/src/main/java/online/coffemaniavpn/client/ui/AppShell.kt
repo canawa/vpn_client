@@ -3,6 +3,7 @@ package online.coffemaniavpn.client.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,11 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -68,20 +68,25 @@ fun AppShell(
             ) {
                 CoffemaniaTopBar(
                     title = if (selectedTab == AppTab.Home) "КОФЕМАНИЯ ВПН" else "Серверы",
+                    settingsMenuExpanded = showSettingsMenu,
                     onSettingsClick = { showSettingsMenu = true },
-                )
-                SettingsMenu(
-                    expanded = showSettingsMenu,
-                    onDismiss = { showSettingsMenu = false },
-                    onRefresh = {
-                        showSettingsMenu = false
-                        onRefreshSubscription()
+                    onSettingsMenuDismiss = { showSettingsMenu = false },
+                    settingsMenuContent = {
+                        SettingsMenuItems(
+                            onPasteLink = {
+                                showSettingsMenu = false
+                                onPasteLinkClick()
+                            },
+                            onRefresh = {
+                                showSettingsMenu = false
+                                onRefreshSubscription()
+                            },
+                            onLogs = {
+                                showSettingsMenu = false
+                                onShowLogs()
+                            },
+                        )
                     },
-                    onLogs = {
-                        showSettingsMenu = false
-                        onShowLogs()
-                    },
-                    modifier = Modifier.align(Alignment.TopEnd),
                 )
             }
         },
@@ -130,29 +135,26 @@ fun AppShell(
 }
 
 @Composable
-private fun SettingsMenu(
-    expanded: Boolean,
-    onDismiss: () -> Unit,
+private fun ColumnScope.SettingsMenuItems(
+    onPasteLink: () -> Unit,
     onRefresh: () -> Unit,
     onLogs: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismiss,
-        modifier = modifier.padding(top = 48.dp, end = 16.dp),
-    ) {
-        DropdownMenuItem(
-            text = { Text("Обновить подписку") },
-            onClick = onRefresh,
-            leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
-        )
-        DropdownMenuItem(
-            text = { Text("Логи") },
-            onClick = onLogs,
-            leadingIcon = { Icon(Icons.Default.BugReport, contentDescription = null) },
-        )
-    }
+    DropdownMenuItem(
+        text = { Text("Вставить ссылку") },
+        onClick = onPasteLink,
+        leadingIcon = { Icon(Icons.Default.ContentPaste, contentDescription = null) },
+    )
+    DropdownMenuItem(
+        text = { Text("Обновить подписку") },
+        onClick = onRefresh,
+        leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+    )
+    DropdownMenuItem(
+        text = { Text("Логи") },
+        onClick = onLogs,
+        leadingIcon = { Icon(Icons.Default.BugReport, contentDescription = null) },
+    )
 }
 
 @Composable

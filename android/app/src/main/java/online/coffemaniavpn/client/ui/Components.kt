@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -45,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.vpn.VpnStatus
 
@@ -53,7 +56,10 @@ enum class AppTab { Home, Servers }
 @Composable
 fun CoffemaniaTopBar(
     title: String,
+    settingsMenuExpanded: Boolean,
     onSettingsClick: () -> Unit,
+    onSettingsMenuDismiss: () -> Unit,
+    settingsMenuContent: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -80,12 +86,36 @@ fun CoffemaniaTopBar(
                     color = CoffemaniaColors.Espresso,
                 )
             }
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Настройки",
-                    tint = CoffemaniaColors.Espresso,
-                )
+            Box {
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Настройки",
+                        tint = CoffemaniaColors.Espresso,
+                    )
+                }
+                if (settingsMenuExpanded) {
+                    Popup(
+                        alignment = Alignment.BottomEnd,
+                        onDismissRequest = onSettingsMenuDismiss,
+                        properties = PopupProperties(focusable = true),
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = CoffemaniaColors.Cappuccino,
+                            shadowElevation = 4.dp,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                CoffemaniaColors.Latte,
+                            ),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                content = settingsMenuContent,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
