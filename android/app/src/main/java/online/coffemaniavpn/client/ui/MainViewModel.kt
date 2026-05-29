@@ -29,6 +29,7 @@ data class MainUiState(
     val nodes: List<ProxyNode> = emptyList(),
     val selectedNodeId: String? = null,
     val vpnStatus: VpnStatus = VpnStatus.Stopped,
+    val connectionElapsedMs: Long = 0L,
     val isLoading: Boolean = false,
     val isPinging: Boolean = false,
     val nodePings: Map<String, PingState> = emptyMap(),
@@ -68,9 +69,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         combine(
             VpnManager.status,
             VpnManager.lastError,
+            VpnManager.connectionElapsedMs,
             subscriptionUrlInput,
-        ) { vpnStatus, vpnError, inputUrl ->
-            Triple(vpnStatus, vpnError, inputUrl)
+        ) { vpnStatus, vpnError, elapsedMs, inputUrl ->
+            VpnUiState(vpnStatus, vpnError, elapsedMs, inputUrl)
         },
         combine(
             isLoading,
@@ -84,7 +86,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         startupCrash,
     ) { savedData, vpnData, localData, crash ->
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
-        val (vpnStatus, vpnError, inputUrl) = vpnData
+        val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
 
         MainUiState(
@@ -92,6 +94,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             nodes = nodes,
             selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
             vpnStatus = vpnStatus,
+            connectionElapsedMs = connectionElapsedMs,
             isLoading = loading,
             isPinging = pinging,
             nodePings = pings,
@@ -220,6 +223,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val state = uiState.value
         return state.nodes.find { it.id == state.selectedNodeId }
     }
+
+    private data class VpnUiState(
+        val vpnStatus: VpnStatus,
+        val vpnError: String?,
+        val connectionElapsedMs: Long,
+        val inputUrl: String,
+    )
 
     private data class SavedData(
         val subscriptionUrl: String,

@@ -34,11 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,7 +45,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.vpn.VpnStatus
 
@@ -175,37 +169,15 @@ private fun BottomNavItem(
 @Composable
 fun BrewConnectButton(
     vpnStatus: VpnStatus,
+    connectionElapsedMs: Long,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isConnected = vpnStatus == VpnStatus.Started
     val isBusy = vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping
-
-    var sessionStartMs by remember { mutableLongStateOf(0L) }
-    var elapsedMs by remember { mutableLongStateOf(0L) }
-
-    LaunchedEffect(vpnStatus) {
-        when (vpnStatus) {
-            VpnStatus.Started -> {
-                if (sessionStartMs == 0L) {
-                    sessionStartMs = System.currentTimeMillis()
-                }
-            }
-            else -> {
-                sessionStartMs = 0L
-                elapsedMs = 0L
-            }
-        }
-    }
-
-    LaunchedEffect(vpnStatus, sessionStartMs) {
-        if (vpnStatus != VpnStatus.Started || sessionStartMs == 0L) return@LaunchedEffect
-        while (true) {
-            elapsedMs = System.currentTimeMillis() - sessionStartMs
-            delay(1_000)
-        }
-    }
+    val innerFill =
+        if (isConnected) CoffemaniaColors.Cappuccino else CoffemaniaColors.MilkFoam
 
     Column(
         modifier = modifier,
@@ -225,7 +197,7 @@ fun BrewConnectButton(
                 modifier = Modifier
                     .matchParentSize()
                     .clip(CircleShape)
-                    .background(CoffemaniaColors.MilkFoam)
+                    .background(innerFill)
                     .border(1.5.dp, CoffemaniaColors.Latte, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
@@ -246,7 +218,7 @@ fun BrewConnectButton(
         Spacer(modifier = Modifier.height(48.dp))
         if (isConnected) {
             Text(
-                text = formatConnectionDuration(elapsedMs),
+                text = formatConnectionDuration(connectionElapsedMs),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = CoffemaniaColors.Mocha,
@@ -498,7 +470,7 @@ private fun SubscriptionActionButton(
     Surface(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
-        color = CoffemaniaColors.Latte,
+        color = CoffemaniaColors.MilkFoam,
     ) {
         Row(
             modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),

@@ -60,6 +60,7 @@ fun HomeScreen(
 
         BrewConnectButton(
             vpnStatus = state.vpnStatus,
+            connectionElapsedMs = state.connectionElapsedMs,
             enabled = state.nodes.isNotEmpty(),
             onClick = {
                 if (isConnected) onDisconnectClick() else onConnectClick()

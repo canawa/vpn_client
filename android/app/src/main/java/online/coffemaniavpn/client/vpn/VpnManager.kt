@@ -1,7 +1,10 @@
 package online.coffemaniavpn.client.vpn
 
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import online.coffemaniavpn.client.App
 import online.coffemaniavpn.client.data.ProxyNode
 import online.coffemaniavpn.client.data.SingBoxConfigBuilder
@@ -14,8 +17,44 @@ object VpnManager {
     private val _lastError = MutableStateFlow<String?>(null)
     val lastError = _lastError.asStateFlow()
 
+    private val _connectionElapsedMs = MutableStateFlow(0L)
+    val connectionElapsedMs = _connectionElapsedMs.asStateFlow()
+
+    private var connectedSinceMs: Long? = null
+    private var elapsedTickerJob: Job? = null
+
     internal fun setStatus(value: VpnStatus) {
+        when (value) {
+            VpnStatus.Started -> {
+                if (connectedSinceMs == null) {
+                    connectedSinceMs = System.currentTimeMillis()
+                }
+                startElapsedTicker()
+            }
+            VpnStatus.Stopped -> {
+                connectedSinceMs = null
+                _connectionElapsedMs.value = 0L
+                stopElapsedTicker()
+            }
+            else -> Unit
+        }
         _status.value = value
+    }
+
+    private fun startElapsedTicker() {
+        stopElapsedTicker()
+        elapsedTickerJob = App.applicationScope.launch {
+            while (connectedSinceMs != null) {
+                val since = connectedSinceMs ?: break
+                _connectionElapsedMs.value = System.currentTimeMillis() - since
+                delay(1_000)
+            }
+        }
+    }
+
+    private fun stopElapsedTicker() {
+        elapsedTickerJob?.cancel()
+        elapsedTickerJob = null
     }
 
     internal fun setError(message: String?) {
