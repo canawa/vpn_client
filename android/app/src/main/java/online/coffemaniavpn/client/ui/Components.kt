@@ -176,8 +176,6 @@ fun BrewConnectButton(
 ) {
     val isConnected = vpnStatus == VpnStatus.Started
     val isBusy = vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping
-    val innerFill =
-        if (isConnected) CoffemaniaColors.Cappuccino else CoffemaniaColors.MilkFoam
 
     Column(
         modifier = modifier,
@@ -197,7 +195,7 @@ fun BrewConnectButton(
                 modifier = Modifier
                     .matchParentSize()
                     .clip(CircleShape)
-                    .background(innerFill)
+                    .background(CoffemaniaColors.MilkFoam)
                     .border(1.5.dp, CoffemaniaColors.Latte, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
