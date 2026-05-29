@@ -7,58 +7,67 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 object CoffemaniaColors {
-    // Фоны
-    val Surface = Color(0xFFFEF8F5)
-    val SurfaceBright = Color(0xFFFEF8F5)
-    val SurfaceDim = Color(0xFFDED9D6)
-    val SurfaceContainer = Color(0xFFF4EEEB)
-    val SurfaceContainerLow = Color(0xFFF8F2EF)
+    /** Молочная пена — основной фон */
+    val MilkFoam = Color(0xFFEDE0D8)
 
-    // Акценты и текст
-    val Primary = Color(0xFF422C26)
-    val OnPrimary = Color(0xFFFEF8F5)
-    val OnSurface = Color(0xFF201A18)
-    val OnSurfaceVariant = Color(0xFF52443D)
-    val Outline = Color(0xFF85736B)
+    /** Эспрессо — заголовки, иконки, акцентный текст */
+    val Espresso = Color(0xFF3D1C1C)
 
-    // Дополнительные
-    val SecondaryContainer = Color(0xFFFCE0D4)
-    val Tertiary = Color(0xFF5C6239)
+    /** Мокко — подписи, неактивные элементы */
+    val Mocha = Color(0xFFB09080)
 
-    val Background = Surface
-    val OnBackground = OnSurface
-    val SurfaceVariant = SurfaceDim
-    val SurfaceContainerLowest = SurfaceBright
-    val SurfaceContainerHigh = SurfaceContainerLow
-    val SurfaceContainerHighest = SurfaceDim
+    /** Капучино — карточки, tab bar, внешний круг кнопки */
+    val Cappuccino = Color(0xFFDDD0C8)
 
-    val PrimaryContainer = Color(0xFFFCE0D4)
-    val OnPrimaryContainer = Primary
-    val PrimaryFixedDim = Color(0xFF6B4E45)
+    /** Латте — обводки, кнопки в карточках, фон активной вкладки */
+    val Latte = Color(0xFFC8B8A8)
 
-    val Secondary = Outline
-    val OnSecondary = SurfaceBright
-    val OnSecondaryContainer = OnSurfaceVariant
+    val Background = MilkFoam
+    val OnBackground = Espresso
+    val Primary = Espresso
+    val OnPrimary = MilkFoam
+    val OnSurface = Espresso
+    val OnSurfaceVariant = Mocha
 
-    val TertiaryContainer = Color(0xFFE8EBD4)
-    val OnTertiary = SurfaceBright
-    val OnTertiaryContainer = Tertiary
+    val Surface = MilkFoam
+    val SurfaceBright = MilkFoam
+    val SurfaceDim = Cappuccino
+    val SurfaceContainer = Cappuccino
+    val SurfaceContainerLow = Cappuccino
+    val SurfaceContainerLowest = Cappuccino
+    val SurfaceContainerHigh = MilkFoam
+    val SurfaceContainerHighest = Latte
+    val SurfaceVariant = Cappuccino
 
-    val OutlineVariant = Color(0xFFDED9D6)
+    val Outline = Latte
+    val OutlineVariant = Latte
+
+    val PrimaryContainer = Latte
+    val OnPrimaryContainer = Espresso
+    val PrimaryFixedDim = Latte
+
+    val Secondary = Mocha
+    val OnSecondary = MilkFoam
+    val SecondaryContainer = Latte
+    val OnSecondaryContainer = Espresso
+
+    val Tertiary = Espresso
+    val OnTertiary = MilkFoam
+    val TertiaryContainer = Latte
+    val OnTertiaryContainer = Espresso
 
     val Error = Color(0xFFBA1A1A)
-    val OnError = SurfaceBright
+    val OnError = MilkFoam
     val ErrorContainer = Color(0xFFFFDAD6)
     val OnErrorContainer = Color(0xFF93000A)
 }
 
 data class CoffemaniaExtraColors(
-    val surfaceContainerLow: Color = CoffemaniaColors.SurfaceContainerLow,
-    val surfaceContainerLowest: Color = CoffemaniaColors.SurfaceContainerLowest,
-    val surfaceContainerHigh: Color = CoffemaniaColors.SurfaceContainerHigh,
-    val primaryFixedDim: Color = CoffemaniaColors.PrimaryFixedDim,
-    val surfaceDim: Color = CoffemaniaColors.SurfaceDim,
-    val surfaceBright: Color = CoffemaniaColors.SurfaceBright,
+    val milkFoam: Color = CoffemaniaColors.MilkFoam,
+    val espresso: Color = CoffemaniaColors.Espresso,
+    val mocha: Color = CoffemaniaColors.Mocha,
+    val cappuccino: Color = CoffemaniaColors.Cappuccino,
+    val latte: Color = CoffemaniaColors.Latte,
 )
 
 val LocalCoffemaniaExtraColors = staticCompositionLocalOf { CoffemaniaExtraColors() }

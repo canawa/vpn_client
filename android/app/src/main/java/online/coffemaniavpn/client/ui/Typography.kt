@@ -10,19 +10,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 private val TextShadowSoft = Shadow(
-    color = Color(0x2E201A18),
+    color = Color(0x2E3D1C1C),
     offset = Offset(0f, 1f),
     blurRadius = 2.5f,
 )
 
 private val TextShadowMedium = Shadow(
-    color = Color(0x40201A18),
+    color = Color(0x403D1C1C),
     offset = Offset(0f, 1.5f),
     blurRadius = 3.5f,
 )
 
 private val TextShadowStrong = Shadow(
-    color = Color(0x52201A18),
+    color = Color(0x523D1C1C),
     offset = Offset(0f, 2f),
     blurRadius = 4.5f,
 )

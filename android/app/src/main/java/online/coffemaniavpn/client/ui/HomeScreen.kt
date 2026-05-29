@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import online.coffemaniavpn.client.vpn.VpnStatus
 
@@ -52,7 +53,8 @@ fun HomeScreen(
             Text(
                 text = statusHeadline(state.vpnStatus),
                 style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                color = CoffemaniaColors.Espresso,
             )
         }
 
@@ -86,7 +88,7 @@ fun HomeScreen(
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    color = CoffemaniaColors.Mocha,
                     modifier = Modifier.padding(top = 12.dp, start = 8.dp),
                 )
             }

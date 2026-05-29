@@ -58,7 +58,7 @@ fun AppShell(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = CoffemaniaColors.Background,
+        containerColor = CoffemaniaColors.MilkFoam,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             Box(

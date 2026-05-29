@@ -64,7 +64,7 @@ fun CoffemaniaTopBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
+        color = CoffemaniaColors.MilkFoam,
         shadowElevation = 0.dp,
     ) {
         Row(
@@ -79,18 +79,18 @@ fun CoffemaniaTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                CoffeeLogo(modifier = Modifier.size(28.dp))
+                CoffeeLogo(modifier = Modifier.size(28.dp), tint = CoffemaniaColors.Espresso)
                 Text(
                     text = title,
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = CoffemaniaColors.Espresso,
                 )
             }
             IconButton(onClick = onSettingsClick) {
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Настройки",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = CoffemaniaColors.Espresso,
                 )
             }
         }
@@ -105,7 +105,7 @@ fun CoffemaniaBottomBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = CoffemaniaColors.SurfaceContainer,
+        color = CoffemaniaColors.Cappuccino,
         shadowElevation = 8.dp,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
@@ -139,12 +139,8 @@ private fun BottomNavItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     useCoffeeLogo: Boolean = false,
 ) {
-    val bg = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-    val fg = if (selected) {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val bg = if (selected) CoffemaniaColors.Latte else Color.Transparent
+    val fg = if (selected) CoffemaniaColors.Espresso else CoffemaniaColors.Mocha
 
     Column(
         modifier = Modifier
@@ -155,7 +151,10 @@ private fun BottomNavItem(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (useCoffeeLogo) {
-            CoffeeLogo(modifier = Modifier.size(24.dp))
+            CoffeeLogo(
+                modifier = Modifier.size(24.dp),
+                tint = fg,
+            )
         } else {
             Icon(
                 imageVector = icon ?: Icons.Default.Home,
@@ -208,9 +207,6 @@ fun BrewConnectButton(
         }
     }
 
-    val outerBorder = if (isConnected) MaterialTheme.colorScheme.primary else CoffemaniaColors.OutlineVariant
-    val innerBg = if (isConnected) CoffemaniaColors.SurfaceContainerHigh else CoffemaniaColors.SurfaceContainerLow
-
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -219,26 +215,31 @@ fun BrewConnectButton(
             modifier = Modifier
                 .size(192.dp)
                 .clip(CircleShape)
-                .border(2.dp, outerBorder, CircleShape)
+                .background(CoffemaniaColors.Cappuccino)
+                .border(2.dp, CoffemaniaColors.Latte, CircleShape)
                 .clickable(enabled = enabled && !isBusy, onClick = onClick)
-                .padding(8.dp),
+                .padding(12.dp),
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
                     .clip(CircleShape)
-                    .background(innerBg),
+                    .background(CoffemaniaColors.MilkFoam)
+                    .border(1.5.dp, CoffemaniaColors.Latte, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 if (isBusy) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(48.dp),
-                        color = MaterialTheme.colorScheme.tertiary,
+                        color = CoffemaniaColors.Espresso,
                         strokeWidth = 3.dp,
                     )
                 } else {
-                    CoffeeLogo(modifier = Modifier.size(88.dp))
+                    CoffeeLogo(
+                        modifier = Modifier.size(88.dp),
+                        tint = CoffemaniaColors.Espresso,
+                    )
                 }
             }
         }
@@ -248,7 +249,7 @@ fun BrewConnectButton(
                 text = formatConnectionDuration(elapsedMs),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = CoffemaniaColors.Mocha,
             )
         }
     }
@@ -277,11 +278,8 @@ fun SelectedServerCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        color = CoffemaniaColors.SurfaceContainerLow,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            CoffemaniaColors.OutlineVariant.copy(alpha = 0.3f),
-        ),
+        color = CoffemaniaColors.Cappuccino,
+        border = androidx.compose.foundation.BorderStroke(1.dp, CoffemaniaColors.Latte),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -299,7 +297,7 @@ fun SelectedServerCard(
                         text = display.title,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = CoffemaniaColors.Espresso,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -307,7 +305,7 @@ fun SelectedServerCard(
                         Text(
                             text = display.subtitle,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = CoffemaniaColors.Mocha,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -317,7 +315,7 @@ fun SelectedServerCard(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = CoffemaniaColors.Espresso,
             )
         }
     }
@@ -330,8 +328,8 @@ fun ServerListCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bg = if (selected) CoffemaniaColors.SurfaceVariant else CoffemaniaColors.SurfaceContainer
-    val borderColor = if (selected) CoffemaniaColors.PrimaryFixedDim else CoffemaniaColors.OutlineVariant.copy(0.3f)
+    val bg = CoffemaniaColors.Cappuccino
+    val borderColor = if (selected) CoffemaniaColors.Espresso else CoffemaniaColors.Latte
 
     Surface(
         modifier = modifier
@@ -357,7 +355,7 @@ fun ServerListCard(
                         text = display.title,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        color = CoffemaniaColors.Espresso,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -368,8 +366,8 @@ fun ServerListCard(
                     ) {
                         ProtocolBadge(
                             text = display.protocolLabel,
-                            bg = MaterialTheme.colorScheme.secondaryContainer,
-                            fg = MaterialTheme.colorScheme.onSecondaryContainer,
+                            bg = CoffemaniaColors.Latte,
+                            fg = CoffemaniaColors.Espresso,
                         )
                         if (display.subtitle.isNotBlank()) {
                             Text(
@@ -378,7 +376,7 @@ fun ServerListCard(
                                     fontWeight = FontWeight.Normal,
                                     letterSpacing = 0.sp,
                                 ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = CoffemaniaColors.Mocha,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -391,12 +389,12 @@ fun ServerListCard(
                     text = display.pingText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = CoffemaniaColors.Mocha,
                 )
                 display.pingMs?.let { pingMs ->
                     PingSparkline(
                         seed = pingMs,
-                        color = if (selected) MaterialTheme.colorScheme.tertiary else CoffemaniaColors.Outline,
+                        color = CoffemaniaColors.Mocha,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
@@ -442,7 +440,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = CoffemaniaColors.Mocha,
         modifier = modifier.padding(start = 8.dp, bottom = 8.dp),
     )
 }
@@ -456,11 +454,8 @@ fun SubscriptionCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = CoffemaniaColors.SurfaceContainerLowest,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            CoffemaniaColors.OutlineVariant.copy(0.5f),
-        ),
+        color = CoffemaniaColors.Cappuccino,
+        border = androidx.compose.foundation.BorderStroke(1.dp, CoffemaniaColors.Latte),
         shadowElevation = 1.dp,
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -468,7 +463,7 @@ fun SubscriptionCard(
                 text = "Добавить подписку",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
+                color = CoffemaniaColors.Espresso,
             )
             Row(
                 modifier = Modifier
@@ -503,7 +498,7 @@ private fun SubscriptionActionButton(
     Surface(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
-        color = CoffemaniaColors.SurfaceContainerHigh,
+        color = CoffemaniaColors.Latte,
     ) {
         Row(
             modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
@@ -513,14 +508,14 @@ private fun SubscriptionActionButton(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = CoffemaniaColors.Espresso,
                 modifier = Modifier.size(16.dp),
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = CoffemaniaColors.Espresso,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -543,11 +538,8 @@ fun SubscriptionStatusBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = CoffemaniaColors.SurfaceContainer,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            CoffemaniaColors.OutlineVariant.copy(alpha = 0.5f),
-        ),
+        color = CoffemaniaColors.Cappuccino,
+        border = androidx.compose.foundation.BorderStroke(1.dp, CoffemaniaColors.Latte),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -566,20 +558,20 @@ fun SubscriptionStatusBar(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                            .background(CoffemaniaColors.Latte),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = nodeCount.toString(),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = CoffemaniaColors.Espresso,
                         )
                     }
                     Text(
                         text = "Серверов",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = CoffemaniaColors.Mocha,
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -605,13 +597,13 @@ fun SubscriptionStatusBar(
                     Text(
                         text = "∞",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = CoffemaniaColors.Espresso,
                     )
                     Box(
                         modifier = Modifier
                             .width(1.dp)
                             .height(16.dp)
-                            .background(CoffemaniaColors.OutlineVariant),
+                            .background(CoffemaniaColors.Latte),
                     )
                 }
 
@@ -624,7 +616,7 @@ fun SubscriptionStatusBar(
                     text = subscriptionInfo?.trafficLabel() ?: "— / —",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = CoffemaniaColors.Mocha,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -638,8 +630,8 @@ private fun TrafficProgressBar(
     subscriptionInfo: SubscriptionInfo?,
     modifier: Modifier = Modifier,
 ) {
-    val trackColor = CoffemaniaColors.OutlineVariant.copy(alpha = 0.35f)
-    val progressColor = MaterialTheme.colorScheme.tertiary
+    val trackColor = CoffemaniaColors.MilkFoam
+    val progressColor = CoffemaniaColors.Espresso
 
     if (subscriptionInfo == null) {
         Box(
@@ -697,13 +689,13 @@ fun ConfigRefreshButton(
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
                 strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
+                color = CoffemaniaColors.Espresso,
             )
         } else {
             Icon(
                 imageVector = Icons.Default.Refresh,
                 contentDescription = "Обновить конфиг",
-                tint = MaterialTheme.colorScheme.primary,
+                tint = CoffemaniaColors.Espresso,
                 modifier = Modifier.size(28.dp),
             )
         }
@@ -726,13 +718,13 @@ fun PingTestButton(
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
                 strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
+                color = CoffemaniaColors.Espresso,
             )
         } else {
             Icon(
                 imageVector = Icons.Default.Speed,
                 contentDescription = "Проверить пинг",
-                tint = MaterialTheme.colorScheme.primary,
+                tint = CoffemaniaColors.Espresso,
                 modifier = Modifier.size(28.dp),
             )
         }

@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
@@ -18,6 +20,7 @@ import online.coffemaniavpn.client.R
 @Composable
 fun CoffeeLogo(
     modifier: Modifier = Modifier,
+    tint: Color = CoffemaniaColors.Espresso,
     contentDescription: String? = "КОФЕМАНИЯ ВПН",
 ) {
     Image(
@@ -25,6 +28,7 @@ fun CoffeeLogo(
         contentDescription = contentDescription,
         modifier = modifier,
         contentScale = ContentScale.Fit,
+        colorFilter = ColorFilter.tint(tint),
     )
 }
 
@@ -38,7 +42,7 @@ fun CoffeeLogoAvatar(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(CoffemaniaColors.SurfaceVariant),
+            .background(CoffemaniaColors.Cappuccino),
         contentAlignment = Alignment.Center,
     ) {
         CoffeeLogo(modifier = Modifier.size(size * logoScale))
