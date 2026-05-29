@@ -34,6 +34,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.vpn.VpnStatus
 
@@ -177,6 +183,31 @@ fun BrewConnectButton(
     val isConnected = vpnStatus == VpnStatus.Started
     val isBusy = vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping
 
+    var sessionStartMs by remember { mutableLongStateOf(0L) }
+    var elapsedMs by remember { mutableLongStateOf(0L) }
+
+    LaunchedEffect(vpnStatus) {
+        when (vpnStatus) {
+            VpnStatus.Started -> {
+                if (sessionStartMs == 0L) {
+                    sessionStartMs = System.currentTimeMillis()
+                }
+            }
+            else -> {
+                sessionStartMs = 0L
+                elapsedMs = 0L
+            }
+        }
+    }
+
+    LaunchedEffect(vpnStatus, sessionStartMs) {
+        if (vpnStatus != VpnStatus.Started || sessionStartMs == 0L) return@LaunchedEffect
+        while (true) {
+            elapsedMs = System.currentTimeMillis() - sessionStartMs
+            delay(1_000)
+        }
+    }
+
     val outerBorder = if (isConnected) MaterialTheme.colorScheme.primary else CoffemaniaColors.OutlineVariant
     val innerBg = if (isConnected) CoffemaniaColors.SurfaceContainerHigh else CoffemaniaColors.SurfaceContainerLow
 
@@ -212,15 +243,26 @@ fun BrewConnectButton(
             }
         }
         Spacer(modifier = Modifier.height(48.dp))
-        Text(
-            text = when {
-                isConnected -> "Отключить"
-                isBusy -> statusLabel(vpnStatus)
-                else -> "Подключить"
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (isConnected) {
+            Text(
+                text = formatConnectionDuration(elapsedMs),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun formatConnectionDuration(elapsedMs: Long): String {
+    val totalSeconds = (elapsedMs / 1_000).coerceAtLeast(0)
+    val hours = totalSeconds / 3_600
+    val minutes = (totalSeconds % 3_600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%02d:%02d", minutes, seconds)
     }
 }
 
@@ -422,18 +464,12 @@ fun SubscriptionCard(
         shadowElevation = 1.dp,
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                CoffeeLogo(modifier = Modifier.size(22.dp))
-                Text(
-                    text = "Добавить подписку",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
+            Text(
+                text = "Добавить подписку",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -708,10 +744,4 @@ fun statusHeadline(vpnStatus: VpnStatus): String = when (vpnStatus) {
     VpnStatus.Starting -> "Подключение…"
     VpnStatus.Started -> "Подключено"
     VpnStatus.Stopping -> "Отключение…"
-}
-
-private fun statusLabel(vpnStatus: VpnStatus): String = when (vpnStatus) {
-    VpnStatus.Starting -> "Подключение…"
-    VpnStatus.Stopping -> "Отключение…"
-    else -> "Подключить"
 }
