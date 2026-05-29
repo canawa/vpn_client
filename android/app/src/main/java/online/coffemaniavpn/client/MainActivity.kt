@@ -14,9 +14,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import online.coffemaniavpn.client.ktx.hasPermission
+import online.coffemaniavpn.client.ui.AppShell
 import online.coffemaniavpn.client.ui.CoffemaniaTheme
 import online.coffemaniavpn.client.ui.LogsDialog
-import online.coffemaniavpn.client.ui.MainScreen
 import online.coffemaniavpn.client.ui.MainViewModel
 import online.coffemaniavpn.client.util.AppLog
 import online.coffemaniavpn.client.vpn.VpnManager
@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
                     var showLogs by remember { mutableStateOf(false) }
                     val state by viewModel.uiState.collectAsState()
 
-                    MainScreen(
+                    AppShell(
                         state = state,
                         onSubscriptionUrlChange = viewModel::onSubscriptionUrlChange,
                         onRefreshSubscription = viewModel::refreshSubscription,
