@@ -90,7 +90,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val (loading, pinging, pings, info, localError) = localData
 
         MainUiState(
-            subscriptionUrl = inputUrl.ifBlank { savedUrl },
+            subscriptionUrl = inputUrl,
             nodes = nodes,
             selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
             vpnStatus = vpnStatus,
@@ -114,12 +114,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             startupCrash.value = AppLog.readLastCrash()
         }
-        viewModelScope.launch {
-            preferences.subscriptionUrl.collect { saved ->
-                if (subscriptionUrlInput.value.isBlank() && saved.isNotBlank()) {
-                    subscriptionUrlInput.value = saved
-                }
+    }
+
+    fun canConnect(): Boolean = prepareConnect(showErrors = false)
+
+    fun prepareConnect(showErrors: Boolean = true): Boolean {
+        val state = uiState.value
+        return when {
+            state.subscriptionUrl.isBlank() -> {
+                if (showErrors) error.value = "Вставьте ссылку подписки"
+                false
             }
+            state.nodes.isEmpty() -> {
+                if (showErrors) error.value = "Дождитесь загрузки серверов"
+                false
+            }
+            else -> true
         }
     }
 
@@ -159,6 +169,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         subscriptionUrlInput.value = text
         message.value = "Ссылка вставлена"
         AppLog.i("pasteSubscriptionFromClipboard urlLen=${text.length}")
+        refreshConfig(showUrlRequiredError = false)
     }
 
     fun refreshSubscription() {
@@ -166,11 +177,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshConfig(showUrlRequiredError: Boolean = false) {
-        val url = uiState.value.subscriptionUrl.trim()
-            .ifBlank { subscriptionUrlInput.value.trim() }
+        val url = subscriptionUrlInput.value.trim()
         if (url.isBlank()) {
             if (showUrlRequiredError) {
-                error.value = "Введите URL подписки"
+                error.value = "Вставьте ссылку подписки"
             }
             return
         }

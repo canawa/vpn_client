@@ -89,6 +89,10 @@ class MainActivity : ComponentActivity() {
 
     private fun requestConnect() {
         viewModel.clearMessages()
+        if (!viewModel.prepareConnect()) {
+            AppLog.w("requestConnect: subscription link or nodes missing")
+            return
+        }
         val node = viewModel.selectedNode()
         if (node == null) {
             AppLog.w("requestConnect: no selected node")

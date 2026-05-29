@@ -33,6 +33,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val isConnected = state.vpnStatus == VpnStatus.Started
+    val canConnect = state.subscriptionUrl.isNotBlank() && state.nodes.isNotEmpty()
 
     Column(
         modifier = modifier
@@ -61,7 +62,7 @@ fun HomeScreen(
         BrewConnectButton(
             vpnStatus = state.vpnStatus,
             connectionElapsedMs = state.connectionElapsedMs,
-            enabled = state.nodes.isNotEmpty(),
+            enabled = isConnected || canConnect,
             onClick = {
                 if (isConnected) onDisconnectClick() else onConnectClick()
             },
