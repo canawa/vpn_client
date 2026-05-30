@@ -43,7 +43,6 @@ fun AppShell(
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
-    onTelegramConnectClick: () -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
     var showSettingsMenu by remember { mutableStateOf(false) }
@@ -103,7 +102,6 @@ fun AppShell(
                 onConnectClick = onConnectClick,
                 onDisconnectClick = onDisconnectClick,
                 onOpenServers = { selectedTab = AppTab.Servers },
-                onTelegramClick = onTelegramConnectClick,
                 onPasteLinkClick = onPasteLinkClick,
             )
             AppTab.Servers -> ServersScreen(

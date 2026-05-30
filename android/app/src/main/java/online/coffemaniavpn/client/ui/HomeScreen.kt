@@ -28,7 +28,6 @@ fun HomeScreen(
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onOpenServers: () -> Unit,
-    onTelegramClick: () -> Unit,
     onPasteLinkClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -83,7 +82,6 @@ fun HomeScreen(
         Column(modifier = Modifier.fillMaxWidth()) {
             SectionLabel("Подписка")
             SubscriptionCard(
-                onTelegramClick = onTelegramClick,
                 onPasteLinkClick = onPasteLinkClick,
             )
             state.message?.let {

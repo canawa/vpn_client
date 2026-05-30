@@ -72,7 +72,6 @@ class MainActivity : ComponentActivity() {
                         onRefreshPing = viewModel::pingAllNodes,
                         onRefreshConfig = viewModel::refreshConfig,
                         onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
-                        onTelegramConnectClick = ::openTelegramBot,
                     )
 
                     if (showLogs) {
@@ -113,15 +112,6 @@ class MainActivity : ComponentActivity() {
                 DeepLinkEffect.FinishActivity -> finish()
                 DeepLinkEffect.None -> Unit
             }
-        }
-    }
-
-    private fun openTelegramBot() {
-        val url = "https://t.me/${BuildConfig.TELEGRAM_BOT_USERNAME}?start=connect"
-        runCatching {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-        }.onFailure {
-            AppLog.e("openTelegramBot failed", it)
         }
     }
 

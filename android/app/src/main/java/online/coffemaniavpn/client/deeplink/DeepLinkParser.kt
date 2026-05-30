@@ -2,7 +2,6 @@ package online.coffemaniavpn.client.deeplink
 
 import android.net.Uri
 import android.util.Base64
-import online.coffemaniavpn.client.BuildConfig
 import online.coffemaniavpn.client.util.AppLog
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -12,19 +11,13 @@ object DeepLinkParser {
 
     fun parse(uri: Uri): DeepLinkAction? {
         val scheme = uri.scheme?.lowercase() ?: return null
-        AppLog.i("DeepLinkParser uri=$uri")
+        if (scheme !in supportedSchemes) return null
 
-        return when (scheme) {
-            in supportedSchemes -> parseCustomScheme(uri)
-            "http", "https" -> parseHttpsAppLink(uri)
-            else -> null
-        }
-    }
-
-    private fun parseCustomScheme(uri: Uri): DeepLinkAction? {
         val host = uri.host?.lowercase().orEmpty()
         val path = uri.path.orEmpty().trimStart('/')
         val queryUrl = uri.getQueryParameter("url")?.trim().orEmpty()
+
+        AppLog.i("DeepLinkParser uri=$uri host=$host pathLen=${path.length}")
 
         return when (host) {
             "open" -> DeepLinkAction.Open
@@ -48,58 +41,6 @@ object DeepLinkParser {
             "" -> parseLegacyPath(path)
             else -> parseLegacyPath(listOf(host, path).filter { it.isNotBlank() }.joinToString("/"))
         }
-    }
-
-    private fun parseHttpsAppLink(uri: Uri): DeepLinkAction? {
-        val host = uri.host?.lowercase().orEmpty()
-        if (host != BuildConfig.APP_LINK_HOST.lowercase()) {
-            AppLog.w("DeepLinkParser https: unsupported host=$host")
-            return null
-        }
-
-        val segments = uri.path.orEmpty().trim('/').split('/').filter { it.isNotBlank() }
-        if (segments.size < 2 || segments[0] != "app") {
-            AppLog.w("DeepLinkParser https: unsupported path=${uri.path}")
-            return null
-        }
-
-        return when (segments[1].lowercase()) {
-            "add" -> parseHttpsAdd(uri)
-            "connect" -> DeepLinkAction.Connect
-            "disconnect" -> DeepLinkAction.Disconnect
-            else -> null
-        }
-    }
-
-    private fun parseHttpsAdd(uri: Uri): DeepLinkAction? {
-        val subscriptionUrl = resolveSubscriptionUrl(uri) ?: run {
-            AppLog.w("DeepLinkParser https add: empty subscription url")
-            return null
-        }
-        return DeepLinkAction.Add(
-            url = subscriptionUrl,
-            connectAfter = uri.connectAfterRequested(default = true),
-        )
-    }
-
-    private fun resolveSubscriptionUrl(uri: Uri): String? {
-        uri.getQueryParameter("url")?.trim()?.takeIf { it.isNotBlank() }?.let { return decodeUri(it) }
-
-        uri.getQueryParameter("token")?.trim()?.takeIf { it.isNotBlank() }?.let { token ->
-            val base = BuildConfig.SUBSCRIPTION_BASE_URL.trimEnd('/')
-            return "$base/$token"
-        }
-
-        val segments = uri.path.orEmpty().trim('/').split('/').filter { it.isNotBlank() }
-        if (segments.size >= 3 && segments[0] == "app" && segments[1] == "add") {
-            val token = segments[2].trim()
-            if (token.isNotBlank()) {
-                val base = BuildConfig.SUBSCRIPTION_BASE_URL.trimEnd('/')
-                return "$base/$token"
-            }
-        }
-
-        return null
     }
 
     private fun parseLegacyPath(path: String): DeepLinkAction? = when {
@@ -181,9 +122,8 @@ object DeepLinkParser {
             value.startsWith("[") ||
             value.startsWith("{")
 
-    private fun Uri.connectAfterRequested(default: Boolean = false): Boolean {
+    private fun Uri.connectAfterRequested(): Boolean {
         val connect = getQueryParameter("connect")?.trim().orEmpty()
-        if (connect.isEmpty()) return default
         if (connect.equals("1", ignoreCase = true) ||
             connect.equals("true", ignoreCase = true) ||
             connect.equals("yes", ignoreCase = true)
@@ -196,6 +136,6 @@ object DeepLinkParser {
         ) {
             return false
         }
-        return getBooleanQueryParameter("connect", default)
+        return getBooleanQueryParameter("connect", false)
     }
 }

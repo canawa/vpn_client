@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
@@ -447,7 +446,6 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun SubscriptionCard(
-    onTelegramClick: () -> Unit,
     onPasteLinkClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -465,25 +463,14 @@ fun SubscriptionCard(
                 fontWeight = FontWeight.SemiBold,
                 color = CoffemaniaColors.Espresso,
             )
-            Row(
+            SubscriptionActionButton(
+                text = "Вставить ссылку",
+                icon = Icons.Default.ContentPaste,
+                onClick = onPasteLinkClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SubscriptionActionButton(
-                    text = "Подключить через Telegram",
-                    icon = Icons.Default.Send,
-                    onClick = onTelegramClick,
-                    modifier = Modifier.weight(1f),
-                )
-                SubscriptionActionButton(
-                    text = "Вставить ссылку",
-                    icon = Icons.Default.ContentPaste,
-                    onClick = onPasteLinkClick,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            )
         }
     }
 }

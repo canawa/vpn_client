@@ -3,6 +3,7 @@ package online.coffemaniavpn.client.data
 import kotlinx.serialization.Serializable
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import java.util.Base64
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.ceil
@@ -20,7 +21,7 @@ data class SubscriptionInfo(
     val usageFraction: Float
         get() = if (total > 0) (used.toFloat() / total.toFloat()).coerceIn(0f, 1f) else 0f
 
-    val hasTitle: Boolean get() = title.isNotBlank()
+    val hasTitle: Boolean get() = title.isNotBlank() && !title.startsWith("base64:", ignoreCase = true)
 
     fun trafficLabel(): String {
         val usedText = formatTrafficBytes(used)
@@ -121,9 +122,32 @@ object SubscriptionInfoParser {
             ?.takeIf { it.isNotBlank() }
     }
 
-    private fun decodeText(raw: String): String = runCatching {
-        URLDecoder.decode(raw, StandardCharsets.UTF_8.name())
-    }.getOrDefault(raw).trim()
+    private fun decodeText(raw: String): String {
+        val urlDecoded = runCatching {
+            URLDecoder.decode(raw, StandardCharsets.UTF_8.name())
+        }.getOrDefault(raw).trim()
+
+        val base64Prefix = "base64:"
+        if (urlDecoded.startsWith(base64Prefix, ignoreCase = true)) {
+            decodeBase64Text(urlDecoded.substring(base64Prefix.length))?.let { return it }
+            return ""
+        }
+
+        return urlDecoded
+    }
+
+    private fun decodeBase64Text(encoded: String): String? {
+        val normalized = encoded.trim()
+            .replace('-', '+')
+            .replace('_', '/')
+        val padded = normalized + "=".repeat((4 - normalized.length % 4) % 4)
+        return runCatching {
+            String(Base64.getDecoder().decode(padded), StandardCharsets.UTF_8).trim()
+        }.getOrNull()?.takeIf { it.isNotBlank() && !it.looksLikeEncodedTitle() }
+    }
+
+    private fun String.looksLikeEncodedTitle(): Boolean =
+        startsWith("base64:", ignoreCase = true)
 }
 
 fun formatTrafficBytes(bytes: Long): String {
