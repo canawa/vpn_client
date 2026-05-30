@@ -1,6 +1,7 @@
 package online.coffemaniavpn.client.ui
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,12 @@ import online.coffemaniavpn.client.data.PingState
 import online.coffemaniavpn.client.data.ProxyNode
 import online.coffemaniavpn.client.data.ServerPinger
 import online.coffemaniavpn.client.data.SubscriptionInfo
+import online.coffemaniavpn.client.data.SubscriptionParser
 import online.coffemaniavpn.client.data.SubscriptionRepository
+import org.json.JSONObject
+import online.coffemaniavpn.client.deeplink.DeepLinkAction
+import online.coffemaniavpn.client.deeplink.DeepLinkEffect
+import online.coffemaniavpn.client.deeplink.DeepLinkParser
 import online.coffemaniavpn.client.ktx.readClipboardText
 import online.coffemaniavpn.client.util.AppLog
 import online.coffemaniavpn.client.vpn.VpnManager
@@ -42,6 +48,10 @@ data class MainUiState(
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
+    companion object {
+        private const val LOCAL_IMPORT_URL = "deeplink://imported"
+    }
+
     private val preferences = AppPreferences(application)
     private val repository = SubscriptionRepository(application)
 
@@ -114,6 +124,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         AppLog.i("MainViewModel init")
         viewModelScope.launch(Dispatchers.IO) {
             startupCrash.value = AppLog.readLastCrash()
+            preferences.loadActiveRoutingIntoMemory()
         }
         viewModelScope.launch {
             preferences.subscriptionUrl.collect { saved ->
@@ -154,12 +165,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun prepareConnect(showErrors: Boolean = true): Boolean {
         val state = uiState.value
         return when {
-            state.subscriptionUrl.isBlank() -> {
-                if (showErrors) error.value = "Вставьте ссылку подписки"
-                false
-            }
             state.nodes.isEmpty() -> {
                 if (showErrors) error.value = "Дождитесь загрузки серверов"
+                false
+            }
+            state.subscriptionUrl.isBlank() -> {
+                if (showErrors) error.value = "Вставьте ссылку подписки"
                 false
             }
             else -> true
@@ -193,6 +204,99 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         subscriptionUrlInput.value = value
     }
 
+    fun processDeepLink(uri: Uri, onEffect: (DeepLinkEffect) -> Unit) {
+        val action = DeepLinkParser.parse(uri) ?: run {
+            AppLog.w("processDeepLink unsupported uri=$uri")
+            error.value = "Неподдерживаемая ссылка"
+            return
+        }
+        AppLog.i("processDeepLink action=$action")
+        when (action) {
+            DeepLinkAction.Open -> {
+                message.value = "КОФЕМАНИЯ ВПН"
+            }
+            DeepLinkAction.Connect -> {
+                if (prepareConnect(showErrors = true)) {
+                    onEffect(DeepLinkEffect.RequestConnect)
+                }
+            }
+            DeepLinkAction.Disconnect -> {
+                VpnManager.disconnect()
+                message.value = "Отключено"
+            }
+            DeepLinkAction.Close -> {
+                VpnManager.disconnect()
+                onEffect(DeepLinkEffect.FinishActivity)
+            }
+            is DeepLinkAction.Add -> addSubscriptionFromDeepLink(action.url, connectAfter = false)
+            is DeepLinkAction.Import -> importSubscriptionPayload(action.payload, connectAfter = false)
+            is DeepLinkAction.Routing -> saveRoutingFromDeepLink(action.profileJson, action.enable)
+        }
+    }
+
+    private fun addSubscriptionFromDeepLink(url: String, connectAfter: Boolean) {
+        subscriptionUrlInput.value = url.trim()
+        message.value = "Подписка добавлена"
+        refreshConfig(
+            showUrlRequiredError = false,
+        )
+    }
+
+    private fun importSubscriptionPayload(payload: String, connectAfter: Boolean) {
+        val trimmed = payload.trim()
+        if (trimmed.startsWith("http://", ignoreCase = true) ||
+            trimmed.startsWith("https://", ignoreCase = true)
+        ) {
+            addSubscriptionFromDeepLink(trimmed, connectAfter)
+            return
+        }
+
+        viewModelScope.launch {
+            isLoading.value = true
+            error.value = null
+            try {
+                val nodes = withContext(Dispatchers.IO) {
+                    SubscriptionParser.parse(trimmed)
+                }
+                if (nodes.isEmpty()) error("Подписка пуста")
+                preferences.saveSubscription(
+                    LOCAL_IMPORT_URL,
+                    nodes,
+                    nodes.first().id,
+                    null,
+                )
+                subscriptionUrlInput.value = LOCAL_IMPORT_URL
+                message.value = "Импортировано серверов: ${nodes.size}"
+                AppLog.i("importSubscriptionPayload ok nodes=${nodes.size}")
+                if (connectAfter && prepareConnect(showErrors = false)) {
+                    // connect handled by caller if needed
+                }
+            } catch (e: Exception) {
+                AppLog.e("importSubscriptionPayload failed", e)
+                error.value = e.message ?: "Не удалось импортировать конфиг"
+            } finally {
+                isLoading.value = false
+            }
+        }
+    }
+
+    private fun saveRoutingFromDeepLink(profileJson: String, enable: Boolean) {
+        viewModelScope.launch {
+            try {
+                val name = JSONObject(profileJson).optString("Name").ifBlank { "Профиль" }
+                preferences.saveRoutingProfile(profileJson, enable)
+                message.value = if (enable) {
+                    "Маршрутизация включена: $name"
+                } else {
+                    "Маршрутизация сохранена: $name"
+                }
+            } catch (e: Exception) {
+                AppLog.e("saveRoutingFromDeepLink failed", e)
+                error.value = "Неверный профиль маршрутизации"
+            }
+        }
+    }
+
     fun pasteSubscriptionFromClipboard() {
         val text = getApplication<Application>().readClipboardText()
         if (text.isNullOrBlank()) {
@@ -209,13 +313,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshConfig(showUrlRequiredError = true)
     }
 
-    fun refreshConfig(showUrlRequiredError: Boolean = false) {
+    fun refreshConfig(
+        showUrlRequiredError: Boolean = false,
+        onComplete: ((Boolean) -> Unit)? = null,
+    ) {
         val url = uiState.value.subscriptionUrl.trim()
             .ifBlank { subscriptionUrlInput.value.trim() }
-        if (url.isBlank()) {
+        if (url.isBlank() || url == LOCAL_IMPORT_URL) {
+            if (url == LOCAL_IMPORT_URL && uiState.value.nodes.isNotEmpty()) {
+                onComplete?.invoke(true)
+                return
+            }
             if (showUrlRequiredError) {
                 error.value = "Вставьте ссылку подписки"
             }
+            onComplete?.invoke(false)
             return
         }
         if (subscriptionUrlInput.value.isBlank()) {
@@ -226,6 +338,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isLoading.value = true
             error.value = null
             message.value = null
+            var success = false
             try {
                 AppLog.i("refreshConfig start")
                 val result = withContext(Dispatchers.IO) {
@@ -237,11 +350,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 preferences.saveSubscription(url, result.nodes, selected, result.info)
                 message.value = "Конфиг обновлён: ${result.nodes.size} серверов"
                 AppLog.i("refreshConfig ok, nodes=${result.nodes.size} info=${result.info}")
+                success = true
             } catch (e: Exception) {
                 AppLog.e("refreshConfig failed", e)
                 error.value = e.message ?: "Не удалось обновить конфиг"
             } finally {
                 isLoading.value = false
+                onComplete?.invoke(success)
             }
         }
     }

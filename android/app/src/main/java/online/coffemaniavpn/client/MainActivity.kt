@@ -1,6 +1,7 @@
 package online.coffemaniavpn.client
 
 import android.Manifest
+import android.content.Intent
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
@@ -15,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import online.coffemaniavpn.client.ktx.hasPermission
+import online.coffemaniavpn.client.deeplink.DeepLinkEffect
 import online.coffemaniavpn.client.ui.AppShell
 import online.coffemaniavpn.client.ui.CoffemaniaTheme
 import online.coffemaniavpn.client.ui.LogsDialog
@@ -81,6 +83,7 @@ class MainActivity : ComponentActivity() {
             }
             reportFullyDrawn()
             AppLog.i("MainActivity setContent ok")
+            handleDeepLinkIntent(intent)
         } catch (t: Throwable) {
             AppLog.e("MainActivity.onCreate failed", t)
             throw t
@@ -90,6 +93,25 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.onAppResumed()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLinkIntent(intent)
+    }
+
+    private fun handleDeepLinkIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (intent.action != Intent.ACTION_VIEW) return
+        intent.data = null
+        viewModel.processDeepLink(uri) { effect ->
+            when (effect) {
+                DeepLinkEffect.RequestConnect -> requestConnect()
+                DeepLinkEffect.FinishActivity -> finish()
+                DeepLinkEffect.None -> Unit
+            }
+        }
     }
 
     private fun requestConnect() {

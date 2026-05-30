@@ -10,7 +10,9 @@ object SingBoxConfigBuilder {
             else -> buildVlessOutbound(node)
         }
 
-        return buildBaseConfig(outbound, node).toString(2)
+        return buildBaseConfig(outbound, node).also { config ->
+            RoutingProfileStore.applyToConfig(config)
+        }.toString(2)
     }
 
     private fun buildVlessOutbound(node: ProxyNode): JSONObject {

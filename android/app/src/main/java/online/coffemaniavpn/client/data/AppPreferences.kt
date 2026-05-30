@@ -3,11 +3,13 @@ package online.coffemaniavpn.client.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
@@ -99,10 +101,50 @@ class AppPreferences(private val context: Context) {
         }
     }
 
+    val routingProfile: Flow<String?> = context.dataStore.data
+        .map { prefs -> prefs[KEY_ROUTING_PROFILE] }
+        .flowOn(Dispatchers.IO)
+
+    val routingEnabled: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[KEY_ROUTING_ENABLED] ?: false }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun saveRoutingProfile(json: String, enable: Boolean) {
+        AppLog.i("saveRoutingProfile enable=$enable jsonLen=${json.length}")
+        context.dataStore.edit { prefs ->
+            prefs[KEY_ROUTING_PROFILE] = json
+            if (enable) {
+                prefs[KEY_ROUTING_ENABLED] = true
+            }
+        }
+        if (enable) {
+            RoutingProfileStore.updateActive(json)
+        }
+    }
+
+    suspend fun setRoutingEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_ROUTING_ENABLED] = enabled
+        }
+        val prefs = context.dataStore.data.first()
+        RoutingProfileStore.updateActive(
+            prefs[KEY_ROUTING_PROFILE].takeIf { enabled && !it.isNullOrBlank() },
+        )
+    }
+
+    suspend fun loadActiveRoutingIntoMemory() {
+        val prefs = context.dataStore.data.first()
+        val enabled = prefs[KEY_ROUTING_ENABLED] ?: false
+        val json = prefs[KEY_ROUTING_PROFILE]
+        RoutingProfileStore.updateActive(json.takeIf { enabled && !it.isNullOrBlank() })
+    }
+
     companion object {
         private val KEY_SUBSCRIPTION_URL = stringPreferencesKey("subscription_url")
         private val KEY_NODES = stringPreferencesKey("nodes")
         private val KEY_SELECTED_NODE_ID = stringPreferencesKey("selected_node_id")
         private val KEY_SUBSCRIPTION_INFO = stringPreferencesKey("subscription_info")
+        private val KEY_ROUTING_PROFILE = stringPreferencesKey("routing_profile")
+        private val KEY_ROUTING_ENABLED = booleanPreferencesKey("routing_enabled")
     }
 }
