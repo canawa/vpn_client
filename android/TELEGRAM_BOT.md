@@ -1,59 +1,73 @@
 # Кнопка «Подключить через Telegram»
 
-API не нужен. Приложение просто открывает бота:
+Приложение открывает бота:
 
 ```
 https://t.me/testingcoffffeemaniabot?start=connect
 ```
 
-## Что делает бот
+## Важно: Telegram не принимает `cmvpn://` в кнопках
 
-При `/start connect` (или `connect` в deep link):
+Inline-кнопка поддерживает только **https://** (и tg://).
 
-1. Проверить подписку пользователя в вашей БД.
-2. Если есть — показать inline-кнопку с deep link в приложение.
-3. Если нет — сообщение «оформите подписку».
+Поэтому в кнопку ставится **https-ссылка**, а не `cmvpn://...`.
 
-## Deep link для кнопки в боте
+## URL для кнопки в боте
 
-**Добавить подписку и сразу подключить** (рекомендуется):
+**Рекомендуется** — короткая ссылка с token:
 
 ```
-cmvpn://add?url=https://sub.coffemaniavpn.online/USER_TOKEN&connect=1
+https://sub.coffemaniavpn.online/app/add?token=5WZG-z-wgAMyDsSM&connect=1
 ```
 
-Короткая схема тоже работает:
+`5WZG-z-wgAMyDsSM` — это token из ссылки подписки  
+(`https://sub.coffemaniavpn.online/5WZG-z-wgAMyDsSM`).
+
+Вариант с полным URL:
 
 ```
-cmv://add?url=https://sub.coffemaniavpn.online/USER_TOKEN&connect=1
+https://sub.coffemaniavpn.online/app/add?url=https://sub.coffemaniavpn.online/5WZG-z-wgAMyDsSM&connect=1
 ```
 
-**Только подключить** (если подписка уже была добавлена раньше):
+Только подключить (подписка уже в приложении):
 
 ```
-cmvpn://connect
-cmv://connect
+https://sub.coffemaniavpn.online/app/connect
 ```
 
-**Только добавить подписку** (без автоподключения):
-
-```
-cmvpn://add?url=https://sub.coffemaniavpn.online/USER_TOKEN
-```
-
-URL подписки в query нужно передавать закодированным (`urllib.parse.quote`).
-
-## Пример кнопки (aiogram 3)
+## Пример для aiogram 3
 
 ```python
-from urllib.parse import quote
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-sub_url = "https://sub.coffemaniavpn.online/USER_TOKEN"
-app_link = f"cmvpn://add?url={quote(sub_url, safe='')}&connect=1"
+sub_url = user.subscription_url  # https://sub.coffemaniavpn.online/5WZG-z-wgAMyDsSM
+token = sub_url.rstrip("/").split("/")[-1]
+
+app_link = f"https://sub.coffemaniavpn.online/app/add?token={token}&connect=1"
 
 keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Подключить VPN", url=app_link)]
 ])
-await message.answer("Нажмите кнопку — откроется приложение:", reply_markup=keyboard)
+await message.answer("Нажмите кнопку:", reply_markup=keyboard)
 ```
+
+## Если ссылка открывается в браузере
+
+**Причина:** на сервере нет App Links (`assetlinks.json`).
+
+**Решение:** развернуть файлы из `android/app-link/` — пошагово в **`APP_LINKS_SETUP.md`**.
+
+Кратко:
+1. Положить `app-link/.well-known/assetlinks.json` на сервер
+2. Положить `app-link/add/index.html` для fallback
+3. Настроить nginx (пример в `APP_LINKS_SETUP.md`)
+4. **Переустановить** приложение на телефоне
+
+После этого https-ссылка из кнопки бота откроет приложение напрямую.
+
+Если Telegram всё равно показывает страницу — нажать **«Открыть приложение»** или ⋮ → «Открыть в браузере».
+
+## `cmvpn://` — только не для Telegram-кнопок
+
+Схема `cmvpn://add?url=...&connect=1` работает, если ссылку открыть **вне** inline-кнопки Telegram
+(например, из браузера или другого приложения).

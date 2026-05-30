@@ -16,6 +16,8 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         buildConfigField("String", "TELEGRAM_BOT_USERNAME", "\"testingcoffffeemaniabot\"")
+        buildConfigField("String", "APP_LINK_HOST", "\"sub.coffemaniavpn.online\"")
+        buildConfigField("String", "SUBSCRIPTION_BASE_URL", "\"https://sub.coffemaniavpn.online\"")
     }
 
     buildTypes {
