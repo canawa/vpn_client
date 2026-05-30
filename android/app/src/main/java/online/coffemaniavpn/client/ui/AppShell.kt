@@ -1,7 +1,5 @@
 package online.coffemaniavpn.client.ui
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
@@ -26,7 +24,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.horizontalScroll
@@ -46,10 +43,10 @@ fun AppShell(
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
+    onTelegramConnectClick: () -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
     var showSettingsMenu by remember { mutableStateOf(false) }
-    val context = LocalContext.current
 
     val selectedNode = state.nodes.find { it.id == state.selectedNodeId }
     val selectedDisplay = selectedNode?.let {
@@ -106,13 +103,7 @@ fun AppShell(
                 onConnectClick = onConnectClick,
                 onDisconnectClick = onDisconnectClick,
                 onOpenServers = { selectedTab = AppTab.Servers },
-                onTelegramClick = {
-                    runCatching {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/coffemaniavpn_bot")),
-                        )
-                    }
-                },
+                onTelegramClick = onTelegramConnectClick,
                 onPasteLinkClick = onPasteLinkClick,
             )
             AppTab.Servers -> ServersScreen(

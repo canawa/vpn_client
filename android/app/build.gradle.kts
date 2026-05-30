@@ -15,6 +15,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
+        buildConfigField("String", "TELEGRAM_BOT_USERNAME", "\"testingcoffffeemaniabot\"")
     }
 
     buildTypes {

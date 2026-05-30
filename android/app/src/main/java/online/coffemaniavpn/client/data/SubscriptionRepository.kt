@@ -39,9 +39,11 @@ class SubscriptionRepository(
 
             if (nodes.isEmpty()) error("В подписке нет поддерживаемых серверов")
 
-            val info = response.header("subscription-userinfo")
-                ?.let(SubscriptionInfoParser::parseHeader)
-                ?: SubscriptionInfoParser.parseFromBody(body)
+            val info = SubscriptionInfoParser.parseFromResponse(
+                userInfoHeader = response.header("subscription-userinfo"),
+                profileTitleHeader = response.header("profile-title"),
+                body = body,
+            )
 
             AppLog.i("fetchSubscription ok nodes=${nodes.size} hwid=${DeviceIdentity.hwid(context).take(8)}…")
             return SubscriptionFetchResult(nodes = nodes, info = info)

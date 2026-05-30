@@ -85,13 +85,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         ) { vpnStatus, vpnError, elapsedMs, inputUrl ->
             VpnUiState(vpnStatus, vpnError, elapsedMs, inputUrl)
         },
-        combine(
-            isLoading,
-            isPinging,
-            nodePings,
-            message,
-            error,
-        ) { loading, pinging, pings, info, localError ->
+        combine(isLoading, isPinging, nodePings, message, error) { loading, pinging, pings, info, localError ->
             LocalUiState(loading, pinging, pings, info, localError)
         },
         startupCrash,
@@ -228,26 +222,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 VpnManager.disconnect()
                 onEffect(DeepLinkEffect.FinishActivity)
             }
-            is DeepLinkAction.Add -> addSubscriptionFromDeepLink(action.url, connectAfter = false)
-            is DeepLinkAction.Import -> importSubscriptionPayload(action.payload, connectAfter = false)
+            is DeepLinkAction.Add -> addSubscriptionFromDeepLink(
+                action.url,
+                connectAfter = action.connectAfter,
+                onEffect = onEffect,
+            )
+            is DeepLinkAction.Import -> importSubscriptionPayload(
+                action.payload,
+                connectAfter = false,
+                onEffect = onEffect,
+            )
             is DeepLinkAction.Routing -> saveRoutingFromDeepLink(action.profileJson, action.enable)
         }
     }
 
-    private fun addSubscriptionFromDeepLink(url: String, connectAfter: Boolean) {
+    private fun addSubscriptionFromDeepLink(
+        url: String,
+        connectAfter: Boolean,
+        onEffect: (DeepLinkEffect) -> Unit,
+    ) {
         subscriptionUrlInput.value = url.trim()
-        message.value = "Подписка добавлена"
-        refreshConfig(
-            showUrlRequiredError = false,
-        )
+        message.value = if (connectAfter) {
+            "Подписка добавлена, подключаемся…"
+        } else {
+            "Подписка добавлена"
+        }
+        refreshConfig(showUrlRequiredError = false) { success ->
+            if (success && connectAfter && prepareConnect(showErrors = true)) {
+                onEffect(DeepLinkEffect.RequestConnect)
+            }
+        }
     }
 
-    private fun importSubscriptionPayload(payload: String, connectAfter: Boolean) {
+    private fun importSubscriptionPayload(
+        payload: String,
+        connectAfter: Boolean,
+        onEffect: (DeepLinkEffect) -> Unit,
+    ) {
         val trimmed = payload.trim()
         if (trimmed.startsWith("http://", ignoreCase = true) ||
             trimmed.startsWith("https://", ignoreCase = true)
         ) {
-            addSubscriptionFromDeepLink(trimmed, connectAfter)
+            addSubscriptionFromDeepLink(trimmed, connectAfter, onEffect)
             return
         }
 
@@ -268,8 +284,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 subscriptionUrlInput.value = LOCAL_IMPORT_URL
                 message.value = "Импортировано серверов: ${nodes.size}"
                 AppLog.i("importSubscriptionPayload ok nodes=${nodes.size}")
-                if (connectAfter && prepareConnect(showErrors = false)) {
-                    // connect handled by caller if needed
+                if (connectAfter && prepareConnect(showErrors = true)) {
+                    onEffect(DeepLinkEffect.RequestConnect)
                 }
             } catch (e: Exception) {
                 AppLog.e("importSubscriptionPayload failed", e)

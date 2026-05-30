@@ -9,7 +9,7 @@ sealed class DeepLinkAction {
 
     data object Close : DeepLinkAction()
 
-    data class Add(val url: String) : DeepLinkAction()
+    data class Add(val url: String, val connectAfter: Boolean = false) : DeepLinkAction()
 
     data class Import(val payload: String) : DeepLinkAction()
 

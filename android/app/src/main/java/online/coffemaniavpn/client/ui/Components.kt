@@ -472,7 +472,7 @@ fun SubscriptionCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SubscriptionActionButton(
-                    text = "Через Telegram",
+                    text = "Подключить через Telegram",
                     icon = Icons.Default.Send,
                     onClick = onTelegramClick,
                     modifier = Modifier.weight(1f),
@@ -493,10 +493,11 @@ private fun SubscriptionActionButton(
     text: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
+    isLoading: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier.clickable(enabled = !isLoading, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = CoffemaniaColors.MilkFoam,
     ) {
@@ -505,18 +506,26 @@ private fun SubscriptionActionButton(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = CoffemaniaColors.Espresso,
-                modifier = Modifier.size(16.dp),
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = CoffemaniaColors.Espresso,
+                )
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = CoffemaniaColors.Espresso,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
                 color = CoffemaniaColors.Espresso,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -545,6 +554,34 @@ fun SubscriptionStatusBar(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (subscriptionInfo?.hasTitle == true || subscriptionInfo?.expireLabel() != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (subscriptionInfo?.hasTitle == true) {
+                        Text(
+                            text = subscriptionInfo.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CoffemaniaColors.Espresso,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    subscriptionInfo?.expireLabel()?.let { expireText ->
+                        val expired = subscriptionInfo.expire > 0 &&
+                            subscriptionInfo.expire * 1_000L <= System.currentTimeMillis()
+                        Text(
+                            text = expireText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (expired) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                CoffemaniaColors.Mocha
+                            },
+                        )
+                    }
+                }
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

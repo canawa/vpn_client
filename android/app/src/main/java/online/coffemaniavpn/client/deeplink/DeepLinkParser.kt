@@ -7,7 +7,7 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
 object DeepLinkParser {
-    val supportedSchemes = setOf("coffemaniavpn", "cmvpn")
+    val supportedSchemes = setOf("coffemaniavpn", "cmvpn", "cmv")
 
     fun parse(uri: Uri): DeepLinkAction? {
         val scheme = uri.scheme?.lowercase() ?: return null
@@ -30,7 +30,7 @@ object DeepLinkParser {
                     AppLog.w("DeepLinkParser add: empty url")
                     null
                 } else {
-                    DeepLinkAction.Add(url)
+                    DeepLinkAction.Add(url, connectAfter = uri.connectAfterRequested())
                 }
             }
             "import" -> {
@@ -50,7 +50,7 @@ object DeepLinkParser {
         path.equals("close", ignoreCase = true) -> DeepLinkAction.Close
         path.startsWith("add/", ignoreCase = true) -> {
             val url = decodePathPayload(path.removePrefix("add/").removePrefix("add"))
-            if (url.isBlank()) null else DeepLinkAction.Add(url)
+            if (url.isBlank()) null else DeepLinkAction.Add(url, connectAfter = false)
         }
         path.startsWith("import/", ignoreCase = true) -> {
             decodeImportPayload(path.removePrefix("import/").removePrefix("import"))
@@ -121,4 +121,15 @@ object DeepLinkParser {
             value.startsWith("hysteria2://", ignoreCase = true) ||
             value.startsWith("[") ||
             value.startsWith("{")
+
+    private fun Uri.connectAfterRequested(): Boolean {
+        val connect = getQueryParameter("connect")?.trim().orEmpty()
+        if (connect.equals("1", ignoreCase = true) ||
+            connect.equals("true", ignoreCase = true) ||
+            connect.equals("yes", ignoreCase = true)
+        ) {
+            return true
+        }
+        return getBooleanQueryParameter("connect", false)
+    }
 }
