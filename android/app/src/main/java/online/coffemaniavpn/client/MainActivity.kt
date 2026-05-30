@@ -87,6 +87,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.onAppResumed()
+    }
+
     private fun requestConnect() {
         viewModel.clearMessages()
         if (!viewModel.prepareConnect()) {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -90,7 +91,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val (loading, pinging, pings, info, localError) = localData
 
         MainUiState(
-            subscriptionUrl = inputUrl,
+            subscriptionUrl = inputUrl.trim().ifBlank { savedUrl.trim() },
             nodes = nodes,
             selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
             vpnStatus = vpnStatus,
@@ -105,7 +106,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
+        started = SharingStarted.Eagerly,
         initialValue = MainUiState(),
     )
 
@@ -113,6 +114,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         AppLog.i("MainViewModel init")
         viewModelScope.launch(Dispatchers.IO) {
             startupCrash.value = AppLog.readLastCrash()
+        }
+        viewModelScope.launch {
+            preferences.subscriptionUrl.collect { saved ->
+                if (saved.isNotBlank() && subscriptionUrlInput.value.isBlank()) {
+                    subscriptionUrlInput.value = saved
+                    AppLog.i("restored subscription url from prefs urlLen=${saved.length}")
+                }
+            }
+        }
+        viewModelScope.launch {
+            combine(preferences.subscriptionUrl, preferences.nodes) { savedUrl, nodes ->
+                savedUrl.trim() to nodes
+            }.collect { (savedUrl, nodes) ->
+                if (nodes.isNotEmpty() && savedUrl.isBlank()) {
+                    AppLog.w("orphaned nodes without saved subscription url, clearing")
+                    preferences.clearNodes()
+                }
+            }
+        }
+    }
+
+    fun onAppResumed() {
+        viewModelScope.launch {
+            restoreSubscriptionSession()
+        }
+    }
+
+    private suspend fun restoreSubscriptionSession() {
+        val savedUrl = preferences.subscriptionUrl.first().trim()
+        if (savedUrl.isNotBlank() && subscriptionUrlInput.value.isBlank()) {
+            subscriptionUrlInput.value = savedUrl
+            AppLog.i("onAppResumed restored subscription urlLen=${savedUrl.length}")
         }
     }
 
@@ -177,12 +210,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshConfig(showUrlRequiredError: Boolean = false) {
-        val url = subscriptionUrlInput.value.trim()
+        val url = uiState.value.subscriptionUrl.trim()
+            .ifBlank { subscriptionUrlInput.value.trim() }
         if (url.isBlank()) {
             if (showUrlRequiredError) {
                 error.value = "Вставьте ссылку подписки"
             }
             return
+        }
+        if (subscriptionUrlInput.value.isBlank()) {
+            subscriptionUrlInput.value = url
         }
 
         viewModelScope.launch {
