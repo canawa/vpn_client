@@ -60,6 +60,21 @@ object CoffemaniaColors {
     val OnError = MilkFoam
     val ErrorContainer = Color(0xFFFFDAD6)
     val OnErrorContainer = Color(0xFF93000A)
+
+    /** Пинг ≤ 200 ms */
+    val PingGood = Color(0xFF2E7D32)
+
+    /** Пинг 201–400 ms */
+    val PingMedium = Color(0xFFD4A017)
+
+    /** Пинг > 400 ms или недоступен */
+    val PingBad = Color(0xFFC62828)
+
+    fun pingColor(latencyMs: Int): Color = when {
+        latencyMs <= 200 -> PingGood
+        latencyMs <= 400 -> PingMedium
+        else -> PingBad
+    }
 }
 
 data class CoffemaniaExtraColors(

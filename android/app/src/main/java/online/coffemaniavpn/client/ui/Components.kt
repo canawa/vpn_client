@@ -1,6 +1,5 @@
 package online.coffemaniavpn.client.ui
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,9 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -384,19 +380,17 @@ fun ServerListCard(
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
+                val pingColor = when {
+                    display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
+                    display.pingText == "N/A" -> CoffemaniaColors.PingBad
+                    else -> CoffemaniaColors.Mocha
+                }
                 Text(
                     text = display.pingText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = CoffemaniaColors.Mocha,
+                    color = pingColor,
                 )
-                display.pingMs?.let { pingMs ->
-                    PingSparkline(
-                        seed = pingMs,
-                        color = CoffemaniaColors.Mocha,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
             }
         }
     }
@@ -412,26 +406,6 @@ private fun ProtocolBadge(text: String, bg: Color, fg: Color) {
             .background(bg, CircleShape)
             .padding(horizontal = 8.dp, vertical = 2.dp),
     )
-}
-
-@Composable
-fun PingSparkline(
-    seed: Int,
-    color: Color,
-    modifier: Modifier = Modifier,
-) {
-    Canvas(modifier = modifier.size(width = 32.dp, height = 12.dp)) {
-        val w = size.width
-        val h = size.height
-        val y1 = h * (0.3f + (seed % 5) * 0.08f)
-        val y2 = h * (0.5f + (seed % 3) * 0.1f)
-        val path = Path().apply {
-            moveTo(0f, h * 0.8f)
-            cubicTo(w * 0.15f, h * 0.8f, w * 0.25f, y1, w * 0.5f, y1)
-            cubicTo(w * 0.75f, y1, w * 0.85f, y2, w, y2)
-        }
-        drawPath(path, color, style = Stroke(width = 1.5f, cap = StrokeCap.Round))
-    }
 }
 
 @Composable

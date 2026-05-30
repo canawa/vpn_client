@@ -41,7 +41,7 @@ object ServerDisplayMapper {
             null -> "—" to null
             PingState.Loading -> "…" to null
             is PingState.Result -> "${ping.latencyMs} ms" to ping.latencyMs
-            PingState.Unreachable -> "—" to null
+            PingState.Unreachable -> "N/A" to null
         }
 
         return ServerDisplay(
