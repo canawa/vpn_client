@@ -45,6 +45,7 @@ fun AppShell(
     onCloseApp: () -> Unit,
     onSaveConnectionSettings: (online.coffemaniavpn.client.data.ConnectionSettingsState) -> Unit,
     onSubscriptionAutoUpdateIntervalChange: (online.coffemaniavpn.client.data.SubscriptionAutoUpdateInterval) -> Unit,
+    onAppThemeModeChange: (online.coffemaniavpn.client.data.AppThemeMode) -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
     var showSettings by remember { mutableStateOf(false) }
@@ -85,7 +86,7 @@ fun AppShell(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = CoffemaniaColors.MilkFoam,
+        containerColor = coffemaniaColors().milkFoam,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             Box(
@@ -140,6 +141,8 @@ fun AppShell(
                 onSaveConnectionSettings = onSaveConnectionSettings,
                 subscriptionAutoUpdateInterval = state.subscriptionAutoUpdateInterval,
                 onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
+                appThemeMode = state.appThemeMode,
+                onAppThemeModeChange = onAppThemeModeChange,
                 onOpenServers = {
                     showSettings = false
                     settingsPage = SettingsPage.Main

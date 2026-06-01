@@ -151,6 +151,17 @@ class AppPreferences(private val context: Context) {
         RoutingProfileStore.updateActive(json.takeIf { enabled && !it.isNullOrBlank() })
     }
 
+    val appThemeMode: Flow<AppThemeMode> = context.dataStore.data
+        .map { prefs -> AppThemeMode.fromStored(prefs[KEY_APP_THEME_MODE]) }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun setAppThemeMode(mode: AppThemeMode) {
+        AppLog.i("setAppThemeMode ${mode.label}")
+        context.dataStore.edit { prefs ->
+            prefs[KEY_APP_THEME_MODE] = mode.name
+        }
+    }
+
     val subscriptionAutoUpdateInterval: Flow<SubscriptionAutoUpdateInterval> = context.dataStore.data
         .map { prefs ->
             SubscriptionAutoUpdateInterval.fromStoredHours(prefs[KEY_SUB_AUTO_UPDATE_HOURS])
@@ -236,6 +247,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_SPLIT_APPS_MODE = stringPreferencesKey("split_apps_mode")
         private val KEY_SPLIT_APP_PACKAGES = stringPreferencesKey("split_app_packages")
         private val KEY_KILL_SWITCH_ENABLED = booleanPreferencesKey("kill_switch_enabled")
+        private val KEY_APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
         private val KEY_SUB_AUTO_UPDATE_HOURS = intPreferencesKey("sub_auto_update_hours")
         private val KEY_SUB_LAST_AUTO_REFRESH_MS = longPreferencesKey("sub_last_auto_refresh_ms")
     }

@@ -22,6 +22,7 @@ import online.coffemaniavpn.client.data.ConnectionSettingsState
 import online.coffemaniavpn.client.data.PingState
 import online.coffemaniavpn.client.data.ProxyNode
 import online.coffemaniavpn.client.data.ServerPinger
+import online.coffemaniavpn.client.data.AppThemeMode
 import online.coffemaniavpn.client.data.SubscriptionAutoUpdateInterval
 import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.data.SubscriptionParser
@@ -54,6 +55,7 @@ data class MainUiState(
     val connectionSettings: ConnectionSettingsState = ConnectionSettingsState(),
     val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval =
         SubscriptionAutoUpdateInterval.DEFAULT,
+    val appThemeMode: AppThemeMode = AppThemeMode.DEFAULT,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -101,12 +103,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         combine(
             preferences.connectionSettings,
             preferences.subscriptionAutoUpdateInterval,
-        ) { connectionSettings, autoUpdateInterval ->
-            SettingsUiState(connectionSettings, autoUpdateInterval)
+            preferences.appThemeMode,
+        ) { connectionSettings, autoUpdateInterval, appThemeMode ->
+            SettingsUiState(connectionSettings, autoUpdateInterval, appThemeMode)
         },
         startupCrash,
     ) { savedData, vpnData, localData, settingsData, crash ->
-        val (connectionSettings, autoUpdateInterval) = settingsData
+        val (connectionSettings, autoUpdateInterval, appThemeMode) = settingsData
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
@@ -126,6 +129,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             startupCrash = crash,
             connectionSettings = connectionSettings,
             subscriptionAutoUpdateInterval = autoUpdateInterval,
+            appThemeMode = appThemeMode,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -176,6 +180,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setSubscriptionAutoUpdateInterval(interval: SubscriptionAutoUpdateInterval) {
         viewModelScope.launch(Dispatchers.IO) {
             preferences.setSubscriptionAutoUpdateInterval(interval)
+        }
+    }
+
+    fun setAppThemeMode(mode: AppThemeMode) {
+        viewModelScope.launch(Dispatchers.IO) {
+            preferences.setAppThemeMode(mode)
         }
     }
 
@@ -533,5 +543,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private data class SettingsUiState(
         val connectionSettings: ConnectionSettingsState,
         val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
+        val appThemeMode: AppThemeMode,
     )
 }

@@ -20,7 +20,7 @@ import online.coffemaniavpn.client.R
 @Composable
 fun CoffeeLogo(
     modifier: Modifier = Modifier,
-    tint: Color = CoffemaniaColors.Espresso,
+    tint: Color = coffemaniaColors().espresso,
     contentDescription: String? = "КОФЕМАНИЯ ВПН",
 ) {
     Image(
@@ -42,7 +42,7 @@ fun CoffeeLogoAvatar(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(CoffemaniaColors.Cappuccino),
+            .background(coffemaniaColors().cappuccino),
         contentAlignment = Alignment.Center,
     ) {
         CoffeeLogo(modifier = Modifier.size(size * logoScale))

@@ -68,18 +68,18 @@ fun CoffemaniaSwitch(
         modifier = modifier,
         enabled = enabled,
         colors = SwitchDefaults.colors(
-            checkedThumbColor = CoffemaniaColors.MilkFoam,
-            checkedTrackColor = CoffemaniaColors.Espresso,
-            checkedBorderColor = CoffemaniaColors.Espresso,
-            uncheckedThumbColor = CoffemaniaColors.MilkFoam,
-            uncheckedTrackColor = CoffemaniaColors.Latte,
-            uncheckedBorderColor = CoffemaniaColors.Espresso,
-            disabledCheckedThumbColor = CoffemaniaColors.MilkFoam.copy(alpha = 0.7f),
-            disabledCheckedTrackColor = CoffemaniaColors.Mocha.copy(alpha = 0.5f),
-            disabledCheckedBorderColor = CoffemaniaColors.Mocha.copy(alpha = 0.5f),
-            disabledUncheckedThumbColor = CoffemaniaColors.Cappuccino,
-            disabledUncheckedTrackColor = CoffemaniaColors.Latte.copy(alpha = 0.7f),
-            disabledUncheckedBorderColor = CoffemaniaColors.Mocha,
+            checkedThumbColor = coffemaniaColors().milkFoam,
+            checkedTrackColor = coffemaniaColors().espresso,
+            checkedBorderColor = coffemaniaColors().espresso,
+            uncheckedThumbColor = coffemaniaColors().milkFoam,
+            uncheckedTrackColor = coffemaniaColors().latte,
+            uncheckedBorderColor = coffemaniaColors().espresso,
+            disabledCheckedThumbColor = coffemaniaColors().milkFoam.copy(alpha = 0.7f),
+            disabledCheckedTrackColor = coffemaniaColors().mocha.copy(alpha = 0.5f),
+            disabledCheckedBorderColor = coffemaniaColors().mocha.copy(alpha = 0.5f),
+            disabledUncheckedThumbColor = coffemaniaColors().cappuccino,
+            disabledUncheckedTrackColor = coffemaniaColors().latte.copy(alpha = 0.7f),
+            disabledUncheckedBorderColor = coffemaniaColors().mocha,
         ),
     )
 }
@@ -95,7 +95,7 @@ fun CoffemaniaTopBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = CoffemaniaColors.MilkFoam,
+        color = coffemaniaColors().milkFoam,
         shadowElevation = 0.dp,
     ) {
         val horizontalPadding = if (showBackButton) 12.dp else 24.dp
@@ -120,11 +120,11 @@ fun CoffemaniaTopBar(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Назад",
-                            tint = CoffemaniaColors.Espresso,
+                            tint = coffemaniaColors().espresso,
                         )
                     }
                 } else {
-                    CoffeeLogo(modifier = Modifier.size(28.dp), tint = CoffemaniaColors.Espresso)
+                    CoffeeLogo(modifier = Modifier.size(28.dp), tint = coffemaniaColors().espresso)
                 }
                 Text(
                     text = title,
@@ -134,7 +134,7 @@ fun CoffemaniaTopBar(
                     } else {
                         MaterialTheme.typography.headlineMedium
                     },
-                    color = CoffemaniaColors.Espresso,
+                    color = coffemaniaColors().espresso,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -144,7 +144,7 @@ fun CoffemaniaTopBar(
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Настройки",
-                        tint = CoffemaniaColors.Espresso,
+                        tint = coffemaniaColors().espresso,
                     )
                 }
             }
@@ -160,7 +160,7 @@ fun CoffemaniaBottomBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = CoffemaniaColors.Cappuccino,
+        color = coffemaniaColors().cappuccino,
         shadowElevation = 8.dp,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
@@ -194,8 +194,8 @@ private fun BottomNavItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     useCoffeeLogo: Boolean = false,
 ) {
-    val bg = if (selected) CoffemaniaColors.Latte else Color.Transparent
-    val fg = if (selected) CoffemaniaColors.Espresso else CoffemaniaColors.Mocha
+    val bg = if (selected) coffemaniaColors().latte else Color.Transparent
+    val fg = if (selected) coffemaniaColors().espresso else coffemaniaColors().mocha
 
     Column(
         modifier = Modifier
@@ -239,11 +239,11 @@ fun BrewConnectButton(
     val isBusy = vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping
     val isDimmed = !enabled && !isConnected && !isBusy
 
-    val outerBg = if (isDimmed) CoffemaniaColors.ConnectDisabledOuter else CoffemaniaColors.Cappuccino
-    val outerBorder = if (isDimmed) CoffemaniaColors.ConnectDisabledBorder else CoffemaniaColors.Latte
-    val innerBg = if (isDimmed) CoffemaniaColors.ConnectDisabledInner else CoffemaniaColors.MilkFoam
-    val innerBorder = if (isDimmed) CoffemaniaColors.ConnectDisabledBorder else CoffemaniaColors.Latte
-    val logoTint = if (isDimmed) CoffemaniaColors.ConnectDisabledIcon else CoffemaniaColors.Espresso
+    val outerBg = if (isDimmed) coffemaniaColors().connectDisabledOuter else coffemaniaColors().cappuccino
+    val outerBorder = if (isDimmed) coffemaniaColors().connectDisabledBorder else coffemaniaColors().latte
+    val innerBg = if (isDimmed) coffemaniaColors().connectDisabledInner else coffemaniaColors().milkFoam
+    val innerBorder = if (isDimmed) coffemaniaColors().connectDisabledBorder else coffemaniaColors().latte
+    val logoTint = if (isDimmed) coffemaniaColors().connectDisabledIcon else coffemaniaColors().espresso
 
     Column(
         modifier = modifier,
@@ -270,7 +270,7 @@ fun BrewConnectButton(
                 if (isBusy) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(48.dp),
-                        color = CoffemaniaColors.Espresso,
+                        color = coffemaniaColors().espresso,
                         strokeWidth = 3.dp,
                     )
                 } else {
@@ -287,7 +287,7 @@ fun BrewConnectButton(
                 text = formatConnectionDuration(connectionElapsedMs),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = CoffemaniaColors.Mocha,
+                color = coffemaniaColors().mocha,
             )
         }
     }
@@ -316,8 +316,8 @@ fun SelectedServerCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        color = CoffemaniaColors.Cappuccino,
-        border = androidx.compose.foundation.BorderStroke(1.dp, CoffemaniaColors.Latte),
+        color = coffemaniaColors().cappuccino,
+        border = androidx.compose.foundation.BorderStroke(1.dp, coffemaniaColors().latte),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -335,7 +335,7 @@ fun SelectedServerCard(
                         text = display.title,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = CoffemaniaColors.Espresso,
+                        color = coffemaniaColors().espresso,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -343,7 +343,7 @@ fun SelectedServerCard(
                         Text(
                             text = display.subtitle,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = CoffemaniaColors.Mocha,
+                            color = coffemaniaColors().mocha,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -353,7 +353,7 @@ fun SelectedServerCard(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = CoffemaniaColors.Espresso,
+                tint = coffemaniaColors().espresso,
             )
         }
     }
@@ -366,8 +366,8 @@ fun ServerListCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bg = CoffemaniaColors.Cappuccino
-    val borderColor = if (selected) CoffemaniaColors.Espresso else CoffemaniaColors.Latte
+    val bg = coffemaniaColors().cappuccino
+    val borderColor = if (selected) coffemaniaColors().espresso else coffemaniaColors().latte
 
     Surface(
         modifier = modifier
@@ -393,7 +393,7 @@ fun ServerListCard(
                         text = display.title,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = CoffemaniaColors.Espresso,
+                        color = coffemaniaColors().espresso,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -404,8 +404,8 @@ fun ServerListCard(
                     ) {
                         ProtocolBadge(
                             text = display.protocolLabel,
-                            bg = CoffemaniaColors.Latte,
-                            fg = CoffemaniaColors.Espresso,
+                            bg = coffemaniaColors().latte,
+                            fg = coffemaniaColors().espresso,
                         )
                         if (display.subtitle.isNotBlank()) {
                             Text(
@@ -414,7 +414,7 @@ fun ServerListCard(
                                     fontWeight = FontWeight.Normal,
                                     letterSpacing = 0.sp,
                                 ),
-                                color = CoffemaniaColors.Mocha,
+                                color = coffemaniaColors().mocha,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -426,7 +426,7 @@ fun ServerListCard(
                 val pingColor = when {
                     display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
                     display.pingText == "N/A" -> CoffemaniaColors.PingBad
-                    else -> CoffemaniaColors.Mocha
+                    else -> coffemaniaColors().mocha
                 }
                 Text(
                     text = display.pingText,
@@ -456,7 +456,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelSmall,
-        color = CoffemaniaColors.Mocha,
+        color = coffemaniaColors().mocha,
         modifier = modifier.padding(start = 8.dp, bottom = 8.dp),
     )
 }
@@ -470,8 +470,8 @@ fun SubscriptionCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = CoffemaniaColors.Cappuccino,
-        border = androidx.compose.foundation.BorderStroke(1.dp, CoffemaniaColors.Latte),
+        color = coffemaniaColors().cappuccino,
+        border = androidx.compose.foundation.BorderStroke(1.dp, coffemaniaColors().latte),
         shadowElevation = 1.dp,
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -479,7 +479,7 @@ fun SubscriptionCard(
                 text = "Добавить подписку",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = CoffemaniaColors.Espresso,
+                color = coffemaniaColors().espresso,
             )
             Column(
                 modifier = Modifier.padding(top = 16.dp),
@@ -536,7 +536,7 @@ private fun SubscriptionActionButton(
     Surface(
         modifier = modifier.clickable(enabled = !isLoading, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
-        color = CoffemaniaColors.MilkFoam,
+        color = coffemaniaColors().milkFoam,
     ) {
         Row(
             modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
@@ -547,13 +547,13 @@ private fun SubscriptionActionButton(
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
                     strokeWidth = 2.dp,
-                    color = CoffemaniaColors.Espresso,
+                    color = coffemaniaColors().espresso,
                 )
             } else {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = CoffemaniaColors.Espresso,
+                    tint = coffemaniaColors().espresso,
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -561,7 +561,7 @@ private fun SubscriptionActionButton(
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
-                color = CoffemaniaColors.Espresso,
+                color = coffemaniaColors().espresso,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -584,8 +584,8 @@ fun SubscriptionStatusBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = CoffemaniaColors.Cappuccino,
-        border = androidx.compose.foundation.BorderStroke(1.dp, CoffemaniaColors.Latte),
+        color = coffemaniaColors().cappuccino,
+        border = androidx.compose.foundation.BorderStroke(1.dp, coffemaniaColors().latte),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -598,7 +598,7 @@ fun SubscriptionStatusBar(
                             text = subscriptionInfo.title,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = CoffemaniaColors.Espresso,
+                            color = coffemaniaColors().espresso,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -612,7 +612,7 @@ fun SubscriptionStatusBar(
                             color = if (expired) {
                                 MaterialTheme.colorScheme.error
                             } else {
-                                CoffemaniaColors.Mocha
+                                coffemaniaColors().mocha
                             },
                         )
                     }
@@ -632,20 +632,20 @@ fun SubscriptionStatusBar(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(CoffemaniaColors.Latte),
+                            .background(coffemaniaColors().latte),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = nodeCount.toString(),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = CoffemaniaColors.Espresso,
+                            color = coffemaniaColors().espresso,
                         )
                     }
                     Text(
                         text = "Серверов",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = CoffemaniaColors.Mocha,
+                        color = coffemaniaColors().mocha,
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -671,13 +671,13 @@ fun SubscriptionStatusBar(
                     Text(
                         text = "∞",
                         style = MaterialTheme.typography.titleMedium,
-                        color = CoffemaniaColors.Espresso,
+                        color = coffemaniaColors().espresso,
                     )
                     Box(
                         modifier = Modifier
                             .width(1.dp)
                             .height(16.dp)
-                            .background(CoffemaniaColors.Latte),
+                            .background(coffemaniaColors().latte),
                     )
                 }
 
@@ -690,7 +690,7 @@ fun SubscriptionStatusBar(
                     text = subscriptionInfo?.trafficLabel() ?: "— / —",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium,
-                    color = CoffemaniaColors.Mocha,
+                    color = coffemaniaColors().mocha,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -704,8 +704,8 @@ private fun TrafficProgressBar(
     subscriptionInfo: SubscriptionInfo?,
     modifier: Modifier = Modifier,
 ) {
-    val trackColor = CoffemaniaColors.MilkFoam
-    val progressColor = CoffemaniaColors.Espresso
+    val trackColor = coffemaniaColors().milkFoam
+    val progressColor = coffemaniaColors().espresso
 
     if (subscriptionInfo == null) {
         Box(
@@ -763,13 +763,13 @@ fun ConfigRefreshButton(
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
                 strokeWidth = 2.dp,
-                color = CoffemaniaColors.Espresso,
+                color = coffemaniaColors().espresso,
             )
         } else {
             Icon(
                 imageVector = Icons.Default.Refresh,
                 contentDescription = "Обновить конфиг",
-                tint = CoffemaniaColors.Espresso,
+                tint = coffemaniaColors().espresso,
                 modifier = Modifier.size(28.dp),
             )
         }
@@ -792,13 +792,13 @@ fun PingTestButton(
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
                 strokeWidth = 2.dp,
-                color = CoffemaniaColors.Espresso,
+                color = coffemaniaColors().espresso,
             )
         } else {
             Icon(
                 imageVector = Icons.Default.Speed,
                 contentDescription = "Проверить пинг",
-                tint = CoffemaniaColors.Espresso,
+                tint = coffemaniaColors().espresso,
                 modifier = Modifier.size(28.dp),
             )
         }

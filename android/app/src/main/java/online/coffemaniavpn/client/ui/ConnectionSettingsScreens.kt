@@ -153,7 +153,7 @@ fun SplitTunnelSitesScreen(
         Text(
             text = "Укажите домены без протокола, например youtube.com",
             style = MaterialTheme.typography.bodySmall,
-            color = CoffemaniaColors.Mocha,
+            color = coffemaniaColors().mocha,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
         )
         SettingsDivider()
@@ -165,10 +165,10 @@ fun SplitTunnelSitesScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = CoffemaniaColors.Espresso,
-                contentColor = CoffemaniaColors.MilkFoam,
-                disabledContainerColor = CoffemaniaColors.Latte,
-                disabledContentColor = CoffemaniaColors.Mocha,
+                containerColor = coffemaniaColors().espresso,
+                contentColor = coffemaniaColors().milkFoam,
+                disabledContainerColor = coffemaniaColors().latte,
+                disabledContentColor = coffemaniaColors().mocha,
             ),
         ) {
             Text(if (domainsDirty) "Применить" else "Применено")
@@ -282,7 +282,7 @@ fun SplitTunnelAppsScreen(
             Text(
                 text = "Загрузка списка…",
                 style = MaterialTheme.typography.bodyMedium,
-                color = CoffemaniaColors.Mocha,
+                color = coffemaniaColors().mocha,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
         }
@@ -335,7 +335,7 @@ fun KillSwitchScreen(
             text = "При неожиданном обрыве VPN весь интернет-трафик будет заблокирован, " +
                 "пока вы снова не подключитесь.",
             style = MaterialTheme.typography.bodyMedium,
-            color = CoffemaniaColors.Mocha,
+            color = coffemaniaColors().mocha,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
         )
     }
@@ -364,7 +364,7 @@ private fun SettingsSectionLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleSmall,
-        color = CoffemaniaColors.Espresso,
+        color = coffemaniaColors().espresso,
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
     )
 }
@@ -416,7 +416,7 @@ private fun SettingsToggleTitle(title: String, enabled: Boolean) {
     Text(
         text = title,
         style = MaterialTheme.typography.bodyLarge,
-        color = if (enabled) CoffemaniaColors.Espresso else CoffemaniaColors.Mocha,
+        color = if (enabled) coffemaniaColors().espresso else coffemaniaColors().mocha,
     )
 }
 
@@ -426,7 +426,7 @@ private fun SettingsToggleSubtitle(subtitle: String?, enabled: Boolean) {
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodySmall,
-            color = CoffemaniaColors.Mocha,
+            color = coffemaniaColors().mocha,
         )
     }
 }
@@ -452,7 +452,7 @@ private fun SettingsRadioRow(
         Text(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (enabled) CoffemaniaColors.Espresso else CoffemaniaColors.Mocha,
+            color = if (enabled) coffemaniaColors().espresso else coffemaniaColors().mocha,
             modifier = Modifier.padding(start = 4.dp, end = 20.dp),
         )
     }

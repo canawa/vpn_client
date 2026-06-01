@@ -57,7 +57,7 @@ fun HomeScreen(
                 text = statusHeadline(state.vpnStatus),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
-                color = CoffemaniaColors.Espresso,
+                color = coffemaniaColors().espresso,
             )
         }
 
@@ -97,7 +97,7 @@ fun HomeScreen(
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = CoffemaniaColors.Mocha,
+                        color = coffemaniaColors().mocha,
                         modifier = Modifier.padding(top = 12.dp, start = 8.dp),
                     )
                 }

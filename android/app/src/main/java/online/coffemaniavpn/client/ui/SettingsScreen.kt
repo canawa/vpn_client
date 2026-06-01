@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsInputAntenna
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -54,6 +55,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import online.coffemaniavpn.client.data.AppThemeMode
 import online.coffemaniavpn.client.data.ConnectionSettingsState
 import online.coffemaniavpn.client.data.SubscriptionAutoUpdateInterval
 
@@ -64,6 +66,7 @@ fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     -> SettingsPage.Connection
     SettingsPage.Connection,
     SettingsPage.Subscription,
+    SettingsPage.Theme,
     SettingsPage.Logs,
     SettingsPage.About,
     -> SettingsPage.Main
@@ -86,6 +89,7 @@ enum class SettingsPage(
     ),
     KillSwitch("Kill switch"),
     Subscription("Подписка"),
+    Theme("Тема"),
     Logs("Логи"),
     About("О приложении"),
 }
@@ -104,6 +108,8 @@ fun SettingsScreen(
     onDeleteSubscription: () -> Unit,
     subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
+    appThemeMode: AppThemeMode,
+    onAppThemeModeChange: (AppThemeMode) -> Unit,
     onShowLogs: () -> Unit,
     onDownloadLogs: () -> Unit,
     onBuySubscription: () -> Unit,
@@ -136,6 +142,11 @@ fun SettingsScreen(
             modifier = modifier,
             settings = connectionSettings,
             onSave = onSaveConnectionSettings,
+        )
+        SettingsPage.Theme -> ThemeSettingsScreen(
+            modifier = modifier,
+            selectedTheme = appThemeMode,
+            onThemeChange = onAppThemeModeChange,
         )
         SettingsPage.Subscription -> SubscriptionSettingsScreen(
             modifier = modifier,
@@ -177,7 +188,7 @@ fun SettingsDivider() {
     HorizontalDivider(
         modifier = Modifier.fillMaxWidth(),
         thickness = 1.dp,
-        color = CoffemaniaColors.Latte,
+        color = coffemaniaColors().latte,
     )
 }
 
@@ -239,6 +250,12 @@ private fun SettingsMainScreen(
             title = "Подписка",
             icon = Icons.Default.Link,
             onClick = { onPageChange(SettingsPage.Subscription) },
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = "Тема",
+            icon = Icons.Default.Palette,
+            onClick = { onPageChange(SettingsPage.Theme) },
         )
         SettingsDivider()
         SettingsNavRow(
@@ -349,6 +366,7 @@ private fun SubscriptionAutoUpdateExpandable(
     onIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val colors = coffemaniaColors()
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = tween(SETTINGS_EXPAND_ANIM_MS),
@@ -372,19 +390,19 @@ private fun SubscriptionAutoUpdateExpandable(
             Text(
                 text = "Автообновление подписки",
                 style = MaterialTheme.typography.bodyLarge,
-                color = CoffemaniaColors.Espresso,
+                color = colors.espresso,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = selectedInterval.label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = CoffemaniaColors.Mocha,
+                color = colors.mocha,
                 modifier = Modifier.padding(end = 8.dp),
             )
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = null,
-                tint = CoffemaniaColors.Mocha,
+                tint = colors.mocha,
                 modifier = Modifier
                     .size(24.dp)
                     .rotate(chevronRotation),
@@ -427,24 +445,11 @@ private fun SettingsIntervalRadioRow(
     selected: Boolean,
     onSelect: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.RadioButton, onClick = onSelect)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = onSelect,
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = CoffemaniaColors.Espresso,
-            modifier = Modifier.padding(start = 4.dp, end = 20.dp),
-        )
-    }
+    SettingsThemeRadioRow(
+        title = title,
+        selected = selected,
+        onSelect = onSelect,
+    )
 }
 
 private fun subscriptionItems(
@@ -527,10 +532,11 @@ private fun SettingsActionRow(
     destructive: Boolean = false,
     showChevron: Boolean = true,
 ) {
+    val colors = coffemaniaColors()
     val contentColor = when {
-        !enabled -> CoffemaniaColors.Mocha.copy(alpha = 0.5f)
+        !enabled -> colors.mocha.copy(alpha = 0.5f)
         destructive -> MaterialTheme.colorScheme.error
-        else -> CoffemaniaColors.Espresso
+        else -> colors.espresso
     }
 
     Row(
@@ -558,7 +564,7 @@ private fun SettingsActionRow(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = CoffemaniaColors.Mocha,
+                tint = colors.mocha,
                 modifier = Modifier.size(24.dp),
             )
         }

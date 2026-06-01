@@ -71,9 +71,9 @@ class MainActivity : ComponentActivity() {
             }
 
             setContent {
-                CoffemaniaTheme {
+                val state by viewModel.uiState.collectAsState()
+                CoffemaniaTheme(themeMode = state.appThemeMode) {
                     var showLogs by remember { mutableStateOf(false) }
-                    val state by viewModel.uiState.collectAsState()
 
                     AppShell(
                         state = state,
@@ -92,6 +92,7 @@ class MainActivity : ComponentActivity() {
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
                         onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
+                        onAppThemeModeChange = viewModel::setAppThemeMode,
                     )
 
                     BackHandler(enabled = showLogs) {
