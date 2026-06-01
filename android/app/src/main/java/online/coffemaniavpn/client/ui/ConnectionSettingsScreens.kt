@@ -1,6 +1,5 @@
 package online.coffemaniavpn.client.ui
 
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +25,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import online.coffemaniavpn.client.data.InstalledAppsLoader
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -187,9 +189,14 @@ fun SplitTunnelAppsScreen(
     var selected by remember(settings) { mutableStateOf(settings.appPackages) }
     var apps by remember { mutableStateOf<List<InstalledAppItem>>(emptyList()) }
     var query by remember { mutableStateOf("") }
+    var isLoadingApps by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        apps = loadInstalledApps(context.packageManager)
+        isLoadingApps = true
+        apps = withContext(Dispatchers.Default) {
+            InstalledAppsLoader.load(context.packageManager, context.packageName)
+        }
+        isLoadingApps = false
     }
 
     fun persist() {
@@ -258,8 +265,22 @@ fun SplitTunnelAppsScreen(
             )
             SettingsDivider()
 
-            SettingsSectionLabel(text = "Приложения")
+            SettingsSectionLabel(
+                text = when {
+                    isLoadingApps -> "Приложения…"
+                    else -> "Приложения (${apps.size})"
+                },
+            )
             SettingsDivider()
+        }
+
+        if (isLoadingApps) {
+            Text(
+                text = "Загрузка списка…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = CoffemaniaColors.Mocha,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            )
         }
 
         LazyColumn(modifier = Modifier.weight(1f)) {
@@ -391,19 +412,3 @@ private fun SettingsRadioRow(
     }
 }
 
-private fun loadInstalledApps(packageManager: PackageManager): List<InstalledAppItem> {
-    return packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
-        .asSequence()
-        .filter { app ->
-            packageManager.getLaunchIntentForPackage(app.packageName) != null ||
-                (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0
-        }
-        .map { app ->
-            InstalledAppItem(
-                packageName = app.packageName,
-                label = packageManager.getApplicationLabel(app).toString(),
-            )
-        }
-        .sortedBy { it.label.lowercase() }
-        .toList()
-}

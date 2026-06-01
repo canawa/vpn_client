@@ -30,6 +30,7 @@ import online.coffemaniavpn.client.deeplink.DeepLinkParser
 import online.coffemaniavpn.client.ktx.readClipboardText
 import online.coffemaniavpn.client.util.AppLog
 import online.coffemaniavpn.client.vpn.KillSwitchVpnService
+import online.coffemaniavpn.client.vpn.VpnAutoReconnect
 import online.coffemaniavpn.client.vpn.VpnManager
 import online.coffemaniavpn.client.vpn.VpnStatus
 
@@ -149,6 +150,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun onAppResumed() {
         viewModelScope.launch {
             restoreSubscriptionSession()
+            VpnAutoReconnect.tryReconnectOnResume()
         }
     }
 

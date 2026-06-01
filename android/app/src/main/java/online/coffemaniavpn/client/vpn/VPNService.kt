@@ -117,22 +117,29 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
                 }
             }
 
+            var allowedCount = 0
             val includePackage = options.includePackage
             while (includePackage.hasNext()) {
                 try {
                     builder.addAllowedApplication(includePackage.next())
+                    allowedCount++
                 } catch (e: NameNotFoundException) {
                     AppLog.e("addAllowedApplication failed", e)
                 }
             }
 
+            var disallowedCount = 0
             val excludePackage = options.excludePackage
             while (excludePackage.hasNext()) {
                 try {
                     builder.addDisallowedApplication(excludePackage.next())
+                    disallowedCount++
                 } catch (e: NameNotFoundException) {
                     AppLog.e("addDisallowedApplication failed", e)
                 }
+            }
+            if (allowedCount > 0 || disallowedCount > 0) {
+                AppLog.i("VPNService per-app split allowed=$allowedCount disallowed=$disallowedCount")
             }
         }
 

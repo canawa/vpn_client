@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import online.coffemaniavpn.client.util.AppLog
+import online.coffemaniavpn.client.vpn.VpnManager
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
@@ -29,6 +30,7 @@ class App : Application() {
         AppLog.init(this)
         AppLog.installCrashHandler(Thread.getDefaultUncaughtExceptionHandler())
         AppLog.i("Application.onCreate start, version=${BuildConfig.VERSION_NAME}")
+        VpnManager.init()
 
         applicationScope.launch(Dispatchers.IO) {
             setupLibboxLocale()

@@ -1,7 +1,9 @@
 package online.coffemaniavpn.client.data
 
+import android.content.pm.PackageManager
 import org.json.JSONArray
 import org.json.JSONObject
+import online.coffemaniavpn.client.App
 import online.coffemaniavpn.client.util.AppLog
 
 object ConnectionSettingsStore {
@@ -121,23 +123,48 @@ object ConnectionSettingsStore {
     private fun applyAppPackages(config: JSONObject, settings: ConnectionSettingsState) {
         if (!settings.appsEnabled || settings.appPackages.isEmpty()) return
 
+        val packages = resolveInstalledPackages(settings.appPackages)
+        if (packages.isEmpty()) {
+            AppLog.w("ConnectionSettingsStore apps enabled but no valid packages")
+            return
+        }
+
         val inbounds = config.optJSONArray("inbounds") ?: return
         for (i in 0 until inbounds.length()) {
             val inbound = inbounds.optJSONObject(i) ?: continue
             if (inbound.optString("type") != "tun") continue
 
+            inbound.put("strict_route", false)
+
             when (settings.appsMode) {
                 SplitTunnelAppsMode.IncludeOnly -> {
-                    inbound.put("include_package", JSONArray(settings.appPackages.toList()))
+                    inbound.put("include_package", JSONArray(packages))
                     inbound.remove("exclude_package")
                 }
                 SplitTunnelAppsMode.ExcludeSelected -> {
-                    inbound.put("exclude_package", JSONArray(settings.appPackages.toList()))
+                    inbound.put("exclude_package", JSONArray(packages))
                     inbound.remove("include_package")
                 }
             }
+            AppLog.i(
+                "ConnectionSettingsStore apps mode=${settings.appsMode} packages=${packages.size} " +
+                    packages.take(5).joinToString(),
+            )
             break
         }
+    }
+
+    private fun resolveInstalledPackages(packages: Set<String>): List<String> {
+        val pm = App.packageManager
+        return packages.filter { pkg ->
+            runCatching {
+                pm.getApplicationInfo(pkg, PackageManager.GET_META_DATA)
+                true
+            }.getOrElse {
+                AppLog.w("ConnectionSettingsStore unknown package=$pkg")
+                false
+            }
+        }.sorted()
     }
 
     private fun normalizeDomain(raw: String): String =

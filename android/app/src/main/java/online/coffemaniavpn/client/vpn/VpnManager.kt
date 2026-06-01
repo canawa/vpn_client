@@ -27,6 +27,10 @@ object VpnManager {
     private var connectedSinceMs: Long? = null
     private var elapsedTickerJob: Job? = null
 
+    fun init() {
+        VpnAutoReconnect.startNetworkWatcher()
+    }
+
     internal fun setStatus(value: VpnStatus) {
         when (value) {
             VpnStatus.Started -> {
@@ -34,6 +38,7 @@ object VpnManager {
                     connectedSinceMs = System.currentTimeMillis()
                 }
                 startElapsedTicker()
+                VpnAutoReconnect.onConnected()
             }
             VpnStatus.Stopped -> {
                 connectedSinceMs = null
@@ -66,9 +71,20 @@ object VpnManager {
     }
 
     fun connect(node: ProxyNode) {
+        userInitiatedDisconnect = false
+        VpnAutoReconnect.rememberNode(node)
+        performConnect(node)
+    }
+
+    /** Переподключение без сброса счётчика попыток auto-reconnect. */
+    internal fun connectForReconnect(node: ProxyNode) {
+        userInitiatedDisconnect = false
+        performConnect(node)
+    }
+
+    private fun performConnect(node: ProxyNode) {
         _lastError.value = null
         KillSwitchVpnService.release(App.instance)
-        userInitiatedDisconnect = false
         try {
             val config = SingBoxConfigBuilder.build(node)
             AppLog.i("VpnManager.connect node=${node.name} protocol=${node.protocol}")
@@ -78,6 +94,8 @@ object VpnManager {
         } catch (t: Throwable) {
             AppLog.e("VpnManager.connect failed", t)
             _lastError.value = t.message ?: "Ошибка подключения"
+            setStatus(VpnStatus.Stopped)
+            VpnAutoReconnect.onConnectFailed()
         }
     }
 
@@ -85,6 +103,7 @@ object VpnManager {
         AppLog.i("VpnManager.disconnect userInitiated=$userInitiated")
         userInitiatedDisconnect = userInitiated
         if (userInitiated) {
+            VpnAutoReconnect.clear()
             KillSwitchVpnService.release(App.instance)
         }
         BoxService.stop()
@@ -95,6 +114,9 @@ object VpnManager {
         if (killSwitch && !userInitiatedDisconnect) {
             KillSwitchVpnService.engage(App.instance)
         }
+
+        VpnAutoReconnect.onUnexpectedDisconnect()
+
         userInitiatedDisconnect = false
     }
 }
