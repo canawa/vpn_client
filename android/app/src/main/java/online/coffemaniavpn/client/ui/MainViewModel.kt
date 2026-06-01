@@ -325,6 +325,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshConfig(showUrlRequiredError = false)
     }
 
+    fun deleteSubscription() {
+        viewModelScope.launch {
+            VpnManager.disconnect()
+            pingJob?.cancel()
+            isPinging.value = false
+            preferences.clearSubscription()
+            subscriptionUrlInput.value = ""
+            nodePings.value = emptyMap()
+            clearMessages()
+            message.value = "Подписка удалена"
+            AppLog.i("deleteSubscription ok")
+        }
+    }
+
     fun refreshSubscription() {
         refreshConfig(showUrlRequiredError = true)
     }

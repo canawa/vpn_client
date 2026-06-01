@@ -70,6 +70,12 @@ object CoffemaniaColors {
     /** Пинг > 400 ms или недоступен */
     val PingBad = Color(0xFFC62828)
 
+    /** Неактивная кнопка подключения (нет подписки) */
+    val ConnectDisabledOuter = Color(0xFFD8D0CA)
+    val ConnectDisabledInner = Color(0xFFE8E2DC)
+    val ConnectDisabledBorder = Color(0xFFC4BAB2)
+    val ConnectDisabledIcon = Color(0xFF9E9088)
+
     fun pingColor(latencyMs: Int): Color = when {
         latencyMs <= 200 -> PingGood
         latencyMs <= 400 -> PingMedium

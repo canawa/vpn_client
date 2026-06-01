@@ -92,6 +92,16 @@ class AppPreferences(private val context: Context) {
         }
     }
 
+    suspend fun clearSubscription() {
+        AppLog.w("clearSubscription called")
+        context.dataStore.edit { prefs ->
+            prefs.remove(KEY_SUBSCRIPTION_URL)
+            prefs.remove(KEY_NODES)
+            prefs.remove(KEY_SELECTED_NODE_ID)
+            prefs.remove(KEY_SUBSCRIPTION_INFO)
+        }
+    }
+
     suspend fun clearNodes() {
         AppLog.w("clearNodes called")
         context.dataStore.edit { prefs ->

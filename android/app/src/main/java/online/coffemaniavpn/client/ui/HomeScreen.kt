@@ -29,10 +29,13 @@ fun HomeScreen(
     onDisconnectClick: () -> Unit,
     onOpenServers: () -> Unit,
     onPasteLinkClick: () -> Unit,
+    onBuySubscriptionClick: () -> Unit,
+    onTelegramChannelClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isConnected = state.vpnStatus == VpnStatus.Started
-    val canConnect = state.subscriptionUrl.isNotBlank() && state.nodes.isNotEmpty()
+    val hasSubscription = state.subscriptionUrl.isNotBlank() && state.nodes.isNotEmpty()
+    val canConnect = hasSubscription
 
     Column(
         modifier = modifier
@@ -79,19 +82,27 @@ fun HomeScreen(
             }
         }
 
-        Column(modifier = Modifier.fillMaxWidth()) {
-            SectionLabel("Подписка")
-            SubscriptionCard(
-                onPasteLinkClick = onPasteLinkClick,
-            )
-            state.message?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = CoffemaniaColors.Mocha,
-                    modifier = Modifier.padding(top = 12.dp, start = 8.dp),
+        if (hasSubscription) {
+            TelegramChannelBanner(onClick = onTelegramChannelClick)
+        }
+
+        if (!hasSubscription) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                SectionLabel("Подписка")
+                SubscriptionCard(
+                    onBuySubscriptionClick = onBuySubscriptionClick,
+                    onPasteLinkClick = onPasteLinkClick,
                 )
+                state.message?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CoffemaniaColors.Mocha,
+                        modifier = Modifier.padding(top = 12.dp, start = 8.dp),
+                    )
+                }
             }
+            TelegramChannelBanner(onClick = onTelegramChannelClick)
         }
     }
 }

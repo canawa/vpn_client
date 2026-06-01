@@ -1,5 +1,6 @@
 package online.coffemaniavpn.client.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
@@ -37,12 +39,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+import online.coffemaniavpn.client.R
 import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.vpn.VpnStatus
 
@@ -51,11 +54,11 @@ enum class AppTab { Home, Servers }
 @Composable
 fun CoffemaniaTopBar(
     title: String,
-    settingsMenuExpanded: Boolean,
-    onSettingsClick: () -> Unit,
-    onSettingsMenuDismiss: () -> Unit,
-    settingsMenuContent: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
+    showBackButton: Boolean = false,
+    onBackClick: () -> Unit = {},
+    showSettingsButton: Boolean = true,
+    onSettingsClick: () -> Unit = {},
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -74,42 +77,30 @@ fun CoffemaniaTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                CoffeeLogo(modifier = Modifier.size(28.dp), tint = CoffemaniaColors.Espresso)
+                if (showBackButton) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Назад",
+                            tint = CoffemaniaColors.Espresso,
+                        )
+                    }
+                } else {
+                    CoffeeLogo(modifier = Modifier.size(28.dp), tint = CoffemaniaColors.Espresso)
+                }
                 Text(
                     text = title,
                     style = MaterialTheme.typography.headlineMedium,
                     color = CoffemaniaColors.Espresso,
                 )
             }
-            Box {
+            if (showSettingsButton) {
                 IconButton(onClick = onSettingsClick) {
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Настройки",
                         tint = CoffemaniaColors.Espresso,
                     )
-                }
-                if (settingsMenuExpanded) {
-                    Popup(
-                        alignment = Alignment.BottomEnd,
-                        onDismissRequest = onSettingsMenuDismiss,
-                        properties = PopupProperties(focusable = true),
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = CoffemaniaColors.Cappuccino,
-                            shadowElevation = 4.dp,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                CoffemaniaColors.Latte,
-                            ),
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(vertical = 4.dp),
-                                content = settingsMenuContent,
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -201,6 +192,13 @@ fun BrewConnectButton(
 ) {
     val isConnected = vpnStatus == VpnStatus.Started
     val isBusy = vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping
+    val isDimmed = !enabled && !isConnected && !isBusy
+
+    val outerBg = if (isDimmed) CoffemaniaColors.ConnectDisabledOuter else CoffemaniaColors.Cappuccino
+    val outerBorder = if (isDimmed) CoffemaniaColors.ConnectDisabledBorder else CoffemaniaColors.Latte
+    val innerBg = if (isDimmed) CoffemaniaColors.ConnectDisabledInner else CoffemaniaColors.MilkFoam
+    val innerBorder = if (isDimmed) CoffemaniaColors.ConnectDisabledBorder else CoffemaniaColors.Latte
+    val logoTint = if (isDimmed) CoffemaniaColors.ConnectDisabledIcon else CoffemaniaColors.Espresso
 
     Column(
         modifier = modifier,
@@ -210,8 +208,8 @@ fun BrewConnectButton(
             modifier = Modifier
                 .size(192.dp)
                 .clip(CircleShape)
-                .background(CoffemaniaColors.Cappuccino)
-                .border(2.dp, CoffemaniaColors.Latte, CircleShape)
+                .background(outerBg)
+                .border(2.dp, outerBorder, CircleShape)
                 .clickable(enabled = enabled && !isBusy, onClick = onClick)
                 .padding(12.dp),
             contentAlignment = Alignment.Center,
@@ -220,8 +218,8 @@ fun BrewConnectButton(
                 modifier = Modifier
                     .matchParentSize()
                     .clip(CircleShape)
-                    .background(CoffemaniaColors.MilkFoam)
-                    .border(1.5.dp, CoffemaniaColors.Latte, CircleShape),
+                    .background(innerBg)
+                    .border(1.5.dp, innerBorder, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 if (isBusy) {
@@ -233,7 +231,7 @@ fun BrewConnectButton(
                 } else {
                     CoffeeLogo(
                         modifier = Modifier.size(88.dp),
-                        tint = CoffemaniaColors.Espresso,
+                        tint = logoTint,
                     )
                 }
             }
@@ -420,6 +418,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun SubscriptionCard(
+    onBuySubscriptionClick: () -> Unit,
     onPasteLinkClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -437,15 +436,47 @@ fun SubscriptionCard(
                 fontWeight = FontWeight.SemiBold,
                 color = CoffemaniaColors.Espresso,
             )
-            SubscriptionActionButton(
-                text = "Вставить ссылку",
-                icon = Icons.Default.ContentPaste,
-                onClick = onPasteLinkClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-            )
+            Column(
+                modifier = Modifier.padding(top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SubscriptionActionButton(
+                    text = "Купить подписку на сайте",
+                    icon = Icons.Default.Language,
+                    onClick = onBuySubscriptionClick,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SubscriptionActionButton(
+                    text = "Вставить ссылку",
+                    icon = Icons.Default.ContentPaste,
+                    onClick = onPasteLinkClick,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun TelegramChannelBanner(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        shadowElevation = 8.dp,
+        color = Color.Transparent,
+    ) {
+        Image(
+            painter = painterResource(R.drawable.banner_telegram_channel),
+            contentDescription = "Перейти в Telegram-канал",
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp)),
+            contentScale = ContentScale.FillWidth,
+        )
     }
 }
 

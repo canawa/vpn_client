@@ -51,6 +51,12 @@ object AppLog {
         }.getOrElse { "Не удалось прочитать лог: ${it.message}" }
     }
 
+    fun readFull(): String {
+        val file = logFile ?: return ""
+        if (!file.exists() || file.length() == 0L) return ""
+        return runCatching { file.readText() }.getOrElse { "" }
+    }
+
     fun readLastCrash(): String? {
         val file = crashFile ?: return null
         if (!file.exists() || file.length() == 0L) return null
