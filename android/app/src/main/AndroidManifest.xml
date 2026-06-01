@@ -48,6 +48,15 @@
         </activity>
 
         <service
+            android:name=".vpn.KillSwitchVpnService"
+            android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+
+        <service
             android:name=".vpn.VPNService"
             android:exported="false"
             android:foregroundServiceType="specialUse"

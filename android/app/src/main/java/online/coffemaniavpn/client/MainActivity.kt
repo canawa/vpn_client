@@ -90,6 +90,7 @@ class MainActivity : ComponentActivity() {
                         onBuySubscriptionClick = ::openSubscriptionStore,
                         onTelegramChannelClick = ::openTelegramChannel,
                         onCloseApp = { finish() },
+                        onSaveConnectionSettings = viewModel::saveConnectionSettings,
                     )
 
                     BackHandler(enabled = showLogs) {

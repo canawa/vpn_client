@@ -169,6 +169,7 @@ class BoxService(
             runCatching { commandServer.close() }
             withContext(Dispatchers.Main) {
                 VpnManager.setStatus(VpnStatus.Stopped)
+                VpnManager.onVpnFullyStopped()
                 service.stopSelf()
             }
         }
@@ -188,6 +189,7 @@ class BoxService(
             notification.close()
             VpnManager.setError(message)
             VpnManager.setStatus(VpnStatus.Stopped)
+            VpnManager.onVpnFullyStopped()
             service.stopSelf()
         }
     }

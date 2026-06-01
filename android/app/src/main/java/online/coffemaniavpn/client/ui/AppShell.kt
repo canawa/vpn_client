@@ -43,6 +43,7 @@ fun AppShell(
     onBuySubscriptionClick: () -> Unit,
     onTelegramChannelClick: () -> Unit,
     onCloseApp: () -> Unit,
+    onSaveConnectionSettings: (online.coffemaniavpn.client.data.ConnectionSettingsState) -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
     var showSettings by remember { mutableStateOf(false) }
@@ -64,10 +65,14 @@ fun AppShell(
     fun navigateBack() {
         when {
             showDeleteSubscriptionConfirm -> showDeleteSubscriptionConfirm = false
-            showSettings && settingsPage != SettingsPage.Main -> settingsPage = SettingsPage.Main
             showSettings -> {
-                showSettings = false
-                settingsPage = SettingsPage.Main
+                val parent = settingsPage.parentPage()
+                if (parent != null) {
+                    settingsPage = parent
+                } else {
+                    showSettings = false
+                    settingsPage = SettingsPage.Main
+                }
             }
             selectedTab != AppTab.Home -> selectedTab = AppTab.Home
         }
@@ -89,7 +94,7 @@ fun AppShell(
             ) {
                 when {
                     showSettings -> CoffemaniaTopBar(
-                        title = settingsPage.title,
+                        title = settingsPage.headerTitle,
                         showBackButton = true,
                         onBackClick = { navigateBack() },
                         showSettingsButton = false,
@@ -130,6 +135,8 @@ fun AppShell(
                 onPageChange = { settingsPage = it },
                 appVersion = BuildConfig.VERSION_NAME,
                 hasSubscription = hasSubscription,
+                connectionSettings = state.connectionSettings,
+                onSaveConnectionSettings = onSaveConnectionSettings,
                 onOpenServers = {
                     showSettings = false
                     settingsPage = SettingsPage.Main

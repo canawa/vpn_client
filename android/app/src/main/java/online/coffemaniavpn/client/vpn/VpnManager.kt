@@ -6,11 +6,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import online.coffemaniavpn.client.App
+import online.coffemaniavpn.client.data.ConnectionSettingsStore
 import online.coffemaniavpn.client.data.ProxyNode
 import online.coffemaniavpn.client.data.SingBoxConfigBuilder
 import online.coffemaniavpn.client.util.AppLog
 
 object VpnManager {
+    @Volatile
+    var userInitiatedDisconnect: Boolean = false
+
     private val _status = MutableStateFlow(VpnStatus.Stopped)
     val status = _status.asStateFlow()
 
@@ -63,6 +67,8 @@ object VpnManager {
 
     fun connect(node: ProxyNode) {
         _lastError.value = null
+        KillSwitchVpnService.release(App.instance)
+        userInitiatedDisconnect = false
         try {
             val config = SingBoxConfigBuilder.build(node)
             AppLog.i("VpnManager.connect node=${node.name} protocol=${node.protocol}")
@@ -75,8 +81,20 @@ object VpnManager {
         }
     }
 
-    fun disconnect() {
-        AppLog.i("VpnManager.disconnect")
+    fun disconnect(userInitiated: Boolean = true) {
+        AppLog.i("VpnManager.disconnect userInitiated=$userInitiated")
+        userInitiatedDisconnect = userInitiated
+        if (userInitiated) {
+            KillSwitchVpnService.release(App.instance)
+        }
         BoxService.stop()
+    }
+
+    internal fun onVpnFullyStopped() {
+        val killSwitch = ConnectionSettingsStore.state.killSwitchEnabled
+        if (killSwitch && !userInitiatedDisconnect) {
+            KillSwitchVpnService.engage(App.instance)
+        }
+        userInitiatedDisconnect = false
     }
 }

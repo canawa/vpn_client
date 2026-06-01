@@ -149,6 +149,54 @@ class AppPreferences(private val context: Context) {
         RoutingProfileStore.updateActive(json.takeIf { enabled && !it.isNullOrBlank() })
     }
 
+    val connectionSettings: Flow<ConnectionSettingsState> = context.dataStore.data
+        .map { prefs -> prefs.toConnectionSettings() }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun saveConnectionSettings(settings: ConnectionSettingsState) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_SPLIT_SITES_ENABLED] = settings.sitesEnabled
+            prefs[KEY_SPLIT_SITES_MODE] = settings.sitesMode.name
+            prefs[KEY_SPLIT_SITES_DOMAINS] = settings.siteDomains.joinToString("\n")
+            prefs[KEY_SPLIT_APPS_ENABLED] = settings.appsEnabled
+            prefs[KEY_SPLIT_APPS_MODE] = settings.appsMode.name
+            prefs[KEY_SPLIT_APP_PACKAGES] = json.encodeToString(settings.appPackages.toList())
+            prefs[KEY_KILL_SWITCH_ENABLED] = settings.killSwitchEnabled
+        }
+        ConnectionSettingsStore.update(settings)
+    }
+
+    suspend fun loadConnectionSettingsIntoMemory() {
+        val settings = context.dataStore.data.first().toConnectionSettings()
+        ConnectionSettingsStore.update(settings)
+    }
+
+    private fun Preferences.toConnectionSettings(): ConnectionSettingsState {
+        val domains = this[KEY_SPLIT_SITES_DOMAINS].orEmpty()
+            .lines()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+        val packages = runCatching {
+            json.decodeFromString<List<String>>(this[KEY_SPLIT_APP_PACKAGES].orEmpty().ifBlank { "[]" })
+        }.getOrDefault(emptyList()).toSet()
+        val sitesMode = runCatching {
+            SplitTunnelSitesMode.valueOf(this[KEY_SPLIT_SITES_MODE] ?: SplitTunnelSitesMode.ProxyOnly.name)
+        }.getOrDefault(SplitTunnelSitesMode.ProxyOnly)
+        val appsMode = runCatching {
+            SplitTunnelAppsMode.valueOf(this[KEY_SPLIT_APPS_MODE] ?: SplitTunnelAppsMode.IncludeOnly.name)
+        }.getOrDefault(SplitTunnelAppsMode.IncludeOnly)
+
+        return ConnectionSettingsState(
+            sitesEnabled = this[KEY_SPLIT_SITES_ENABLED] ?: false,
+            sitesMode = sitesMode,
+            siteDomains = domains,
+            appsEnabled = this[KEY_SPLIT_APPS_ENABLED] ?: false,
+            appsMode = appsMode,
+            appPackages = packages,
+            killSwitchEnabled = this[KEY_KILL_SWITCH_ENABLED] ?: false,
+        )
+    }
+
     companion object {
         private val KEY_SUBSCRIPTION_URL = stringPreferencesKey("subscription_url")
         private val KEY_NODES = stringPreferencesKey("nodes")
@@ -156,5 +204,12 @@ class AppPreferences(private val context: Context) {
         private val KEY_SUBSCRIPTION_INFO = stringPreferencesKey("subscription_info")
         private val KEY_ROUTING_PROFILE = stringPreferencesKey("routing_profile")
         private val KEY_ROUTING_ENABLED = booleanPreferencesKey("routing_enabled")
+        private val KEY_SPLIT_SITES_ENABLED = booleanPreferencesKey("split_sites_enabled")
+        private val KEY_SPLIT_SITES_MODE = stringPreferencesKey("split_sites_mode")
+        private val KEY_SPLIT_SITES_DOMAINS = stringPreferencesKey("split_sites_domains")
+        private val KEY_SPLIT_APPS_ENABLED = booleanPreferencesKey("split_apps_enabled")
+        private val KEY_SPLIT_APPS_MODE = stringPreferencesKey("split_apps_mode")
+        private val KEY_SPLIT_APP_PACKAGES = stringPreferencesKey("split_app_packages")
+        private val KEY_KILL_SWITCH_ENABLED = booleanPreferencesKey("kill_switch_enabled")
     }
 }

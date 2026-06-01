@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +34,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +54,35 @@ import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.vpn.VpnStatus
 
 enum class AppTab { Home, Servers }
+
+@Composable
+fun CoffemaniaSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = CoffemaniaColors.MilkFoam,
+            checkedTrackColor = CoffemaniaColors.Espresso,
+            checkedBorderColor = CoffemaniaColors.Espresso,
+            uncheckedThumbColor = CoffemaniaColors.MilkFoam,
+            uncheckedTrackColor = CoffemaniaColors.Latte,
+            uncheckedBorderColor = CoffemaniaColors.Espresso,
+            disabledCheckedThumbColor = CoffemaniaColors.MilkFoam.copy(alpha = 0.7f),
+            disabledCheckedTrackColor = CoffemaniaColors.Mocha.copy(alpha = 0.5f),
+            disabledCheckedBorderColor = CoffemaniaColors.Mocha.copy(alpha = 0.5f),
+            disabledUncheckedThumbColor = CoffemaniaColors.Cappuccino,
+            disabledUncheckedTrackColor = CoffemaniaColors.Latte.copy(alpha = 0.7f),
+            disabledUncheckedBorderColor = CoffemaniaColors.Mocha,
+        ),
+    )
+}
 
 @Composable
 fun CoffemaniaTopBar(
@@ -65,17 +98,22 @@ fun CoffemaniaTopBar(
         color = CoffemaniaColors.MilkFoam,
         shadowElevation = 0.dp,
     ) {
+        val horizontalPadding = if (showBackButton) 12.dp else 24.dp
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .padding(horizontal = 24.dp),
+                .heightIn(min = 64.dp)
+                .padding(horizontal = horizontalPadding, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(
+                    space = if (showBackButton) 4.dp else 16.dp,
+                ),
             ) {
                 if (showBackButton) {
                     IconButton(onClick = onBackClick) {
@@ -90,8 +128,15 @@ fun CoffemaniaTopBar(
                 }
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.weight(1f),
+                    style = if (showBackButton) {
+                        MaterialTheme.typography.titleMedium
+                    } else {
+                        MaterialTheme.typography.headlineMedium
+                    },
                     color = CoffemaniaColors.Espresso,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (showSettingsButton) {

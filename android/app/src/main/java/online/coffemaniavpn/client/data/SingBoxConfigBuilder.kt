@@ -12,6 +12,7 @@ object SingBoxConfigBuilder {
 
         return buildBaseConfig(outbound, node).also { config ->
             RoutingProfileStore.applyToConfig(config)
+            ConnectionSettingsStore.applyToConfig(config)
         }.toString(2)
     }
 

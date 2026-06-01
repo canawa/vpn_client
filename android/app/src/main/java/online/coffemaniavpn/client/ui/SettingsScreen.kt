@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.ContentPaste
@@ -18,10 +19,13 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SettingsInputAntenna
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,9 +36,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import online.coffemaniavpn.client.data.ConnectionSettingsState
 
-enum class SettingsPage(val title: String) {
+fun SettingsPage.parentPage(): SettingsPage? = when (this) {
+    SettingsPage.SplitTunnelSites,
+    SettingsPage.SplitTunnelApps,
+    SettingsPage.KillSwitch,
+    -> SettingsPage.Connection
+    SettingsPage.Connection,
+    SettingsPage.Subscription,
+    SettingsPage.Logs,
+    SettingsPage.About,
+    -> SettingsPage.Main
+    SettingsPage.Main -> null
+}
+
+enum class SettingsPage(
+    val title: String,
+    val headerTitle: String = title,
+) {
     Main("Настройки"),
+    Connection("Соединение"),
+    SplitTunnelSites(
+        title = "Раздельное туннелирование сайтов",
+        headerTitle = "Туннелирование сайтов",
+    ),
+    SplitTunnelApps(
+        title = "Раздельное туннелирование приложений",
+        headerTitle = "Туннелирование приложений",
+    ),
+    KillSwitch("Kill switch"),
     Subscription("Подписка"),
     Logs("Логи"),
     About("О приложении"),
@@ -46,6 +77,8 @@ fun SettingsScreen(
     onPageChange: (SettingsPage) -> Unit,
     appVersion: String,
     hasSubscription: Boolean,
+    connectionSettings: ConnectionSettingsState,
+    onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
     onOpenServers: () -> Unit,
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
@@ -63,6 +96,25 @@ fun SettingsScreen(
             onOpenServers = onOpenServers,
             onPageChange = onPageChange,
             onCloseApp = onCloseApp,
+        )
+        SettingsPage.Connection -> ConnectionMenuScreen(
+            modifier = modifier,
+            onPageChange = onPageChange,
+        )
+        SettingsPage.SplitTunnelSites -> SplitTunnelSitesScreen(
+            modifier = modifier,
+            settings = connectionSettings,
+            onSave = onSaveConnectionSettings,
+        )
+        SettingsPage.SplitTunnelApps -> SplitTunnelAppsScreen(
+            modifier = modifier,
+            settings = connectionSettings,
+            onSave = onSaveConnectionSettings,
+        )
+        SettingsPage.KillSwitch -> KillSwitchScreen(
+            modifier = modifier,
+            settings = connectionSettings,
+            onSave = onSaveConnectionSettings,
         )
         SettingsPage.Subscription -> SettingsDetailScreen(
             modifier = modifier,
@@ -100,6 +152,45 @@ fun SettingsScreen(
 }
 
 @Composable
+fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.fillMaxWidth(),
+        thickness = 1.dp,
+        color = CoffemaniaColors.Latte,
+    )
+}
+
+@Composable
+private fun ConnectionMenuScreen(
+    onPageChange: (SettingsPage) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        SettingsNavRow(
+            title = "Раздельное туннелирование сайтов",
+            icon = Icons.Default.Language,
+            onClick = { onPageChange(SettingsPage.SplitTunnelSites) },
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = "Раздельное туннелирование приложений",
+            icon = Icons.Default.Apps,
+            onClick = { onPageChange(SettingsPage.SplitTunnelApps) },
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = "Kill switch",
+            icon = Icons.Default.Shield,
+            onClick = { onPageChange(SettingsPage.KillSwitch) },
+        )
+    }
+}
+
+@Composable
 private fun SettingsMainScreen(
     onOpenServers: () -> Unit,
     onPageChange: (SettingsPage) -> Unit,
@@ -111,43 +202,42 @@ private fun SettingsMainScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        SettingsGroup {
-            SettingsNavRow(
-                title = "Серверы",
-                icon = Icons.Default.Dns,
-                onClick = onOpenServers,
-            )
-            SettingsNavRow(
-                title = "Подписка",
-                icon = Icons.Default.Link,
-                onClick = { onPageChange(SettingsPage.Subscription) },
-            )
-        }
-
-        SettingsGroup {
-            SettingsNavRow(
-                title = "Логи",
-                icon = Icons.Default.BugReport,
-                onClick = { onPageChange(SettingsPage.Logs) },
-            )
-        }
-
-        SettingsGroup {
-            SettingsNavRow(
-                title = "О КОФЕМАНИЯ ВПН",
-                icon = Icons.Default.Info,
-                onClick = { onPageChange(SettingsPage.About) },
-            )
-        }
-
-        SettingsGroup {
-            SettingsActionRow(
-                title = "Закрыть приложение",
-                icon = Icons.Default.Cancel,
-                onClick = onCloseApp,
-                showChevron = false,
-            )
-        }
+        SettingsNavRow(
+            title = "Серверы",
+            icon = Icons.Default.Dns,
+            onClick = onOpenServers,
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = "Соединение",
+            icon = Icons.Default.SettingsInputAntenna,
+            onClick = { onPageChange(SettingsPage.Connection) },
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = "Подписка",
+            icon = Icons.Default.Link,
+            onClick = { onPageChange(SettingsPage.Subscription) },
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = "Логи",
+            icon = Icons.Default.BugReport,
+            onClick = { onPageChange(SettingsPage.Logs) },
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = "О КОФЕМАНИЯ ВПН",
+            icon = Icons.Default.Info,
+            onClick = { onPageChange(SettingsPage.About) },
+        )
+        SettingsDivider()
+        SettingsActionRow(
+            title = "Закрыть приложение",
+            icon = Icons.Default.Cancel,
+            onClick = onCloseApp,
+            showChevron = false,
+        )
     }
 }
 
@@ -161,19 +251,17 @@ private fun SettingsDetailScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        SettingsGroup {
-            items.forEachIndexed { index, action ->
-                SettingsActionRow(
-                    title = action.title,
-                    icon = action.icon,
-                    onClick = action.onClick,
-                    enabled = action.enabled,
-                    destructive = action.destructive,
-                    showChevron = action.showChevron,
-                )
-                if (index < items.lastIndex) {
-                    SettingsInnerDivider()
-                }
+        items.forEachIndexed { index, action ->
+            SettingsActionRow(
+                title = action.title,
+                icon = action.icon,
+                onClick = action.onClick,
+                enabled = action.enabled,
+                destructive = action.destructive,
+                showChevron = action.showChevron,
+            )
+            if (index < items.lastIndex) {
+                SettingsDivider()
             }
         }
     }
@@ -235,7 +323,7 @@ private fun aboutItems(
     ),
     SettingsAction(
         title = "Канал в Telegram",
-        icon = Icons.Default.Send,
+        icon = Icons.AutoMirrored.Filled.Send,
         onClick = onTelegramChannel,
     ),
     SettingsAction(
@@ -244,29 +332,6 @@ private fun aboutItems(
         onClick = onBuySubscription,
     ),
 )
-
-@Composable
-private fun SettingsGroup(content: @Composable () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        content()
-    }
-    HorizontalDivider(
-        modifier = Modifier.fillMaxWidth(),
-        thickness = 1.dp,
-        color = CoffemaniaColors.Latte,
-    )
-}
-
-@Composable
-private fun SettingsInnerDivider() {
-    HorizontalDivider(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 56.dp),
-        thickness = 1.dp,
-        color = CoffemaniaColors.Latte.copy(alpha = 0.6f),
-    )
-}
 
 @Composable
 private fun SettingsNavRow(

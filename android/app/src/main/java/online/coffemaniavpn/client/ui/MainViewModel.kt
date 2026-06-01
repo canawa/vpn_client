@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import online.coffemaniavpn.client.data.AppPreferences
+import online.coffemaniavpn.client.data.ConnectionSettingsState
 import online.coffemaniavpn.client.data.PingState
 import online.coffemaniavpn.client.data.ProxyNode
 import online.coffemaniavpn.client.data.ServerPinger
@@ -28,6 +29,7 @@ import online.coffemaniavpn.client.deeplink.DeepLinkEffect
 import online.coffemaniavpn.client.deeplink.DeepLinkParser
 import online.coffemaniavpn.client.ktx.readClipboardText
 import online.coffemaniavpn.client.util.AppLog
+import online.coffemaniavpn.client.vpn.KillSwitchVpnService
 import online.coffemaniavpn.client.vpn.VpnManager
 import online.coffemaniavpn.client.vpn.VpnStatus
 
@@ -45,6 +47,7 @@ data class MainUiState(
     val error: String? = null,
     val startupCrash: String? = null,
     val logsPreview: String? = null,
+    val connectionSettings: ConnectionSettingsState = ConnectionSettingsState(),
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -88,8 +91,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         combine(isLoading, isPinging, nodePings, message, error) { loading, pinging, pings, info, localError ->
             LocalUiState(loading, pinging, pings, info, localError)
         },
+        preferences.connectionSettings,
         startupCrash,
-    ) { savedData, vpnData, localData, crash ->
+    ) { savedData, vpnData, localData, connectionSettings, crash ->
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
@@ -107,6 +111,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             message = info,
             error = localError ?: vpnError,
             startupCrash = crash,
+            connectionSettings = connectionSettings,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -119,6 +124,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             startupCrash.value = AppLog.readLastCrash()
             preferences.loadActiveRoutingIntoMemory()
+            preferences.loadConnectionSettingsIntoMemory()
         }
         viewModelScope.launch {
             preferences.subscriptionUrl.collect { saved ->
@@ -409,6 +415,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         append(AppLog.logPath())
         append("\n\n")
         append(AppLog.readTail())
+    }
+
+    fun saveConnectionSettings(settings: ConnectionSettingsState) {
+        viewModelScope.launch(Dispatchers.IO) {
+            preferences.saveConnectionSettings(settings)
+            if (!settings.killSwitchEnabled) {
+                KillSwitchVpnService.release(getApplication())
+            }
+            val node = selectedNode()
+            val wasConnected = uiState.value.vpnStatus == VpnStatus.Started
+            if (wasConnected && node != null) {
+                withContext(Dispatchers.Main) {
+                    VpnManager.disconnect(userInitiated = true)
+                    VpnManager.connect(node)
+                }
+            }
+        }
     }
 
     fun selectedNode(): ProxyNode? {
