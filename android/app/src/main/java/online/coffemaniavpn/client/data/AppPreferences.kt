@@ -5,6 +5,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.Dispatchers
@@ -149,6 +151,29 @@ class AppPreferences(private val context: Context) {
         RoutingProfileStore.updateActive(json.takeIf { enabled && !it.isNullOrBlank() })
     }
 
+    val subscriptionAutoUpdateInterval: Flow<SubscriptionAutoUpdateInterval> = context.dataStore.data
+        .map { prefs ->
+            SubscriptionAutoUpdateInterval.fromStoredHours(prefs[KEY_SUB_AUTO_UPDATE_HOURS])
+        }
+        .flowOn(Dispatchers.IO)
+
+    val subscriptionLastAutoRefreshAt: Flow<Long> = context.dataStore.data
+        .map { prefs -> prefs[KEY_SUB_LAST_AUTO_REFRESH_MS] ?: 0L }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun setSubscriptionAutoUpdateInterval(interval: SubscriptionAutoUpdateInterval) {
+        AppLog.i("setSubscriptionAutoUpdateInterval ${interval.label}")
+        context.dataStore.edit { prefs ->
+            prefs[KEY_SUB_AUTO_UPDATE_HOURS] = interval.hours
+        }
+    }
+
+    suspend fun setSubscriptionLastAutoRefreshAt(epochMs: Long) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_SUB_LAST_AUTO_REFRESH_MS] = epochMs
+        }
+    }
+
     val connectionSettings: Flow<ConnectionSettingsState> = context.dataStore.data
         .map { prefs -> prefs.toConnectionSettings() }
         .flowOn(Dispatchers.IO)
@@ -211,5 +236,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_SPLIT_APPS_MODE = stringPreferencesKey("split_apps_mode")
         private val KEY_SPLIT_APP_PACKAGES = stringPreferencesKey("split_app_packages")
         private val KEY_KILL_SWITCH_ENABLED = booleanPreferencesKey("kill_switch_enabled")
+        private val KEY_SUB_AUTO_UPDATE_HOURS = intPreferencesKey("sub_auto_update_hours")
+        private val KEY_SUB_LAST_AUTO_REFRESH_MS = longPreferencesKey("sub_last_auto_refresh_ms")
     }
 }

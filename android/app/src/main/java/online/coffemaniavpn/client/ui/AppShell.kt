@@ -44,6 +44,7 @@ fun AppShell(
     onTelegramChannelClick: () -> Unit,
     onCloseApp: () -> Unit,
     onSaveConnectionSettings: (online.coffemaniavpn.client.data.ConnectionSettingsState) -> Unit,
+    onSubscriptionAutoUpdateIntervalChange: (online.coffemaniavpn.client.data.SubscriptionAutoUpdateInterval) -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
     var showSettings by remember { mutableStateOf(false) }
@@ -137,6 +138,8 @@ fun AppShell(
                 hasSubscription = hasSubscription,
                 connectionSettings = state.connectionSettings,
                 onSaveConnectionSettings = onSaveConnectionSettings,
+                subscriptionAutoUpdateInterval = state.subscriptionAutoUpdateInterval,
+                onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
                 onOpenServers = {
                     showSettings = false
                     settingsPage = SettingsPage.Main

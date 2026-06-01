@@ -6,7 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -20,6 +22,7 @@ import online.coffemaniavpn.client.data.ConnectionSettingsState
 import online.coffemaniavpn.client.data.PingState
 import online.coffemaniavpn.client.data.ProxyNode
 import online.coffemaniavpn.client.data.ServerPinger
+import online.coffemaniavpn.client.data.SubscriptionAutoUpdateInterval
 import online.coffemaniavpn.client.data.SubscriptionInfo
 import online.coffemaniavpn.client.data.SubscriptionParser
 import online.coffemaniavpn.client.data.SubscriptionRepository
@@ -49,6 +52,8 @@ data class MainUiState(
     val startupCrash: String? = null,
     val logsPreview: String? = null,
     val connectionSettings: ConnectionSettingsState = ConnectionSettingsState(),
+    val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval =
+        SubscriptionAutoUpdateInterval.DEFAULT,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -66,6 +71,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val message = MutableStateFlow<String?>(null)
     private val error = MutableStateFlow<String?>(null)
     private val startupCrash = MutableStateFlow<String?>(null)
+    private var subscriptionAutoUpdateJob: Job? = null
 
     val uiState: StateFlow<MainUiState> = combine(
         combine(
@@ -92,9 +98,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         combine(isLoading, isPinging, nodePings, message, error) { loading, pinging, pings, info, localError ->
             LocalUiState(loading, pinging, pings, info, localError)
         },
-        preferences.connectionSettings,
+        combine(
+            preferences.connectionSettings,
+            preferences.subscriptionAutoUpdateInterval,
+        ) { connectionSettings, autoUpdateInterval ->
+            SettingsUiState(connectionSettings, autoUpdateInterval)
+        },
         startupCrash,
-    ) { savedData, vpnData, localData, connectionSettings, crash ->
+    ) { savedData, vpnData, localData, settingsData, crash ->
+        val (connectionSettings, autoUpdateInterval) = settingsData
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
@@ -113,6 +125,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             error = localError ?: vpnError,
             startupCrash = crash,
             connectionSettings = connectionSettings,
+            subscriptionAutoUpdateInterval = autoUpdateInterval,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -145,12 +158,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+        viewModelScope.launch {
+            preferences.subscriptionAutoUpdateInterval.collect { interval ->
+                restartSubscriptionAutoUpdate(interval)
+            }
+        }
     }
 
     fun onAppResumed() {
         viewModelScope.launch {
             restoreSubscriptionSession()
             VpnAutoReconnect.tryReconnectOnResume()
+            maybeAutoRefreshSubscriptionOnResume()
+        }
+    }
+
+    fun setSubscriptionAutoUpdateInterval(interval: SubscriptionAutoUpdateInterval) {
+        viewModelScope.launch(Dispatchers.IO) {
+            preferences.setSubscriptionAutoUpdateInterval(interval)
         }
     }
 
@@ -376,25 +401,67 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isLoading.value = true
             error.value = null
             message.value = null
-            var success = false
-            try {
-                AppLog.i("refreshConfig start")
-                val result = withContext(Dispatchers.IO) {
-                    repository.fetchSubscription(url)
-                }
-                val selected = uiState.value.selectedNodeId?.takeIf { id ->
-                    result.nodes.any { it.id == id }
-                } ?: result.nodes.first().id
-                preferences.saveSubscription(url, result.nodes, selected, result.info)
-                message.value = "Конфиг обновлён: ${result.nodes.size} серверов"
-                AppLog.i("refreshConfig ok, nodes=${result.nodes.size} info=${result.info}")
-                success = true
-            } catch (e: Exception) {
+            val success = runCatching {
+                fetchAndSaveSubscription(url)
+            }.onSuccess { nodeCount ->
+                message.value = "Конфиг обновлён: $nodeCount серверов"
+                AppLog.i("refreshConfig ok, nodes=$nodeCount")
+            }.onFailure { e ->
                 AppLog.e("refreshConfig failed", e)
-                error.value = e.message ?: "Не удалось обновить конфиг"
-            } finally {
-                isLoading.value = false
-                onComplete?.invoke(success)
+                error.value = (e as? Exception)?.message ?: "Не удалось обновить конфиг"
+            }.isSuccess
+            isLoading.value = false
+            onComplete?.invoke(success)
+        }
+    }
+
+    private suspend fun fetchAndSaveSubscription(url: String): Int {
+        AppLog.i("fetchAndSaveSubscription start urlLen=${url.length}")
+        val result = withContext(Dispatchers.IO) {
+            repository.fetchSubscription(url)
+        }
+        val selected = uiState.value.selectedNodeId?.takeIf { id ->
+            result.nodes.any { it.id == id }
+        } ?: result.nodes.first().id
+        preferences.saveSubscription(url, result.nodes, selected, result.info)
+        preferences.setSubscriptionLastAutoRefreshAt(System.currentTimeMillis())
+        return result.nodes.size
+    }
+
+    private suspend fun autoRefreshSubscriptionSilent() {
+        val url = preferences.subscriptionUrl.first().trim()
+        if (url.isBlank() || url == LOCAL_IMPORT_URL) return
+        runCatching {
+            fetchAndSaveSubscription(url)
+        }.onSuccess { count ->
+            AppLog.i("autoRefreshSubscription ok nodes=$count")
+        }.onFailure { e ->
+            AppLog.w("autoRefreshSubscription failed", e)
+        }
+    }
+
+    private suspend fun maybeAutoRefreshSubscriptionOnResume() {
+        val interval = preferences.subscriptionAutoUpdateInterval.first()
+        if (interval == SubscriptionAutoUpdateInterval.OFF) return
+        val url = preferences.subscriptionUrl.first().trim()
+        if (url.isBlank() || url == LOCAL_IMPORT_URL) return
+        val last = preferences.subscriptionLastAutoRefreshAt.first()
+        val elapsed = System.currentTimeMillis() - last
+        if (last == 0L || elapsed >= interval.durationMs) {
+            AppLog.i("autoRefreshSubscription on resume elapsed=${elapsed}ms interval=${interval.label}")
+            autoRefreshSubscriptionSilent()
+        }
+    }
+
+    private fun restartSubscriptionAutoUpdate(interval: SubscriptionAutoUpdateInterval) {
+        subscriptionAutoUpdateJob?.cancel()
+        if (interval == SubscriptionAutoUpdateInterval.OFF) return
+        subscriptionAutoUpdateJob = viewModelScope.launch {
+            AppLog.i("subscriptionAutoUpdate started interval=${interval.label}")
+            delay(interval.durationMs)
+            while (isActive) {
+                autoRefreshSubscriptionSilent()
+                delay(interval.durationMs)
             }
         }
     }
@@ -461,5 +528,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val nodePings: Map<String, PingState>,
         val message: String?,
         val error: String?,
+    )
+
+    private data class SettingsUiState(
+        val connectionSettings: ConnectionSettingsState,
+        val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
     )
 }

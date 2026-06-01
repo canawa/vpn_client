@@ -91,6 +91,7 @@ class MainActivity : ComponentActivity() {
                         onTelegramChannelClick = ::openTelegramChannel,
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
+                        onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
                     )
 
                     BackHandler(enabled = showLogs) {

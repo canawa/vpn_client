@@ -1,5 +1,12 @@
 package online.coffemaniavpn.client.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Cancel
@@ -29,14 +37,25 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import online.coffemaniavpn.client.data.ConnectionSettingsState
+import online.coffemaniavpn.client.data.SubscriptionAutoUpdateInterval
 
 fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     SettingsPage.SplitTunnelSites,
@@ -83,6 +102,8 @@ fun SettingsScreen(
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
+    subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
+    onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     onShowLogs: () -> Unit,
     onDownloadLogs: () -> Unit,
     onBuySubscription: () -> Unit,
@@ -116,14 +137,14 @@ fun SettingsScreen(
             settings = connectionSettings,
             onSave = onSaveConnectionSettings,
         )
-        SettingsPage.Subscription -> SettingsDetailScreen(
+        SettingsPage.Subscription -> SubscriptionSettingsScreen(
             modifier = modifier,
-            items = subscriptionItems(
-                hasSubscription = hasSubscription,
-                onPasteLink = onPasteLink,
-                onRefreshSubscription = onRefreshSubscription,
-                onDeleteSubscription = onDeleteSubscription,
-            ),
+            hasSubscription = hasSubscription,
+            autoUpdateInterval = subscriptionAutoUpdateInterval,
+            onAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
+            onPasteLink = onPasteLink,
+            onRefreshSubscription = onRefreshSubscription,
+            onDeleteSubscription = onDeleteSubscription,
         )
         SettingsPage.Logs -> SettingsDetailScreen(
             modifier = modifier,
@@ -275,6 +296,156 @@ private data class SettingsAction(
     val destructive: Boolean = false,
     val showChevron: Boolean = false,
 )
+
+@Composable
+private fun SubscriptionSettingsScreen(
+    hasSubscription: Boolean,
+    autoUpdateInterval: SubscriptionAutoUpdateInterval,
+    onAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
+    onPasteLink: () -> Unit,
+    onRefreshSubscription: () -> Unit,
+    onDeleteSubscription: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val actions = subscriptionItems(
+        hasSubscription = hasSubscription,
+        onPasteLink = onPasteLink,
+        onRefreshSubscription = onRefreshSubscription,
+        onDeleteSubscription = onDeleteSubscription,
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        SubscriptionAutoUpdateExpandable(
+            selectedInterval = autoUpdateInterval,
+            onIntervalChange = onAutoUpdateIntervalChange,
+        )
+        SettingsDivider()
+
+        actions.forEachIndexed { index, action ->
+            SettingsActionRow(
+                title = action.title,
+                icon = action.icon,
+                onClick = action.onClick,
+                enabled = action.enabled,
+                destructive = action.destructive,
+                showChevron = action.showChevron,
+            )
+            if (index < actions.lastIndex) {
+                SettingsDivider()
+            }
+        }
+    }
+}
+
+private const val SETTINGS_EXPAND_ANIM_MS = 280
+
+@Composable
+private fun SubscriptionAutoUpdateExpandable(
+    selectedInterval: SubscriptionAutoUpdateInterval,
+    onIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(SETTINGS_EXPAND_ANIM_MS),
+        label = "subscriptionAutoUpdateChevron",
+    )
+    val expandSpec = tween<IntSize>(SETTINGS_EXPAND_ANIM_MS)
+    val fadeSpec = tween<Float>(SETTINGS_EXPAND_ANIM_MS)
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = "Автообновление подписки"
+                    stateDescription = if (expanded) "Развёрнуто" else "Свёрнуто"
+                }
+                .clickable(role = Role.Button) { expanded = !expanded }
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Автообновление подписки",
+                style = MaterialTheme.typography.bodyLarge,
+                color = CoffemaniaColors.Espresso,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = selectedInterval.label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = CoffemaniaColors.Mocha,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = CoffemaniaColors.Mocha,
+                modifier = Modifier
+                    .size(24.dp)
+                    .rotate(chevronRotation),
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(
+                animationSpec = expandSpec,
+                expandFrom = Alignment.Top,
+            ) + fadeIn(animationSpec = fadeSpec),
+            exit = shrinkVertically(
+                animationSpec = expandSpec,
+                shrinkTowards = Alignment.Top,
+            ) + fadeOut(animationSpec = fadeSpec),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                SubscriptionAutoUpdateInterval.entries.forEachIndexed { index, interval ->
+                    SettingsIntervalRadioRow(
+                        title = interval.label,
+                        selected = selectedInterval == interval,
+                        onSelect = {
+                            onIntervalChange(interval)
+                            expanded = false
+                        },
+                    )
+                    if (index < SubscriptionAutoUpdateInterval.entries.lastIndex) {
+                        SettingsDivider()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsIntervalRadioRow(
+    title: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.RadioButton, onClick = onSelect)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onSelect,
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            color = CoffemaniaColors.Espresso,
+            modifier = Modifier.padding(start = 4.dp, end = 20.dp),
+        )
+    }
+}
 
 private fun subscriptionItems(
     hasSubscription: Boolean,

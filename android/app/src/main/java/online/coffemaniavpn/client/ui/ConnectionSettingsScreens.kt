@@ -1,11 +1,13 @@
 package online.coffemaniavpn.client.ui
 
 import android.content.pm.PackageManager
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -30,8 +32,10 @@ import kotlinx.coroutines.withContext
 import online.coffemaniavpn.client.data.InstalledAppsLoader
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import online.coffemaniavpn.client.data.ConnectionSettingsState
 import online.coffemaniavpn.client.data.SplitTunnelAppsMode
 import online.coffemaniavpn.client.data.SplitTunnelSitesMode
@@ -288,9 +292,9 @@ fun SplitTunnelAppsScreen(
                 val checked = app.packageName in selected
                 SettingsToggleRow(
                     title = app.label,
-                    subtitle = app.packageName,
                     checked = checked,
                     enabled = enabled,
+                    leadingContent = { AppListIcon(packageName = app.packageName) },
                     onCheckedChange = { isChecked ->
                         selected = if (isChecked) {
                             selected + app.packageName
@@ -338,6 +342,24 @@ fun KillSwitchScreen(
 }
 
 @Composable
+private fun AppListIcon(packageName: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val bitmap = remember(packageName) {
+        runCatching {
+            val drawable = context.packageManager.getApplicationIcon(packageName)
+            drawable.toBitmap(width = 96, height = 96).asImageBitmap()
+        }.getOrNull()
+    }
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            modifier = modifier.size(40.dp),
+        )
+    }
+}
+
+@Composable
 private fun SettingsSectionLabel(text: String) {
     Text(
         text = text,
@@ -355,6 +377,7 @@ private fun SettingsToggleRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     enabled: Boolean = true,
+    leadingContent: @Composable (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -363,24 +386,47 @@ private fun SettingsToggleRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (enabled) CoffemaniaColors.Espresso else CoffemaniaColors.Mocha,
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = CoffemaniaColors.Mocha,
-                )
+        if (leadingContent != null) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                leadingContent()
+                Column(modifier = Modifier.padding(start = 12.dp)) {
+                    SettingsToggleTitle(title, enabled)
+                    SettingsToggleSubtitle(subtitle, enabled)
+                }
+            }
+        } else {
+            Column(modifier = Modifier.weight(1f)) {
+                SettingsToggleTitle(title, enabled)
+                SettingsToggleSubtitle(subtitle, enabled)
             }
         }
         CoffemaniaSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
+        )
+    }
+}
+
+@Composable
+private fun SettingsToggleTitle(title: String, enabled: Boolean) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.bodyLarge,
+        color = if (enabled) CoffemaniaColors.Espresso else CoffemaniaColors.Mocha,
+    )
+}
+
+@Composable
+private fun SettingsToggleSubtitle(subtitle: String?, enabled: Boolean) {
+    if (!subtitle.isNullOrBlank()) {
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = CoffemaniaColors.Mocha,
         )
     }
 }
