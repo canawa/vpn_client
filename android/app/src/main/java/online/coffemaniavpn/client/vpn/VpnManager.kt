@@ -101,12 +101,19 @@ object VpnManager {
 
     fun disconnect(userInitiated: Boolean = true) {
         AppLog.i("VpnManager.disconnect userInitiated=$userInitiated")
-        userInitiatedDisconnect = userInitiated
         if (userInitiated) {
-            VpnAutoReconnect.clear()
-            KillSwitchVpnService.release(App.instance)
+            markUserDisconnectRequested()
+        } else {
+            userInitiatedDisconnect = false
         }
         BoxService.stop()
+    }
+
+    /** Остановка из уведомления, отзыва VPN системой и т.п. — без автопереподключения. */
+    internal fun markUserDisconnectRequested() {
+        userInitiatedDisconnect = true
+        VpnAutoReconnect.clear()
+        KillSwitchVpnService.release(App.instance)
     }
 
     internal fun onVpnFullyStopped() {

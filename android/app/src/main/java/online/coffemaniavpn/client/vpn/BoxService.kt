@@ -34,6 +34,7 @@ class BoxService(
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == VpnAction.SERVICE_CLOSE) {
+                VpnManager.markUserDisconnectRequested()
                 stopService()
             }
         }
@@ -78,6 +79,7 @@ class BoxService(
     }
 
     internal fun onRevoke() {
+        VpnManager.markUserDisconnectRequested()
         stopService()
     }
 

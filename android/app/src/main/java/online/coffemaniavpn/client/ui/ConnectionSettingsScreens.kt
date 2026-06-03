@@ -127,7 +127,7 @@ fun SplitTunnelSitesScreen(
         SettingsDivider()
 
         SettingsRadioRow(
-            title = "Выбранные сайты в обход VPN",
+            title = "Использовать VPN везде, кроме этих сайтов",
             selected = mode == SplitTunnelSitesMode.DirectBypass,
             enabled = enabled,
             onSelect = {

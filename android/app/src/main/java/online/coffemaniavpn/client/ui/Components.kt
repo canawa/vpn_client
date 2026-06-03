@@ -463,7 +463,6 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun SubscriptionCard(
-    onBuySubscriptionClick: () -> Unit,
     onPasteLinkClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -485,12 +484,6 @@ fun SubscriptionCard(
                 modifier = Modifier.padding(top = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                SubscriptionActionButton(
-                    text = "Купить подписку на сайте",
-                    icon = Icons.Default.Language,
-                    onClick = onBuySubscriptionClick,
-                    modifier = Modifier.fillMaxWidth(),
-                )
                 SubscriptionActionButton(
                     text = "Вставить ссылку",
                     icon = Icons.Default.ContentPaste,

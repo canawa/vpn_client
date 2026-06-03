@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import kotlin.math.ceil
 
 @Serializable
 data class SubscriptionInfo(
@@ -35,13 +34,7 @@ data class SubscriptionInfo(
         val remainingSec = expire - nowSec
         if (remainingSec <= 0) return "Подписка истекла"
 
-        val days = ceil(remainingSec / 86_400.0).toLong().coerceAtLeast(1)
-        return when {
-            days == 1L -> "Истекает через 1 день"
-            days % 10L in 2L..4L && days % 100L !in 12L..14L ->
-                "Истекает через $days дня"
-            else -> "Истекает через $days дней"
-        }
+        return SubscriptionExpireFormatter.formatRemaining(remainingSec)
     }
 }
 

@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsInputAntenna
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -112,7 +111,6 @@ fun SettingsScreen(
     onAppThemeModeChange: (AppThemeMode) -> Unit,
     onShowLogs: () -> Unit,
     onDownloadLogs: () -> Unit,
-    onBuySubscription: () -> Unit,
     onTelegramChannel: () -> Unit,
     onCloseApp: () -> Unit,
     modifier: Modifier = Modifier,
@@ -176,7 +174,6 @@ fun SettingsScreen(
             modifier = modifier,
             items = aboutItems(
                 appVersion = appVersion,
-                onBuySubscription = onBuySubscription,
                 onTelegramChannel = onTelegramChannel,
             ),
         )
@@ -487,7 +484,6 @@ private fun subscriptionItems(
 
 private fun aboutItems(
     appVersion: String,
-    onBuySubscription: () -> Unit,
     onTelegramChannel: () -> Unit,
 ): List<SettingsAction> = listOf(
     SettingsAction(
@@ -501,11 +497,6 @@ private fun aboutItems(
         title = "Канал в Telegram",
         icon = Icons.AutoMirrored.Filled.Send,
         onClick = onTelegramChannel,
-    ),
-    SettingsAction(
-        title = "Купить подписку",
-        icon = Icons.Default.ShoppingCart,
-        onClick = onBuySubscription,
     ),
 )
 

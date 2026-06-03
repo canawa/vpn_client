@@ -87,7 +87,6 @@ class MainActivity : ComponentActivity() {
                         onRefreshConfig = viewModel::refreshConfig,
                         onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
                         onDeleteSubscriptionClick = viewModel::deleteSubscription,
-                        onBuySubscriptionClick = ::openSubscriptionStore,
                         onTelegramChannelClick = ::openTelegramChannel,
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
