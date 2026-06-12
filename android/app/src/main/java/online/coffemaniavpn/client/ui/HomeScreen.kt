@@ -29,7 +29,7 @@ fun HomeScreen(
     onDisconnectClick: () -> Unit,
     onOpenServers: () -> Unit,
     onPasteLinkClick: () -> Unit,
-    onTelegramChannelClick: () -> Unit,
+    onBuyOnWebsiteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isConnected = state.vpnStatus == VpnStatus.Started
@@ -81,14 +81,13 @@ fun HomeScreen(
             }
         }
 
-        if (hasSubscription) {
-            TelegramChannelBanner(onClick = onTelegramChannelClick)
-        }
-
         if (!hasSubscription) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 SectionLabel("Подписка")
-                SubscriptionCard(onPasteLinkClick = onPasteLinkClick)
+                SubscriptionCard(
+                    onPasteLinkClick = onPasteLinkClick,
+                    onBuyOnWebsiteClick = onBuyOnWebsiteClick,
+                )
                 state.message?.let {
                     Text(
                         text = it,
@@ -98,8 +97,9 @@ fun HomeScreen(
                     )
                 }
             }
-            TelegramChannelBanner(onClick = onTelegramChannelClick)
         }
+
+        WebsiteBanner(onClick = onBuyOnWebsiteClick)
     }
 }
 

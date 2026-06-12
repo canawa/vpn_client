@@ -39,6 +39,7 @@ fun AppShell(
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
+    onBuyOnWebsiteClick: () -> Unit,
     onDeleteSubscriptionClick: () -> Unit,
     onTelegramChannelClick: () -> Unit,
     onCloseApp: () -> Unit,
@@ -158,6 +159,11 @@ fun AppShell(
                     onRefreshSubscription()
                 },
                 onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
+                onBuyOnWebsite = {
+                    showSettings = false
+                    settingsPage = SettingsPage.Main
+                    onBuyOnWebsiteClick()
+                },
                 onShowLogs = {
                     showSettings = false
                     settingsPage = SettingsPage.Main
@@ -177,7 +183,7 @@ fun AppShell(
                     onDisconnectClick = onDisconnectClick,
                     onOpenServers = { selectedTab = AppTab.Servers },
                     onPasteLinkClick = onPasteLinkClick,
-                    onTelegramChannelClick = onTelegramChannelClick,
+                    onBuyOnWebsiteClick = onBuyOnWebsiteClick,
                 )
                 AppTab.Servers -> ServersScreen(
                     modifier = Modifier.padding(padding),
@@ -193,6 +199,7 @@ fun AppShell(
                     onSelectNode = onSelectNode,
                     onRefreshConfig = onRefreshConfig,
                     onRefreshPing = onRefreshPing,
+                    onTelegramChannelClick = onTelegramChannelClick,
                 )
             }
         }

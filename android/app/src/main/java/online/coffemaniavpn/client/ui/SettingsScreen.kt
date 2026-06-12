@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsInputAntenna
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -105,6 +106,7 @@ fun SettingsScreen(
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
+    onBuyOnWebsite: () -> Unit,
     subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     appThemeMode: AppThemeMode,
@@ -154,6 +156,7 @@ fun SettingsScreen(
             onPasteLink = onPasteLink,
             onRefreshSubscription = onRefreshSubscription,
             onDeleteSubscription = onDeleteSubscription,
+            onBuyOnWebsite = onBuyOnWebsite,
         )
         SettingsPage.Logs -> SettingsDetailScreen(
             modifier = modifier,
@@ -319,6 +322,7 @@ private fun SubscriptionSettingsScreen(
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
+    onBuyOnWebsite: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val actions = subscriptionItems(
@@ -326,6 +330,7 @@ private fun SubscriptionSettingsScreen(
         onPasteLink = onPasteLink,
         onRefreshSubscription = onRefreshSubscription,
         onDeleteSubscription = onDeleteSubscription,
+        onBuyOnWebsite = onBuyOnWebsite,
     )
 
     Column(
@@ -454,7 +459,15 @@ private fun subscriptionItems(
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
+    onBuyOnWebsite: () -> Unit,
 ): List<SettingsAction> = buildList {
+    add(
+        SettingsAction(
+            title = "Купить на сайте",
+            icon = Icons.Default.ShoppingCart,
+            onClick = onBuyOnWebsite,
+        ),
+    )
     add(
         SettingsAction(
             title = "Вставить ссылку",

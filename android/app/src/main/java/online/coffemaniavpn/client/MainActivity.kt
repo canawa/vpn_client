@@ -86,6 +86,7 @@ class MainActivity : ComponentActivity() {
                         onRefreshPing = viewModel::pingAllNodes,
                         onRefreshConfig = viewModel::refreshConfig,
                         onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
+                        onBuyOnWebsiteClick = ::openSubscriptionRegister,
                         onDeleteSubscriptionClick = viewModel::deleteSubscription,
                         onTelegramChannelClick = ::openTelegramChannel,
                         onCloseApp = { finish() },
@@ -168,11 +169,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun openSubscriptionStore() {
+    private fun openSubscriptionRegister() {
         runCatching {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.SUBSCRIPTION_STORE_URL)))
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.SUBSCRIPTION_REGISTER_URL)))
         }.onFailure {
-            AppLog.e("openSubscriptionStore failed", it)
+            AppLog.e("openSubscriptionRegister failed", it)
         }
     }
 

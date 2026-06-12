@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -464,6 +465,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 @Composable
 fun SubscriptionCard(
     onPasteLinkClick: () -> Unit,
+    onBuyOnWebsiteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -490,13 +492,21 @@ fun SubscriptionCard(
                     onClick = onPasteLinkClick,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                SubscriptionActionButton(
+                    text = "Купить на сайте",
+                    icon = Icons.Default.ShoppingCart,
+                    onClick = onBuyOnWebsiteClick,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
 }
 
 @Composable
-fun TelegramChannelBanner(
+fun PromoBanner(
+    @androidx.annotation.DrawableRes imageRes: Int,
+    contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -508,14 +518,40 @@ fun TelegramChannelBanner(
         color = Color.Transparent,
     ) {
         Image(
-            painter = painterResource(R.drawable.banner_telegram_channel),
-            contentDescription = "Перейти в Telegram-канал",
+            painter = painterResource(imageRes),
+            contentDescription = contentDescription,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp)),
             contentScale = ContentScale.FillWidth,
         )
     }
+}
+
+@Composable
+fun WebsiteBanner(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    PromoBanner(
+        imageRes = R.drawable.banner_go_web,
+        contentDescription = "Управляйте ключами на сайте coffeemaniavpn.ru",
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun TelegramChannelBanner(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    PromoBanner(
+        imageRes = R.drawable.banner_got_tg,
+        contentDescription = "Перейти в Telegram-канал",
+        onClick = onClick,
+        modifier = modifier,
+    )
 }
 
 @Composable

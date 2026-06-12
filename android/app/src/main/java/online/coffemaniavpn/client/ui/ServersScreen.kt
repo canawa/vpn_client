@@ -29,6 +29,7 @@ fun ServersScreen(
     onSelectNode: (String) -> Unit,
     onRefreshConfig: () -> Unit,
     onRefreshPing: () -> Unit,
+    onTelegramChannelClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -54,11 +55,13 @@ fun ServersScreen(
                 text = "Список серверов пуст. Добавьте подписку на главной.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
             )
         } else {
             LazyColumn(
+                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 16.dp),
+                contentPadding = PaddingValues(bottom = 8.dp),
             ) {
                 items(nodes, key = { it.id }) { node ->
                     val display = ServerDisplayMapper.map(node, nodePings[node.id])
@@ -70,5 +73,7 @@ fun ServersScreen(
                 }
             }
         }
+
+        TelegramChannelBanner(onClick = onTelegramChannelClick)
     }
 }

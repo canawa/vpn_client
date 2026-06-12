@@ -39,7 +39,7 @@ object SubscriptionParser {
                         }.orEmpty()
                 }
             }
-            .distinctBy { "${it.protocol}|${it.uuid}|${it.password}|${it.host}:${it.port}" }
+            .distinctBy { it.id }
 
         if (perLine.isNotEmpty()) return perLine.also { AppLog.i("SubscriptionParser parsed ${it.size} nodes from lines") }
 
@@ -58,7 +58,7 @@ object SubscriptionParser {
                     else -> null
                 }
             }
-            .distinctBy { "${it.protocol}|${it.uuid}|${it.password}|${it.host}:${it.port}" }
+            .distinctBy { it.id }
             .toList()
 
         return nodes.takeIf { it.isNotEmpty() }
@@ -72,19 +72,37 @@ object SubscriptionParser {
                 val array = JSONArray(body)
                 for (i in 0 until array.length()) {
                     val profile = array.optJSONObject(i) ?: continue
-                    val name = profile.optString("remarks").ifBlank { "Сервер ${i + 1}" }
-                    extractNodesFromProfile(profile, name).firstOrNull()?.let { nodes += it }
+                    val name = resolveProfileName(profile, i)
+                    val parsed = extractNodesFromProfile(profile, name)
+                    if (parsed.isEmpty()) {
+                        AppLog.w("SubscriptionParser skipped profile index=$i name=$name")
+                    } else {
+                        nodes += parsed.first()
+                    }
+                }
+                if (array.length() != nodes.size) {
+                    AppLog.i(
+                        "SubscriptionParser profiles=${array.length()} parsed=${nodes.size}",
+                    )
                 }
             }
             else -> {
                 val profile = JSONObject(body)
-                val name = profile.optString("remarks").ifBlank { "Сервер" }
+                val name = resolveProfileName(profile, 0)
                 extractNodesFromProfile(profile, name).firstOrNull()?.let { nodes += it }
             }
         }
-        return nodes.distinctBy { "${it.protocol}|${it.uuid}|${it.password}|${it.host}:${it.port}" }
+        return nodes.distinctBy { it.id }
             .takeIf { it.isNotEmpty() }
             ?.also { AppLog.i("SubscriptionParser JSON parsed ${it.size} nodes") }
+    }
+
+    private fun resolveProfileName(profile: JSONObject, index: Int): String {
+        return profile.optString("remarks")
+            .ifBlank { profile.optString("remark") }
+            .ifBlank { profile.optString("ps") }
+            .ifBlank { profile.optJSONObject("meta")?.optString("description").orEmpty() }
+            .ifBlank { "Сервер ${index + 1}" }
     }
 
     private fun extractNodesFromProfile(profile: JSONObject, profileName: String): List<ProxyNode> {
@@ -222,15 +240,32 @@ object SubscriptionParser {
         val xhttp = XhttpParseHelper.parseFromTransport(transport)
         val isXhttp = xhttp != null
         val host = outbound.optString("server")
-        val port = outbound.optInt("server_port")
+            .ifBlank { outbound.optString("address") }
+        val port = readPort(outbound, "server_port", default = 443)
         val tag = outbound.optString("tag")
-        val flow = outbound.optString("flow").takeIf { it.isNotBlank() && !isXhttp }
+        val uuid = outbound.optString("uuid")
+            .ifBlank {
+                outbound.optJSONArray("users")
+                    ?.optJSONObject(0)
+                    ?.optString("uuid")
+                    .orEmpty()
+            }
+        val flow = outbound.optString("flow")
+            .ifBlank {
+                outbound.optJSONArray("users")
+                    ?.optJSONObject(0)
+                    ?.optString("flow")
+                    .orEmpty()
+            }
+            .takeIf { it.isNotBlank() && !isXhttp }
+
+        if (host.isBlank() || uuid.isBlank()) return null
 
         return ProxyNode(
-            id = stableId("$profileName|$tag|$host|$port|vless|${outbound.optString("uuid")}"),
+            id = stableId("$profileName|$tag|$host|$port|vless|$uuid"),
             name = profileName,
             protocol = "vless",
-            uuid = outbound.optString("uuid"),
+            uuid = uuid,
             host = host,
             port = port,
             encryption = outbound.optString("encryption", "none"),
@@ -250,8 +285,16 @@ object SubscriptionParser {
 
     private fun parseSingBoxHysteria2(outbound: JSONObject, profileName: String): ProxyNode? {
         val host = outbound.optString("server")
-        val port = outbound.optInt("server_port", 443)
+            .ifBlank { outbound.optString("address") }
+        val port = readPort(outbound, "server_port", default = 443)
         val password = outbound.optString("password")
+            .ifBlank { outbound.optString("auth") }
+            .ifBlank {
+                outbound.optJSONArray("users")
+                    ?.optJSONObject(0)
+                    ?.optString("password")
+                    .orEmpty()
+            }
         if (host.isBlank() || password.isBlank()) return null
 
         val tls = outbound.optJSONObject("tls") ?: JSONObject()
@@ -275,6 +318,15 @@ object SubscriptionParser {
             downMbps = outbound.optInt("down_mbps", 0).takeIf { it > 0 },
             alpn = readStringList(tls.optJSONArray("alpn")),
         )
+    }
+
+    private fun readPort(json: JSONObject, key: String, default: Int): Int {
+        if (!json.has(key)) return default
+        return when (val raw = json.opt(key)) {
+            is Number -> raw.toInt()
+            is String -> raw.toIntOrNull() ?: default
+            else -> json.optInt(key, default)
+        }.takeIf { it > 0 } ?: default
     }
 
     private fun readPositiveInt(json: JSONObject, vararg keys: String): Int? {
