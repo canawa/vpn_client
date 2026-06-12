@@ -61,7 +61,7 @@ internal object VpnAutoReconnect {
         if (networkWatcherStarted) return
         networkWatcherStarted = true
         App.applicationScope.launch {
-            DefaultNetworkListener.start(this@VpnAutoReconnect) { network ->
+            DefaultNetworkListener.start { network ->
                 onNetworkAvailable(network)
             }
         }

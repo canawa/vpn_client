@@ -25,7 +25,16 @@ data class ProxyNode(
     val upMbps: Int? = null,
     val downMbps: Int? = null,
     val alpn: List<String>? = null,
+    val transport: String = "tcp",
+    val xhttpHost: String? = null,
+    val xhttpPath: String? = null,
+    val xhttpMode: String? = null,
+    val xhttpExtra: String? = null,
 ) {
     val isHysteria2: Boolean
         get() = protocol.equals("hysteria2", ignoreCase = true)
+
+    val isXhttp: Boolean
+        get() = transport.equals("xhttp", ignoreCase = true) ||
+            transport.equals("splithttp", ignoreCase = true)
 }

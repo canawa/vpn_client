@@ -47,6 +47,11 @@ object VlessParser {
             val params = parseQuery(query)
             val name = URLDecoder.decode(namePart, StandardCharsets.UTF_8.name())
                 .ifBlank { "$host:$port" }
+            val transport = XhttpParseHelper.transportFromParams(params)
+            val xhttpHost = params["host"]?.takeIf { it.isNotBlank() }
+            val xhttpPath = params["path"]?.takeIf { it.isNotBlank() }
+            val xhttpMode = params["mode"]?.takeIf { it.isNotBlank() }
+            val xhttpExtra = XhttpParseHelper.extraFromParams(params)
 
             ProxyNode(
                 id = UUID.nameUUIDFromBytes(trimmed.toByteArray()).toString(),
@@ -56,13 +61,18 @@ object VlessParser {
                 host = host,
                 port = port,
                 encryption = params["encryption"] ?: "none",
-                flow = params["flow"],
+                flow = params["flow"].takeIf { transport != "xhttp" && transport != "splithttp" },
                 security = params["security"] ?: "none",
                 sni = params["sni"],
                 fingerprint = params["fp"],
                 publicKey = params["pbk"],
                 shortId = params["sid"],
                 spiderX = params["spx"],
+                transport = transport,
+                xhttpHost = xhttpHost,
+                xhttpPath = xhttpPath,
+                xhttpMode = xhttpMode,
+                xhttpExtra = xhttpExtra,
             )
         }.getOrNull()
     }

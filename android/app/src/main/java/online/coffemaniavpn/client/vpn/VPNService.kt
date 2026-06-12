@@ -1,26 +1,59 @@
 package online.coffemaniavpn.client.vpn
 
 import android.content.Intent
-import android.content.pm.PackageManager.NameNotFoundException
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.VpnService
 import android.os.Build
 import android.os.IBinder
-import io.nekohasekai.libbox.Libbox
-import io.nekohasekai.libbox.Notification
-import io.nekohasekai.libbox.TunOptions
+import androidx.annotation.RequiresApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import online.coffemaniavpn.client.util.AppLog
-import online.coffemaniavpn.client.ktx.toIpPrefix
-import online.coffemaniavpn.client.ktx.toList
 
-class VPNService : VpnService(), PlatformInterfaceWrapper {
-    private val service = BoxService(this, this)
+class VPNService : VpnService() {
+    private val service = BoxService(this)
+
+    @delegate:RequiresApi(Build.VERSION_CODES.P)
+    private val defaultNetworkRequest by lazy {
+        NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+            .build()
+    }
+
+    private val connectivity by lazy { getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager }
+
+    @delegate:RequiresApi(Build.VERSION_CODES.P)
+    private val defaultNetworkCallback by lazy {
+        object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                setUnderlyingNetworks(arrayOf(network))
+            }
+
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                setUnderlyingNetworks(arrayOf(network))
+            }
+
+            override fun onLost(network: Network) {
+                setUnderlyingNetworks(null)
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         AppLog.i("VPNService.onCreate")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            runCatching {
+                connectivity.requestNetwork(defaultNetworkRequest, defaultNetworkCallback)
+            }.onFailure {
+                AppLog.w("VPNService requestNetwork failed", it)
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -34,6 +67,9 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
     }
 
     override fun onDestroy() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            runCatching { connectivity.unregisterNetworkCallback(defaultNetworkCallback) }
+        }
         service.onDestroy()
         super.onDestroy()
     }
@@ -45,109 +81,4 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
             }
         }
     }
-
-    override fun autoDetectInterfaceControl(fd: Int) {
-        protect(fd)
-    }
-
-    override fun openTun(options: TunOptions): Int {
-        if (prepare(this) != null) error("android: missing vpn permission")
-
-        val builder = Builder()
-            .setSession("КОФЕМАНИЯ ВПН")
-            .setMtu(options.mtu)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            builder.setMetered(false)
-        }
-
-        val inet4Address = options.inet4Address
-        while (inet4Address.hasNext()) {
-            val address = inet4Address.next()
-            builder.addAddress(address.address(), address.prefix())
-        }
-
-        val inet6Address = options.inet6Address
-        while (inet6Address.hasNext()) {
-            val address = inet6Address.next()
-            builder.addAddress(address.address(), address.prefix())
-        }
-
-        if (options.autoRoute) {
-            if (options.dnsMode.value != Libbox.DNSModeDisabled) {
-                val dnsServerAddress = options.dnsServerAddress
-                while (dnsServerAddress.hasNext()) {
-                    builder.addDnsServer(dnsServerAddress.next())
-                }
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val inet4RouteAddress = options.inet4RouteAddress
-                if (inet4RouteAddress.hasNext()) {
-                    while (inet4RouteAddress.hasNext()) {
-                        builder.addRoute(inet4RouteAddress.next().toIpPrefix())
-                    }
-                } else if (options.inet4Address.hasNext()) {
-                    builder.addRoute("0.0.0.0", 0)
-                }
-
-                val inet6RouteAddress = options.inet6RouteAddress
-                if (inet6RouteAddress.hasNext()) {
-                    while (inet6RouteAddress.hasNext()) {
-                        builder.addRoute(inet6RouteAddress.next().toIpPrefix())
-                    }
-                } else if (options.inet6Address.hasNext()) {
-                    builder.addRoute("::", 0)
-                }
-            } else {
-                val inet4RouteAddress = options.inet4RouteRange
-                if (inet4RouteAddress.hasNext()) {
-                    while (inet4RouteAddress.hasNext()) {
-                        val address = inet4RouteAddress.next()
-                        builder.addRoute(address.address(), address.prefix())
-                    }
-                }
-
-                val inet6RouteAddress = options.inet6RouteRange
-                if (inet6RouteAddress.hasNext()) {
-                    while (inet6RouteAddress.hasNext()) {
-                        val address = inet6RouteAddress.next()
-                        builder.addRoute(address.address(), address.prefix())
-                    }
-                }
-            }
-
-            var allowedCount = 0
-            val includePackage = options.includePackage
-            while (includePackage.hasNext()) {
-                try {
-                    builder.addAllowedApplication(includePackage.next())
-                    allowedCount++
-                } catch (e: NameNotFoundException) {
-                    AppLog.e("addAllowedApplication failed", e)
-                }
-            }
-
-            var disallowedCount = 0
-            val excludePackage = options.excludePackage
-            while (excludePackage.hasNext()) {
-                try {
-                    builder.addDisallowedApplication(excludePackage.next())
-                    disallowedCount++
-                } catch (e: NameNotFoundException) {
-                    AppLog.e("addDisallowedApplication failed", e)
-                }
-            }
-            if (allowedCount > 0 || disallowedCount > 0) {
-                AppLog.i("VPNService per-app split allowed=$allowedCount disallowed=$disallowedCount")
-            }
-        }
-
-        val pfd = builder.establish() ?: error("android: vpn establish failed")
-        AppLog.i("VPNService openTun fd=${pfd.fd}")
-        service.fileDescriptor = pfd
-        return pfd.fd
-    }
-
-    override fun sendNotification(notification: Notification) = Unit
 }

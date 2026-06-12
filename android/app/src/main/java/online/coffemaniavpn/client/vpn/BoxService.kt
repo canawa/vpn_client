@@ -4,31 +4,23 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import androidx.core.content.ContextCompat
-import io.nekohasekai.libbox.CommandServer
-import io.nekohasekai.libbox.CommandServerHandler
-import io.nekohasekai.libbox.Notification
-import io.nekohasekai.libbox.OverrideOptions
-import io.nekohasekai.libbox.SystemProxyStatus
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import online.coffemaniavpn.client.util.AppLog
 import online.coffemaniavpn.client.App
+import online.coffemaniavpn.client.util.AppLog
 
 class BoxService(
     private val service: android.app.Service,
-    private val platformInterface: io.nekohasekai.libbox.PlatformInterface,
-) : CommandServerHandler {
+) {
     var fileDescriptor: ParcelFileDescriptor? = null
 
     private val notification = ServiceNotification(service)
-    private lateinit var commandServer: CommandServer
 
     private var receiverRegistered = false
     private val receiver = object : BroadcastReceiver() {
@@ -60,9 +52,7 @@ class BoxService(
 
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                waitForLibbox()
-                AppLog.i("BoxService startCommandServer")
-                startCommandServer()
+                waitForXray()
                 startService()
             } catch (t: Throwable) {
                 AppLog.e("BoxService start failed", t)
@@ -83,10 +73,6 @@ class BoxService(
         stopService()
     }
 
-    private fun startCommandServer() {
-        commandServer = CommandServer(this, platformInterface).also { it.start() }
-    }
-
     private suspend fun startService() {
         withContext(Dispatchers.Main) {
             notification.show(service.getString(online.coffemaniavpn.client.R.string.vpn_starting))
@@ -105,48 +91,27 @@ class BoxService(
             return
         }
 
-        DefaultNetworkMonitor.start()
+        XrayGeoAssets.ensureInstalled(service)
+
+        val vpnService = service as? VPNService
+            ?: error("BoxService requires VPNService")
+        val pfd = VpnTunBuilder.establish(vpnService)
+        fileDescriptor = pfd
 
         try {
-            commandServer.startOrReloadService(content, OverrideOptions())
+            XrayCoreManager.startLoop(content, pfd.fd)
         } catch (t: Throwable) {
-            AppLog.e("startOrReloadService failed", t)
-            stopServiceWithError(t.message ?: "Не удалось запустить sing-box")
+            AppLog.e("Xray startLoop failed", t)
+            stopServiceWithError(t.message ?: "Не удалось запустить Xray")
             return
         }
 
         VpnManager.setStatus(VpnStatus.Started)
-        AppLog.i("BoxService started")
+        AppLog.i("BoxService started xray=${XrayCoreManager.isRunning()}")
         withContext(Dispatchers.Main) {
             notification.show(service.getString(online.coffemaniavpn.client.R.string.vpn_connected))
         }
     }
-
-    override fun serviceStop() {
-        notification.close()
-        fileDescriptor?.close()
-        fileDescriptor = null
-        closeService()
-    }
-
-    override fun serviceReload() {
-        GlobalScope.launch(Dispatchers.IO) {
-            runCatching {
-                val content = App.configFile.readText()
-                commandServer.startOrReloadService(content, OverrideOptions())
-            }
-        }
-    }
-
-    override fun getSystemProxyStatus(): SystemProxyStatus? = null
-
-    override fun setSystemProxyEnabled(isEnabled: Boolean) = Unit
-
-    override fun writeDebugMessage(message: String?) {
-        AppLog.i("sing-box: ${message.orEmpty()}")
-    }
-
-    override fun triggerNativeCrash() = Unit
 
     @OptIn(DelicateCoroutinesApi::class)
     private fun stopService() {
@@ -164,11 +129,9 @@ class BoxService(
         notification.close()
 
         GlobalScope.launch(Dispatchers.IO) {
+            XrayCoreManager.stopLoop()
             fileDescriptor?.close()
             fileDescriptor = null
-            DefaultNetworkMonitor.stop()
-            runCatching { commandServer.closeService() }
-            runCatching { commandServer.close() }
             withContext(Dispatchers.Main) {
                 VpnManager.setStatus(VpnStatus.Stopped)
                 VpnManager.onVpnFullyStopped()
@@ -178,11 +141,9 @@ class BoxService(
     }
 
     private suspend fun stopServiceWithError(message: String) {
-        DefaultNetworkMonitor.stop()
-        if (::commandServer.isInitialized) {
-            runCatching { commandServer.closeService() }
-            runCatching { commandServer.close() }
-        }
+        XrayCoreManager.stopLoop()
+        fileDescriptor?.close()
+        fileDescriptor = null
         withContext(Dispatchers.Main) {
             if (receiverRegistered) {
                 service.unregisterReceiver(receiver)
@@ -196,17 +157,13 @@ class BoxService(
         }
     }
 
-    private fun closeService() {
-        runCatching { commandServer.closeService() }
-    }
-
-    private fun waitForLibbox() {
+    private fun waitForXray() {
         repeat(50) {
-            if (App.libboxReady.get()) return
+            if (App.xrayReady.get()) return
             Thread.sleep(100)
         }
-        if (!App.libboxReady.get()) {
-            error("libbox не инициализирован")
+        if (!App.xrayReady.get()) {
+            error("Xray не инициализирован")
         }
     }
 

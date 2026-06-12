@@ -1,3 +1,3 @@
-# Keep libbox / gomobile bindings
+# Keep libv2ray / gomobile bindings
 -keep class go.** { *; }
--keep class io.nekohasekai.libbox.** { *; }
+-keep class libv2ray.** { *; }

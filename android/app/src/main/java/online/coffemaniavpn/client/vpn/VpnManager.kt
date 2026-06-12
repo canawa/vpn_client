@@ -8,7 +8,7 @@ import kotlinx.coroutines.launch
 import online.coffemaniavpn.client.App
 import online.coffemaniavpn.client.data.ConnectionSettingsStore
 import online.coffemaniavpn.client.data.ProxyNode
-import online.coffemaniavpn.client.data.SingBoxConfigBuilder
+import online.coffemaniavpn.client.data.XrayConfigBuilder
 import online.coffemaniavpn.client.util.AppLog
 
 object VpnManager {
@@ -86,7 +86,7 @@ object VpnManager {
         _lastError.value = null
         KillSwitchVpnService.release(App.instance)
         try {
-            val config = SingBoxConfigBuilder.build(node)
+            val config = XrayConfigBuilder.build(node)
             AppLog.i("VpnManager.connect node=${node.name} protocol=${node.protocol}")
             AppLog.i("VpnManager config preview:\n${config.take(1200)}")
             App.configFile.writeText(config)

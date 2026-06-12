@@ -109,9 +109,15 @@ object SubscriptionParser {
         val user = vnext.optJSONArray("users")?.optJSONObject(0) ?: return null
         val stream = outbound.optJSONObject("streamSettings") ?: JSONObject()
         val reality = stream.optJSONObject("realitySettings") ?: JSONObject()
+        val network = stream.optString("network").lowercase()
+        val xhttpSettings = stream.optJSONObject("xhttpSettings")
+            ?: stream.optJSONObject("splithttpSettings")
+        val isXhttp = network in setOf("xhttp", "splithttp") || xhttpSettings != null
+        val xhttp = XhttpParseHelper.parseFromSettings(xhttpSettings)
         val tag = outbound.optString("tag")
         val host = vnext.optString("address")
         val port = vnext.optInt("port")
+        val flow = user.optString("flow").takeIf { it.isNotBlank() && !isXhttp }
 
         return ProxyNode(
             id = stableId("$profileName|$tag|$host|$port|vless|${user.optString("id")}"),
@@ -121,7 +127,7 @@ object SubscriptionParser {
             host = host,
             port = port,
             encryption = user.optString("encryption", "none"),
-            flow = user.optString("flow").takeIf { it.isNotBlank() },
+            flow = flow,
             security = stream.optString("security", "none"),
             sni = reality.optString("serverName").takeIf { it.isNotBlank() }
                 ?: stream.optJSONObject("tlsSettings")?.optString("serverName"),
@@ -129,6 +135,11 @@ object SubscriptionParser {
             publicKey = reality.optString("publicKey").takeIf { it.isNotBlank() },
             shortId = reality.optString("shortId").takeIf { it.isNotBlank() },
             spiderX = reality.optString("spiderX").takeIf { it.isNotBlank() },
+            transport = if (isXhttp) "xhttp" else "tcp",
+            xhttpHost = xhttp?.host,
+            xhttpPath = xhttp?.path,
+            xhttpMode = xhttp?.mode,
+            xhttpExtra = xhttp?.extra,
         )
     }
 
@@ -207,9 +218,13 @@ object SubscriptionParser {
     private fun parseSingBoxVless(outbound: JSONObject, profileName: String): ProxyNode? {
         val tls = outbound.optJSONObject("tls") ?: JSONObject()
         val reality = tls.optJSONObject("reality") ?: JSONObject()
+        val transport = outbound.optJSONObject("transport")
+        val xhttp = XhttpParseHelper.parseFromTransport(transport)
+        val isXhttp = xhttp != null
         val host = outbound.optString("server")
         val port = outbound.optInt("server_port")
         val tag = outbound.optString("tag")
+        val flow = outbound.optString("flow").takeIf { it.isNotBlank() && !isXhttp }
 
         return ProxyNode(
             id = stableId("$profileName|$tag|$host|$port|vless|${outbound.optString("uuid")}"),
@@ -219,12 +234,17 @@ object SubscriptionParser {
             host = host,
             port = port,
             encryption = outbound.optString("encryption", "none"),
-            flow = outbound.optString("flow").takeIf { it.isNotBlank() },
+            flow = flow,
             security = if (reality.optBoolean("enabled")) "reality" else outbound.optString("security", "none"),
             sni = tls.optString("server_name").takeIf { it.isNotBlank() },
             fingerprint = tls.optJSONObject("utls")?.optString("fingerprint"),
             publicKey = reality.optString("public_key").takeIf { it.isNotBlank() },
             shortId = reality.optString("short_id").takeIf { it.isNotBlank() },
+            transport = if (isXhttp) "xhttp" else "tcp",
+            xhttpHost = xhttp?.host,
+            xhttpPath = xhttp?.path,
+            xhttpMode = xhttp?.mode,
+            xhttpExtra = xhttp?.extra,
         )
     }
 
