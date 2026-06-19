@@ -7,10 +7,13 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -74,6 +77,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val error = MutableStateFlow<String?>(null)
     private val startupCrash = MutableStateFlow<String?>(null)
     private var subscriptionAutoUpdateJob: Job? = null
+    private var pendingConnectNodeId: String? = null
+
+    private val _connectRequests = MutableSharedFlow<ProxyNode>(extraBufferCapacity = 1)
+    val connectRequests: SharedFlow<ProxyNode> = _connectRequests.asSharedFlow()
 
     val uiState: StateFlow<MainUiState> = combine(
         combine(
@@ -165,6 +172,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             preferences.subscriptionAutoUpdateInterval.collect { interval ->
                 restartSubscriptionAutoUpdate(interval)
+            }
+        }
+        viewModelScope.launch {
+            VpnManager.status.collect { status ->
+                if (status != VpnStatus.Stopped) return@collect
+                val nodeId = pendingConnectNodeId ?: return@collect
+                pendingConnectNodeId = null
+                val node = uiState.value.nodes.find { it.id == nodeId } ?: return@collect
+                _connectRequests.emit(node)
             }
         }
     }
@@ -479,6 +495,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun selectNode(nodeId: String) {
         viewModelScope.launch {
             preferences.setSelectedNodeId(nodeId)
+        }
+    }
+
+    fun requestConnectToNode(nodeId: String) {
+        clearMessages()
+        if (!prepareConnect()) return
+
+        val node = uiState.value.nodes.find { it.id == nodeId } ?: return
+        selectNode(nodeId)
+
+        when (VpnManager.status.value) {
+            VpnStatus.Stopped -> {
+                viewModelScope.launch { _connectRequests.emit(node) }
+            }
+            VpnStatus.Started -> {
+                val connectedId = VpnAutoReconnect.connectedNode()?.id
+                if (connectedId == nodeId) return
+                pendingConnectNodeId = nodeId
+                VpnManager.disconnect()
+            }
+            VpnStatus.Starting, VpnStatus.Stopping -> {
+                pendingConnectNodeId = nodeId
+                VpnManager.disconnect()
+            }
         }
     }
 

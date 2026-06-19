@@ -27,6 +27,8 @@ internal object VpnAutoReconnect {
         attempt = 0
     }
 
+    fun connectedNode(): ProxyNode? = lastNode
+
     fun clear() {
         lastNode = null
         attempt = 0

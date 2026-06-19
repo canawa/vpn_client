@@ -13,12 +13,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import online.coffemaniavpn.client.BuildConfig
+import online.coffemaniavpn.client.data.ProxyNode
 import online.coffemaniavpn.client.ktx.hasPermission
 import online.coffemaniavpn.client.deeplink.DeepLinkEffect
 import online.coffemaniavpn.client.ui.AppShell
@@ -31,16 +33,16 @@ import online.coffemaniavpn.client.vpn.VpnManager
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
-    private var pendingConnect = false
+    private var pendingConnectNode: ProxyNode? = null
 
     private val vpnPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         AppLog.i("vpn permission result=${result.resultCode}")
-        if (result.resultCode == RESULT_OK && pendingConnect) {
-            connectSelectedNode()
+        if (result.resultCode == RESULT_OK) {
+            pendingConnectNode?.let { VpnManager.connect(it) }
         }
-        pendingConnect = false
+        pendingConnectNode = null
     }
 
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -75,10 +77,17 @@ class MainActivity : ComponentActivity() {
                 CoffemaniaTheme(themeMode = state.appThemeMode) {
                     var showLogs by remember { mutableStateOf(false) }
 
+                    LaunchedEffect(Unit) {
+                        viewModel.connectRequests.collect { node ->
+                            launchConnect(node)
+                        }
+                    }
+
                     AppShell(
                         state = state,
                         onRefreshSubscription = viewModel::refreshSubscription,
                         onSelectNode = viewModel::selectNode,
+                        onConnectToNode = viewModel::requestConnectToNode,
                         onConnectClick = ::requestConnect,
                         onDisconnectClick = VpnManager::disconnect,
                         onShowLogs = { showLogs = true },
@@ -188,20 +197,19 @@ class MainActivity : ComponentActivity() {
             AppLog.w("requestConnect: no selected node")
             return
         }
+        launchConnect(node)
+    }
 
-        AppLog.i("requestConnect node=${node.name} protocol=${node.protocol} host=${node.host}:${node.port}")
+    private fun launchConnect(node: ProxyNode) {
+        AppLog.i("launchConnect node=${node.name} protocol=${node.protocol} host=${node.host}:${node.port}")
 
+        pendingConnectNode = node
         val prepareIntent = VpnService.prepare(this)
         if (prepareIntent != null) {
-            pendingConnect = true
             vpnPermissionLauncher.launch(prepareIntent)
         } else {
             VpnManager.connect(node)
+            pendingConnectNode = null
         }
-    }
-
-    private fun connectSelectedNode() {
-        val node = viewModel.selectedNode() ?: return
-        VpnManager.connect(node)
     }
 }

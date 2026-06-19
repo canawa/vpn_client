@@ -32,6 +32,7 @@ fun AppShell(
     state: MainUiState,
     onRefreshSubscription: () -> Unit,
     onSelectNode: (String) -> Unit,
+    onConnectToNode: (String) -> Unit,
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onShowLogs: () -> Unit,
@@ -197,6 +198,10 @@ fun AppShell(
                     enabled = state.vpnStatus != online.coffemaniavpn.client.vpn.VpnStatus.Starting &&
                         state.vpnStatus != online.coffemaniavpn.client.vpn.VpnStatus.Stopping,
                     onSelectNode = onSelectNode,
+                    onConnectToNode = { nodeId ->
+                        selectedTab = AppTab.Home
+                        onConnectToNode(nodeId)
+                    },
                     onRefreshConfig = onRefreshConfig,
                     onRefreshPing = onRefreshPing,
                     onTelegramChannelClick = onTelegramChannelClick,

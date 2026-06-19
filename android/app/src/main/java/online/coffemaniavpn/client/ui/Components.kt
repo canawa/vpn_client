@@ -1,5 +1,14 @@
 package online.coffemaniavpn.client.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,6 +20,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -39,10 +49,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -237,58 +249,146 @@ fun BrewConnectButton(
     modifier: Modifier = Modifier,
 ) {
     val isConnected = vpnStatus == VpnStatus.Started
-    val isBusy = vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping
+    val isConnecting = vpnStatus == VpnStatus.Starting
+    val isDisconnecting = vpnStatus == VpnStatus.Stopping
+    val isBusy = isConnecting || isDisconnecting
     val isDimmed = !enabled && !isConnected && !isBusy
+    val isDisconnected = vpnStatus == VpnStatus.Stopped && !isDimmed
 
-    val outerBg = if (isDimmed) coffemaniaColors().connectDisabledOuter else coffemaniaColors().cappuccino
-    val outerBorder = if (isDimmed) coffemaniaColors().connectDisabledBorder else coffemaniaColors().latte
+    val connectedGreen = CoffemaniaColors.PingGood
+    val disconnectRed = CoffemaniaColors.PingBad
+
+    val outerBg = when {
+        isDimmed -> coffemaniaColors().connectDisabledOuter
+        isConnected -> connectedGreen.copy(alpha = 0.18f)
+        isConnecting -> connectedGreen.copy(alpha = 0.12f)
+        isDisconnecting -> disconnectRed.copy(alpha = 0.12f)
+        isDisconnected -> disconnectRed.copy(alpha = 0.12f)
+        else -> coffemaniaColors().cappuccino
+    }
+    val outerBorder = when {
+        isDimmed -> coffemaniaColors().connectDisabledBorder
+        isConnected -> connectedGreen
+        isConnecting -> connectedGreen.copy(alpha = 0.75f)
+        isDisconnecting -> disconnectRed
+        isDisconnected -> disconnectRed
+        else -> coffemaniaColors().latte
+    }
+    val outerBorderWidth = if (isConnected || isDisconnected) 3.dp else 2.dp
     val innerBg = if (isDimmed) coffemaniaColors().connectDisabledInner else coffemaniaColors().milkFoam
-    val innerBorder = if (isDimmed) coffemaniaColors().connectDisabledBorder else coffemaniaColors().latte
+    val innerBorder = when {
+        isDimmed -> coffemaniaColors().connectDisabledBorder
+        isConnected -> connectedGreen.copy(alpha = 0.45f)
+        isConnecting -> connectedGreen.copy(alpha = 0.35f)
+        isDisconnecting -> disconnectRed.copy(alpha = 0.35f)
+        isDisconnected -> disconnectRed.copy(alpha = 0.35f)
+        else -> coffemaniaColors().latte
+    }
     val logoTint = if (isDimmed) coffemaniaColors().connectDisabledIcon else coffemaniaColors().espresso
+    val progressColor = when {
+        isConnecting -> connectedGreen
+        isDisconnecting -> disconnectRed
+        else -> coffemaniaColors().espresso
+    }
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(192.dp)
-                .clip(CircleShape)
-                .background(outerBg)
-                .border(2.dp, outerBorder, CircleShape)
-                .clickable(enabled = enabled && !isBusy, onClick = onClick)
-                .padding(12.dp),
+            modifier = Modifier.size(220.dp),
             contentAlignment = Alignment.Center,
         ) {
+            if (isConnecting) {
+                ConnectPulseRings(color = connectedGreen)
+            }
+            if (isDisconnecting) {
+                ConnectPulseRings(color = disconnectRed)
+            }
+
             Box(
                 modifier = Modifier
-                    .matchParentSize()
+                    .size(192.dp)
                     .clip(CircleShape)
-                    .background(innerBg)
-                    .border(1.5.dp, innerBorder, CircleShape),
+                    .background(outerBg)
+                    .border(outerBorderWidth, outerBorder, CircleShape)
+                    .clickable(enabled = enabled && !isBusy, onClick = onClick)
+                    .padding(12.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                if (isBusy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
-                        color = coffemaniaColors().espresso,
-                        strokeWidth = 3.dp,
-                    )
-                } else {
-                    CoffeeLogo(
-                        modifier = Modifier.size(88.dp),
-                        tint = logoTint,
-                    )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(CircleShape)
+                        .background(innerBg)
+                        .border(1.5.dp, innerBorder, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isBusy) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = progressColor,
+                            strokeWidth = 3.dp,
+                        )
+                    } else {
+                        CoffeeLogo(
+                            modifier = Modifier.size(88.dp),
+                            tint = logoTint,
+                        )
+                    }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         if (isConnected) {
             Text(
                 text = formatConnectionDuration(connectionElapsedMs),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = coffemaniaColors().mocha,
+                color = connectedGreen,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConnectPulseRings(
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "connectPulse")
+    val pulse1 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "pulse1",
+    )
+    val pulse2 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_400, delayMillis = 700, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "pulse2",
+    )
+
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val center = center
+        val baseRadius = size.minDimension / 2f
+        val strokeWidth = 3.dp.toPx()
+
+        listOf(pulse1, pulse2).forEach { progress ->
+            val radius = baseRadius * (0.82f + progress * 0.38f)
+            val alpha = (1f - progress) * 0.55f
+            drawCircle(
+                color = color.copy(alpha = alpha),
+                radius = radius,
+                center = center,
+                style = Stroke(width = strokeWidth),
             )
         }
     }
@@ -360,11 +460,13 @@ fun SelectedServerCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ServerListCard(
     display: ServerDisplay,
     selected: Boolean,
     onClick: () -> Unit,
+    onDoubleClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val bg = coffemaniaColors().cappuccino
@@ -373,7 +475,10 @@ fun ServerListCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onDoubleClick = onDoubleClick,
+            ),
         shape = RoundedCornerShape(12.dp),
         color = bg,
         border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),

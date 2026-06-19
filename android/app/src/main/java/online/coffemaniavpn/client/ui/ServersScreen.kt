@@ -27,6 +27,7 @@ fun ServersScreen(
     canRefreshConfig: Boolean,
     enabled: Boolean,
     onSelectNode: (String) -> Unit,
+    onConnectToNode: (String) -> Unit,
     onRefreshConfig: () -> Unit,
     onRefreshPing: () -> Unit,
     onTelegramChannelClick: () -> Unit,
@@ -69,6 +70,9 @@ fun ServersScreen(
                         display = display,
                         selected = node.id == selectedNodeId,
                         onClick = { if (enabled) onSelectNode(node.id) },
+                        onDoubleClick = {
+                            if (enabled) onConnectToNode(node.id)
+                        },
                     )
                 }
             }
