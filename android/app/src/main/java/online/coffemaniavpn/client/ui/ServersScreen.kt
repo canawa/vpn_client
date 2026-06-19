@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import online.coffemaniavpn.client.data.PingState
@@ -61,18 +62,21 @@ fun ServersScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 8.dp),
             ) {
-                items(nodes, key = { it.id }) { node ->
-                    val display = ServerDisplayMapper.map(node, nodePings[node.id])
-                    ServerListCard(
-                        display = display,
+                items(
+                    items = nodes,
+                    key = { it.id },
+                    contentType = { "server" },
+                ) { node ->
+                    ServerListItem(
+                        node = node,
+                        ping = nodePings[node.id],
                         selected = node.id == selectedNodeId,
-                        onClick = { if (enabled) onSelectNode(node.id) },
-                        onDoubleClick = {
-                            if (enabled) onConnectToNode(node.id)
-                        },
+                        enabled = enabled,
+                        onSelectNode = onSelectNode,
+                        onConnectToNode = onConnectToNode,
                     )
                 }
             }
@@ -80,4 +84,31 @@ fun ServersScreen(
 
         TelegramChannelBanner(onClick = onTelegramChannelClick)
     }
+}
+
+@Composable
+private fun ServerListItem(
+    node: ProxyNode,
+    ping: PingState?,
+    selected: Boolean,
+    enabled: Boolean,
+    onSelectNode: (String) -> Unit,
+    onConnectToNode: (String) -> Unit,
+) {
+    val display = remember(node.id, ping) {
+        ServerDisplayMapper.map(node, ping)
+    }
+    val onClick = remember(node.id, enabled, onSelectNode) {
+        { if (enabled) onSelectNode(node.id) }
+    }
+    val onDoubleClick = remember(node.id, enabled, onConnectToNode) {
+        { if (enabled) onConnectToNode(node.id) }
+    }
+
+    ServerListCard(
+        display = display,
+        selected = selected,
+        onClick = onClick,
+        onDoubleClick = onDoubleClick,
+    )
 }

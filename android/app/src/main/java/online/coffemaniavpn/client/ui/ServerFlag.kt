@@ -20,28 +20,65 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 
 @Composable
-fun ServerFlag(
+fun ServerListFlag(
     flag: String,
     modifier: Modifier = Modifier,
-    height: Dp = 48.dp,
+    height: Dp = 32.dp,
 ) {
     val countryCode = FlagUtils.emojiToCountryCode(flag)
     val width = if (countryCode != null) height * 4 / 3 else height
 
+    Box(
+        modifier = modifier
+            .width(width)
+            .height(height),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = flag,
+            fontSize = (height.value * 0.78f).sp,
+            lineHeight = (height.value * 0.78f).sp,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+fun ServerFlag(
+    flag: String,
+    modifier: Modifier = Modifier,
+    height: Dp = 48.dp,
+    crossfade: Boolean = false,
+    showShadow: Boolean = false,
+) {
+    val countryCode = FlagUtils.emojiToCountryCode(flag)
+    val width = if (countryCode != null) height * 4 / 3 else height
+    val shape = RoundedCornerShape(6.dp)
+    val imageModifier = modifier
+        .width(width)
+        .height(height)
+        .then(
+            if (showShadow) {
+                Modifier.shadow(elevation = 2.dp, shape = shape, clip = false)
+            } else {
+                Modifier
+            },
+        )
+        .clip(shape)
+
     SubcomposeAsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(FlagUtils.flagImageUrl(flag))
-            .crossfade(true)
+            .crossfade(crossfade)
+            .memoryCacheKey(countryCode ?: flag)
+            .diskCacheKey(countryCode ?: flag)
             .build(),
         contentDescription = flag,
-        modifier = modifier
-            .width(width)
-            .height(height)
-            .shadow(elevation = 2.dp, shape = RoundedCornerShape(6.dp), clip = false)
-            .clip(RoundedCornerShape(6.dp)),
+        modifier = imageModifier,
         contentScale = ContentScale.Crop,
-        loading = { FlagEmojiFallback(flag, width, height) },
-        error = { FlagEmojiFallback(flag, width, height) },
+        loading = { FlagEmojiFallback(flag = flag, width = width, height = height) },
+        error = { FlagEmojiFallback(flag = flag, width = width, height = height) },
     )
 }
 

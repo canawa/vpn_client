@@ -8,10 +8,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,7 +42,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -54,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -430,7 +430,12 @@ fun SelectedServerCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                ServerFlag(flag = display.flag, height = 48.dp)
+                ServerFlag(
+                    flag = display.flag,
+                    height = 48.dp,
+                    crossfade = true,
+                    showShadow = true,
+                )
                 Column {
                     Text(
                         text = display.title,
@@ -471,77 +476,76 @@ fun ServerListCard(
 ) {
     val bg = coffemaniaColors().cappuccino
     val borderColor = if (selected) coffemaniaColors().espresso else coffemaniaColors().latte
+    val pingColor = when {
+        display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
+        display.pingText == "N/A" -> CoffemaniaColors.PingBad
+        else -> coffemaniaColors().mocha
+    }
 
-    Surface(
+    Row(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer { clip = true }
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .border(1.dp, borderColor, RoundedCornerShape(10.dp))
             .combinedClickable(
                 onClick = onClick,
                 onDoubleClick = onDoubleClick,
-            ),
-        shape = RoundedCornerShape(12.dp),
-        color = bg,
-        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
-            modifier = Modifier.padding(20.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.weight(1f),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.weight(1f),
-            ) {
-                ServerFlag(flag = display.flag, height = 48.dp)
-                Column {
+            ServerListFlag(flag = display.flag, height = 32.dp)
+            Column {
+                Text(
+                    text = display.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = coffemaniaColors().espresso,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 2.dp),
+                ) {
                     Text(
-                        text = display.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        text = display.protocolLabel,
+                        style = MaterialTheme.typography.labelSmall,
                         color = coffemaniaColors().espresso,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .background(coffemaniaColors().latte, CircleShape)
+                            .padding(horizontal = 8.dp, vertical = 1.dp),
                     )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 4.dp),
-                    ) {
-                        ProtocolBadge(
-                            text = display.protocolLabel,
-                            bg = coffemaniaColors().latte,
-                            fg = coffemaniaColors().espresso,
+                    if (display.subtitle.isNotBlank()) {
+                        Text(
+                            text = display.subtitle,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Normal,
+                                letterSpacing = 0.sp,
+                            ),
+                            color = coffemaniaColors().mocha,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                        if (display.subtitle.isNotBlank()) {
-                            Text(
-                                text = display.subtitle,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Normal,
-                                    letterSpacing = 0.sp,
-                                ),
-                                color = coffemaniaColors().mocha,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
                     }
                 }
             }
-            Column(horizontalAlignment = Alignment.End) {
-                val pingColor = when {
-                    display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
-                    display.pingText == "N/A" -> CoffemaniaColors.PingBad
-                    else -> coffemaniaColors().mocha
-                }
-                Text(
-                    text = display.pingText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = pingColor,
-                )
-            }
         }
+        Text(
+            text = display.pingText,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = pingColor,
+        )
     }
 }
 
@@ -553,7 +557,7 @@ private fun ProtocolBadge(text: String, bg: Color, fg: Color) {
         color = fg,
         modifier = Modifier
             .background(bg, CircleShape)
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+            .padding(horizontal = 8.dp, vertical = 1.dp),
     )
 }
 
@@ -871,14 +875,20 @@ private fun TrafficProgressBar(
         return
     }
 
-    LinearProgressIndicator(
-        progress = { subscriptionInfo.usageFraction },
+    Box(
         modifier = modifier
             .height(6.dp)
-            .clip(RoundedCornerShape(3.dp)),
-        color = progressColor,
-        trackColor = trackColor,
-    )
+            .clip(RoundedCornerShape(3.dp))
+            .background(trackColor),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(subscriptionInfo.usageFraction.coerceIn(0f, 1f))
+                .clip(RoundedCornerShape(3.dp))
+                .background(progressColor),
+        )
+    }
 }
 
 @Composable

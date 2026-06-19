@@ -1,8 +1,10 @@
 package online.coffemaniavpn.client.ui
 
+import androidx.compose.runtime.Immutable
 import online.coffemaniavpn.client.data.PingState
 import online.coffemaniavpn.client.data.ProxyNode
 
+@Immutable
 data class ServerDisplay(
     val flag: String,
     val title: String,
