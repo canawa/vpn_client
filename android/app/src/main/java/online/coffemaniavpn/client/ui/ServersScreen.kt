@@ -51,8 +51,8 @@ fun ServersScreen(
             subscriptionInfo = subscriptionInfo,
             isRefreshing = isRefreshing,
             isPinging = isPinging,
-            canRefresh = canRefreshConfig,
-            canPing = nodes.isNotEmpty(),
+            canRefresh = canRefreshConfig && !subscriptionExpired,
+            canPing = nodes.isNotEmpty() && !subscriptionExpired,
             onRefreshConfig = onRefreshConfig,
             onRefreshPing = onRefreshPing,
         )
@@ -63,9 +63,7 @@ fun ServersScreen(
                 onRenewWebsiteClick = onBuyOnWebsiteClick,
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
-
-        if (nodes.isEmpty()) {
+        } else if (nodes.isEmpty()) {
             Text(
                 text = "Список серверов пуст. Добавьте подписку на главной.",
                 style = MaterialTheme.typography.bodyMedium,

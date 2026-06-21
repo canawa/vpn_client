@@ -90,15 +90,17 @@ fun HomeScreen(
             }
         }
 
-        Column(modifier = Modifier.fillMaxWidth()) {
-            SectionLabel("Текущий сервер")
-            if (selectedDisplay != null) {
-                SelectedServerCard(
-                    display = selectedDisplay,
-                    onClick = onOpenServers,
-                )
-            } else {
-                EmptyServerHint()
+        if (!subscriptionExpired) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                SectionLabel("Текущий сервер")
+                if (selectedDisplay != null) {
+                    SelectedServerCard(
+                        display = selectedDisplay,
+                        onClick = onOpenServers,
+                    )
+                } else {
+                    EmptyServerHint()
+                }
             }
         }
 
