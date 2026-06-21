@@ -3,10 +3,8 @@ package online.coffemaniavpn.client.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,11 +28,17 @@ fun HomeScreen(
     onOpenServers: () -> Unit,
     onPasteLinkClick: () -> Unit,
     onBuyOnWebsiteClick: () -> Unit,
+    onRenewTelegramClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isConnected = state.vpnStatus == VpnStatus.Started
     val hasSubscription = state.subscriptionUrl.isNotBlank() && state.nodes.isNotEmpty()
-    val canConnect = hasSubscription
+    val subscriptionExpired = state.subscriptionInfo?.isExpired() == true
+    val canConnect = hasSubscription && !subscriptionExpired
+    val connectEnabled = when {
+        subscriptionExpired -> isConnected
+        else -> isConnected || canConnect
+    }
 
     Column(
         modifier = modifier
@@ -53,21 +57,38 @@ fun HomeScreen(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             SectionLabel("Статус")
             Text(
-                text = statusHeadline(state.vpnStatus),
+                text = if (subscriptionExpired) "Подписка истекла" else statusHeadline(state.vpnStatus),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
-                color = coffemaniaColors().espresso,
+                color = if (subscriptionExpired) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    coffemaniaColors().espresso
+                },
             )
         }
 
-        BrewConnectButton(
-            vpnStatus = state.vpnStatus,
-            connectionElapsedMs = state.connectionElapsedMs,
-            enabled = isConnected || canConnect,
-            onClick = {
-                if (isConnected) onDisconnectClick() else onConnectClick()
-            },
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            BrewConnectButton(
+                vpnStatus = state.vpnStatus,
+                connectionElapsedMs = state.connectionElapsedMs,
+                enabled = connectEnabled,
+                onClick = {
+                    if (isConnected) onDisconnectClick() else onConnectClick()
+                },
+            )
+
+            if (hasSubscription && subscriptionExpired) {
+                SubscriptionExpiredCard(
+                    onRenewTelegramClick = onRenewTelegramClick,
+                    onRenewWebsiteClick = onBuyOnWebsiteClick,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
 
         Column(modifier = Modifier.fillMaxWidth()) {
             SectionLabel("Текущий сервер")

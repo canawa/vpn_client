@@ -43,6 +43,7 @@ fun AppShell(
     onBuyOnWebsiteClick: () -> Unit,
     onDeleteSubscriptionClick: () -> Unit,
     onTelegramChannelClick: () -> Unit,
+    onRenewTelegramClick: () -> Unit,
     onCloseApp: () -> Unit,
     onSaveConnectionSettings: (online.coffemaniavpn.client.data.ConnectionSettingsState) -> Unit,
     onSubscriptionAutoUpdateIntervalChange: (online.coffemaniavpn.client.data.SubscriptionAutoUpdateInterval) -> Unit,
@@ -185,6 +186,7 @@ fun AppShell(
                     onOpenServers = { selectedTab = AppTab.Servers },
                     onPasteLinkClick = onPasteLinkClick,
                     onBuyOnWebsiteClick = onBuyOnWebsiteClick,
+                    onRenewTelegramClick = onRenewTelegramClick,
                 )
                 AppTab.Servers -> ServersScreen(
                     modifier = Modifier.padding(padding),
@@ -205,6 +207,8 @@ fun AppShell(
                     onRefreshConfig = onRefreshConfig,
                     onRefreshPing = onRefreshPing,
                     onTelegramChannelClick = onTelegramChannelClick,
+                    onRenewTelegramClick = onRenewTelegramClick,
+                    onBuyOnWebsiteClick = onBuyOnWebsiteClick,
                 )
             }
         }

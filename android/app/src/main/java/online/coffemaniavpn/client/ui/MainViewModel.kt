@@ -226,6 +226,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (showErrors) error.value = "Вставьте ссылку подписки"
                 false
             }
+            state.subscriptionInfo?.isExpired() == true -> {
+                if (showErrors) error.value = "Подписка истекла"
+                false
+            }
             else -> true
         }
     }

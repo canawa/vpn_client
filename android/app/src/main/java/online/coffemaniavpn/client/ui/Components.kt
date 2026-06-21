@@ -33,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -572,6 +573,49 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun SubscriptionExpiredCard(
+    onRenewTelegramClick: () -> Unit,
+    onRenewWebsiteClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Подписка истекла",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.error,
+            )
+            Text(
+                text = "Продлите подписку, чтобы снова пользоваться VPN",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+            SubscriptionActionButton(
+                text = "Продлить в телеграмме",
+                icon = Icons.AutoMirrored.Filled.Send,
+                onClick = onRenewTelegramClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            SubscriptionActionButton(
+                text = "Продлить на сайте",
+                icon = Icons.Default.ShoppingCart,
+                onClick = onRenewWebsiteClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
 fun SubscriptionCard(
     onPasteLinkClick: () -> Unit,
     onBuyOnWebsiteClick: () -> Unit,
@@ -742,8 +786,7 @@ fun SubscriptionStatusBar(
                         )
                     }
                     subscriptionInfo?.expireLabel()?.let { expireText ->
-                        val expired = subscriptionInfo.expire > 0 &&
-                            subscriptionInfo.expire * 1_000L <= System.currentTimeMillis()
+                        val expired = subscriptionInfo.isExpired()
                         Text(
                             text = expireText,
                             style = MaterialTheme.typography.bodyMedium,

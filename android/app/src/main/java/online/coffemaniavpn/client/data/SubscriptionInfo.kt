@@ -36,6 +36,11 @@ data class SubscriptionInfo(
 
         return SubscriptionExpireFormatter.formatRemaining(remainingSec)
     }
+
+    fun isExpired(nowMs: Long = System.currentTimeMillis()): Boolean {
+        if (expire <= 0) return false
+        return expire * 1_000L <= nowMs
+    }
 }
 
 data class SubscriptionFetchResult(

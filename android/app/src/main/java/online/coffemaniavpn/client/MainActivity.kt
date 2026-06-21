@@ -98,6 +98,7 @@ class MainActivity : ComponentActivity() {
                         onBuyOnWebsiteClick = ::openSubscriptionRegister,
                         onDeleteSubscriptionClick = viewModel::deleteSubscription,
                         onTelegramChannelClick = ::openTelegramChannel,
+                        onRenewTelegramClick = ::openTelegramBot,
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
                         onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
@@ -175,6 +176,14 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TELEGRAM_CHANNEL_URL)))
         }.onFailure {
             AppLog.e("openTelegramChannel failed", it)
+        }
+    }
+
+    private fun openTelegramBot() {
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TELEGRAM_BOT_URL)))
+        }.onFailure {
+            AppLog.e("openTelegramBot failed", it)
         }
     }
 

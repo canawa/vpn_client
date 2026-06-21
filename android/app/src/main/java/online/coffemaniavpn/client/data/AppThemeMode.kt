@@ -7,7 +7,7 @@ enum class AppThemeMode(val label: String) {
     ;
 
     companion object {
-        val DEFAULT = LIGHT
+        val DEFAULT = SYSTEM
 
         fun fromStored(value: String?): AppThemeMode {
             if (value == null) return DEFAULT

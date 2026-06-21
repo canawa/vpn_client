@@ -257,7 +257,7 @@ private fun colorSchemeFrom(extra: CoffemaniaExtraColors, dark: Boolean) = if (!
 
 @Composable
 fun CoffemaniaTheme(
-    themeMode: AppThemeMode = AppThemeMode.LIGHT,
+    themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     content: @Composable () -> Unit,
 ) {
     val useDarkTheme = when (themeMode) {

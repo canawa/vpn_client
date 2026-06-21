@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,8 +33,12 @@ fun ServersScreen(
     onRefreshConfig: () -> Unit,
     onRefreshPing: () -> Unit,
     onTelegramChannelClick: () -> Unit,
+    onRenewTelegramClick: () -> Unit,
+    onBuyOnWebsiteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val subscriptionExpired = subscriptionInfo?.isExpired() == true
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -51,6 +56,14 @@ fun ServersScreen(
             onRefreshConfig = onRefreshConfig,
             onRefreshPing = onRefreshPing,
         )
+
+        if (subscriptionExpired) {
+            SubscriptionExpiredCard(
+                onRenewTelegramClick = onRenewTelegramClick,
+                onRenewWebsiteClick = onBuyOnWebsiteClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         if (nodes.isEmpty()) {
             Text(
