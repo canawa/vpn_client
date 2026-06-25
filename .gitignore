@@ -11,3 +11,6 @@ android/.gradle/
 android/app/build/
 android/local.properties
 android/app/libs/libbox_extracted/
+android/keystore.properties
+android/*.jks
+android/**/*.jks

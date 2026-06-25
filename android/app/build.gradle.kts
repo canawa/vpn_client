@@ -5,12 +5,14 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+import java.util.Properties
+
 android {
-    namespace = "online.coffemaniavpn.client"
+    namespace = "ru.coffeemaniavpn.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "online.coffemaniavpn.client"
+        applicationId = "ru.coffeemaniavpn.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -21,13 +23,35 @@ android {
         buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/coffemaniavpnbot\"")
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePropsFile = rootProject.file("keystore.properties")
+            require(keystorePropsFile.exists()) {
+                "Missing android/keystore.properties — copy keystore.properties.example and fill in upload key credentials."
+            }
+            val keystoreProps = Properties()
+            keystorePropsFile.inputStream().use { keystoreProps.load(it) }
+            val storePath = checkNotNull(keystoreProps.getProperty("storeFile")) { "storeFile is missing" }
+            storeFile = rootProject.file(storePath)
+            storePassword = checkNotNull(keystoreProps.getProperty("storePassword")) { "storePassword is missing" }
+            keyAlias = checkNotNull(keystoreProps.getProperty("keyAlias")) { "keyAlias is missing" }
+            keyPassword = checkNotNull(keystoreProps.getProperty("keyPassword")) { "keyPassword is missing" }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+        }
+        create("adiVerify") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
         }
     }
 
