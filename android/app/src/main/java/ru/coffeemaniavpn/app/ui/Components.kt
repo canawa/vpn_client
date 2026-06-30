@@ -52,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -773,20 +774,18 @@ fun SubscriptionStatusBar(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (subscriptionInfo?.hasTitle == true || subscriptionInfo?.expireLabel() != null) {
+            subscriptionInfo?.let { info ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (subscriptionInfo?.hasTitle == true) {
-                        Text(
-                            text = subscriptionInfo.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = coffemaniaColors().espresso,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    subscriptionInfo?.expireLabel()?.let { expireText ->
-                        val expired = subscriptionInfo.isExpired()
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = coffemaniaColors().espresso,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    info.expireLabel()?.let { expireText ->
+                        val expired = info.isExpired()
                         Text(
                             text = expireText,
                             style = MaterialTheme.typography.bodyMedium,

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.util.AppLog
 
 /**
@@ -45,7 +46,7 @@ class KillSwitchVpnService : VpnService() {
         }
         release()
         val builder = Builder()
-            .setSession("КОФЕМАНИЯ ВПН — Kill Switch")
+            .setSession(getString(R.string.vpn_session_name))
             .setMtu(1500)
             .addAddress("172.31.0.1", 32)
             .addRoute("0.0.0.0", 0)

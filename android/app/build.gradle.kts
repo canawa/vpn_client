@@ -15,7 +15,7 @@ android {
         applicationId = "ru.coffeemaniavpn.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0.0"
         buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://coffemaniavpn.online\"")
         buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://coffeemaniavpn.ru/register\"")

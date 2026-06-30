@@ -1,5 +1,6 @@
 package ru.coffeemaniavpn.app.data
 
+import androidx.core.text.HtmlCompat
 import kotlinx.serialization.Serializable
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -127,11 +128,23 @@ object SubscriptionInfoParser {
 
         val base64Prefix = "base64:"
         if (urlDecoded.startsWith(base64Prefix, ignoreCase = true)) {
-            decodeBase64Text(urlDecoded.substring(base64Prefix.length))?.let { return it }
+            decodeBase64Text(urlDecoded.substring(base64Prefix.length))?.let {
+                return normalizeSubscriptionTitle(it)
+            }
             return ""
         }
 
-        return urlDecoded
+        return normalizeSubscriptionTitle(urlDecoded)
+    }
+
+    private fun normalizeSubscriptionTitle(raw: String): String {
+        val text = if (raw.contains("&#")) {
+            HtmlCompat.fromHtml(raw, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
+        } else {
+            raw.trim()
+        }
+        if (text.isBlank() || text.contains("&#")) return ""
+        return text
     }
 
     private fun decodeBase64Text(encoded: String): String? {

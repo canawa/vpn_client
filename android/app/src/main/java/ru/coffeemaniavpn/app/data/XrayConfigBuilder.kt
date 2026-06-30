@@ -151,9 +151,9 @@ object XrayConfigBuilder {
             put("path", path)
             put("mode", mode)
             node.xhttpExtra?.takeIf { it.isNotBlank() }?.let { raw ->
-                runCatching { JSONObject(raw) }.getOrNull()?.let { extra ->
-                    put("extra", extra)
-                }
+                runCatching { JSONObject(raw) }.getOrNull()
+                    ?.let { XhttpExtraHelper.migrateSessionKeys(it) }
+                    ?.let { extra -> put("extra", extra) }
             }
         }
     }

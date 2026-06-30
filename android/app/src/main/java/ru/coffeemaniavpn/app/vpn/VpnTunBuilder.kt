@@ -5,6 +5,7 @@ import android.os.Build
 import android.content.pm.PackageManager.NameNotFoundException
 import ru.coffeemaniavpn.app.data.ConnectionSettingsStore
 import ru.coffeemaniavpn.app.data.SplitTunnelAppsMode
+import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.util.AppLog
 
 object VpnTunBuilder {
@@ -17,7 +18,7 @@ object VpnTunBuilder {
         if (VpnService.prepare(service) != null) error("android: missing vpn permission")
 
         val builder = service.Builder()
-            .setSession("КОФЕМАНИЯ ВПН")
+            .setSession(service.getString(R.string.vpn_session_name))
             .setMtu(VPN_MTU)
             .addAddress(VPN_ADDRESS, VPN_PREFIX)
             .addRoute("0.0.0.0", 0)
