@@ -42,6 +42,9 @@ class SubscriptionRepository(
             val info = SubscriptionInfoParser.parseFromResponse(
                 userInfoHeader = response.header("subscription-userinfo"),
                 profileTitleHeader = response.header("profile-title"),
+                subInfoTextHeader = response.header("sub-info-text"),
+                subInfoButtonTextHeader = response.header("sub-info-button-text"),
+                subInfoButtonLinkHeader = response.header("sub-info-button-link"),
                 body = body,
             )
 

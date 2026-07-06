@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -66,6 +67,7 @@ fun HomeScreen(
     onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
     onTelegramBotClick: () -> Unit,
+    onSubInfoButtonClick: (String) -> Unit,
     onRefreshPing: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -129,6 +131,7 @@ fun HomeScreen(
                 onRefreshPing = onRefreshPing,
                 onSelectNode = onSelectNode,
                 onOpenServers = onOpenServers,
+                onSubInfoButtonClick = onSubInfoButtonClick,
             )
         }
     }
@@ -346,6 +349,7 @@ private fun HomeSubscriptionCard(
     onRefreshPing: () -> Unit,
     onSelectNode: (String) -> Unit,
     onOpenServers: () -> Unit,
+    onSubInfoButtonClick: (String) -> Unit,
 ) {
     val colors = nuboColors()
     val subscriptionInfo = uiState.subscriptionInfo
@@ -415,6 +419,34 @@ private fun HomeSubscriptionCard(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 TrafficProgressBar(subscriptionInfo = subscriptionInfo)
+            }
+
+            if (subscriptionInfo?.let { it.hasSubInfoText || it.hasSubInfoButton } == true) {
+                val info = subscriptionInfo
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (info.hasSubInfoText) {
+                        Text(
+                            text = info.subInfoText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.textMid,
+                        )
+                    }
+                    if (info.hasSubInfoButton) {
+                        val link = info.subInfoButtonLink.trim()
+                        SubscriptionActionButton(
+                            text = info.subInfoButtonText,
+                            icon = Icons.AutoMirrored.Filled.OpenInNew,
+                            onClick = { if (link.isNotBlank()) onSubInfoButtonClick(link) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
             }
 
             HorizontalDivider(thickness = 1.dp, color = colors.border)

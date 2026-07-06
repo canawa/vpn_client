@@ -99,6 +99,7 @@ class MainActivity : ComponentActivity() {
                         onDeleteSubscriptionClick = viewModel::deleteSubscription,
                         onTelegramChannelClick = ::openTelegramChannel,
                         onTelegramBotClick = ::openTelegramBot,
+                        onSubInfoButtonClick = ::openUrl,
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
                         onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
@@ -183,6 +184,21 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TELEGRAM_BOT_URL)))
         }.onFailure {
             AppLog.e("openTelegramBot failed", it)
+        }
+    }
+
+    private fun openUrl(url: String) {
+        runCatching {
+            val normalized = url.trim().let { raw ->
+                if (raw.startsWith("http://", ignoreCase = true) || raw.startsWith("https://", ignoreCase = true)) {
+                    raw
+                } else {
+                    "https://$raw"
+                }
+            }
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(normalized)))
+        }.onFailure {
+            AppLog.e("openUrl failed url=$url", it)
         }
     }
 

@@ -43,6 +43,7 @@ fun AppShell(
     onDeleteSubscriptionClick: () -> Unit,
     onTelegramChannelClick: () -> Unit,
     onTelegramBotClick: () -> Unit,
+    onSubInfoButtonClick: (String) -> Unit,
     onCloseApp: () -> Unit,
     onSaveConnectionSettings: (ru.coffeemaniavpn.app.data.ConnectionSettingsState) -> Unit,
     onSubscriptionAutoUpdateIntervalChange: (ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval) -> Unit,
@@ -126,6 +127,7 @@ fun AppShell(
                 onRefreshConfig = onRefreshConfig,
                 onPasteLinkClick = onPasteLinkClick,
                 onTelegramBotClick = onTelegramBotClick,
+                onSubInfoButtonClick = onSubInfoButtonClick,
                 onRefreshPing = onRefreshPing,
             )
             AppTab.Servers -> ServersScreen(

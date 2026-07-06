@@ -15,6 +15,9 @@ data class SubscriptionInfo(
     val total: Long = 0,
     val expire: Long = 0,
     val title: String = "",
+    val subInfoText: String = "",
+    val subInfoButtonText: String = "",
+    val subInfoButtonLink: String = "",
 ) {
     val used: Long get() = (upload + download).coerceAtLeast(0)
     val isUnlimitedTraffic: Boolean get() = total <= 0
@@ -22,6 +25,8 @@ data class SubscriptionInfo(
         get() = if (total > 0) (used.toFloat() / total.toFloat()).coerceIn(0f, 1f) else 0f
 
     val hasTitle: Boolean get() = title.isNotBlank() && !title.startsWith("base64:", ignoreCase = true)
+    val hasSubInfoText: Boolean get() = subInfoText.isNotBlank()
+    val hasSubInfoButton: Boolean get() = subInfoButtonText.isNotBlank()
 
     fun trafficLabel(): String {
         val usedText = formatTrafficBytes(used)
@@ -53,15 +58,31 @@ object SubscriptionInfoParser {
     fun parseFromResponse(
         userInfoHeader: String?,
         profileTitleHeader: String?,
+        subInfoTextHeader: String?,
+        subInfoButtonTextHeader: String?,
+        subInfoButtonLinkHeader: String?,
         body: String,
     ): SubscriptionInfo? {
         val parsedUserInfo = userInfoHeader?.let(::parseUserInfoHeader)
             ?: parseUserInfoFromBody(body)
         val title = parseTitle(profileTitleHeader, body)
+        val subInfoText = decodeHeaderText(subInfoTextHeader)
+        val subInfoButtonText = decodeHeaderText(subInfoButtonTextHeader)
+        val subInfoButtonLink = decodeHeaderLink(subInfoButtonLinkHeader)
+
+        val extras = { info: SubscriptionInfo ->
+            info.copy(
+                title = title.ifBlank { info.title },
+                subInfoText = subInfoText,
+                subInfoButtonText = subInfoButtonText,
+                subInfoButtonLink = subInfoButtonLink,
+            )
+        }
 
         return when {
-            parsedUserInfo != null -> parsedUserInfo.copy(title = title)
-            title.isNotBlank() -> SubscriptionInfo(title = title)
+            parsedUserInfo != null -> extras(parsedUserInfo)
+            title.isNotBlank() || subInfoText.isNotBlank() || subInfoButtonText.isNotBlank() ->
+                extras(SubscriptionInfo(title = title))
             else -> null
         }
     }
@@ -119,6 +140,22 @@ object SubscriptionInfoParser {
             }
             ?.let(::decodeText)
             ?.takeIf { it.isNotBlank() }
+    }
+
+    private fun decodeHeaderText(raw: String?): String {
+        val value = raw?.trim().orEmpty()
+        if (value.isBlank()) return ""
+        return decodeText(value)
+    }
+
+    private fun decodeHeaderLink(raw: String?): String {
+        val value = raw?.trim().orEmpty()
+        if (value.isBlank()) return ""
+        return if (value.startsWith("base64:", ignoreCase = true)) {
+            decodeText(value)
+        } else {
+            value
+        }
     }
 
     private fun decodeText(raw: String): String {
