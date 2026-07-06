@@ -8,7 +8,7 @@ plugins {
 import java.util.Properties
 
 android {
-    namespace = "ru.coffeemaniavpn.app"
+    namespace = "ru.nubovpn.app"
     compileSdk = 35
 
     defaultConfig {
@@ -17,7 +17,7 @@ android {
         targetSdk = 35
         versionCode = 2
         versionName = "1.0.0"
-        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://coffemaniavpn.online\"")
+        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://nb.nubov.org\"")
         buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/nubovpnchannel\"")
         buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/nubovpnbot\"")
     }

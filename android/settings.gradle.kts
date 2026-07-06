@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CoffemaniaVpn"
+rootProject.name = "NuboVpn"
 include(":app")
