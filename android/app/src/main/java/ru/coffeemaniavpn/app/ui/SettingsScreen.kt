@@ -38,7 +38,6 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.HorizontalDivider
@@ -110,7 +109,7 @@ fun SettingsScreen(
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
-    onBuyOnWebsite: () -> Unit,
+    onTelegramBot: () -> Unit,
     subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     appThemeMode: AppThemeMode,
@@ -132,7 +131,6 @@ fun SettingsScreen(
             appThemeMode = appThemeMode,
             onPageChange = onPageChange,
             onTelegramChannel = onTelegramChannel,
-            onBuyOnWebsite = onBuyOnWebsite,
             onDeleteSubscription = onDeleteSubscription,
             onCloseApp = onCloseApp,
         )
@@ -159,7 +157,7 @@ fun SettingsScreen(
             onPasteLink = onPasteLink,
             onRefreshSubscription = onRefreshSubscription,
             onDeleteSubscription = onDeleteSubscription,
-            onBuyOnWebsite = onBuyOnWebsite,
+            onTelegramBot = onTelegramBot,
         )
         SettingsPage.Logs -> SettingsDetailScreen(
             modifier = modifier,
@@ -207,7 +205,6 @@ private fun SettingsMainScreen(
     appThemeMode: AppThemeMode,
     onPageChange: (SettingsPage) -> Unit,
     onTelegramChannel: () -> Unit,
-    onBuyOnWebsite: () -> Unit,
     onDeleteSubscription: () -> Unit,
     onCloseApp: () -> Unit,
     modifier: Modifier = Modifier,
@@ -266,12 +263,6 @@ private fun SettingsMainScreen(
                 title = "Управление подпиской",
                 subtitle = "Автообновление, ссылка, продление",
                 onClick = { onPageChange(SettingsPage.Subscription) },
-            )
-            SettingsNavCard(
-                icon = Icons.Default.ShoppingCart,
-                title = "Купить на сайте",
-                subtitle = null,
-                onClick = onBuyOnWebsite,
             )
         }
 
@@ -596,7 +587,7 @@ private fun SubscriptionSettingsScreen(
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
-    onBuyOnWebsite: () -> Unit,
+    onTelegramBot: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val actions = subscriptionItems(
@@ -604,7 +595,7 @@ private fun SubscriptionSettingsScreen(
         onPasteLink = onPasteLink,
         onRefreshSubscription = onRefreshSubscription,
         onDeleteSubscription = onDeleteSubscription,
-        onBuyOnWebsite = onBuyOnWebsite,
+        onTelegramBot = onTelegramBot,
     )
 
     Column(
@@ -720,13 +711,13 @@ private fun subscriptionItems(
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
-    onBuyOnWebsite: () -> Unit,
+    onTelegramBot: () -> Unit,
 ): List<SettingsAction> = buildList {
     add(
         SettingsAction(
-            title = "Купить на сайте",
-            icon = Icons.Default.ShoppingCart,
-            onClick = onBuyOnWebsite,
+            title = "Купить в боте",
+            icon = Icons.AutoMirrored.Filled.Send,
+            onClick = onTelegramBot,
         ),
     )
     add(

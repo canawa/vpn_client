@@ -60,9 +60,7 @@ fun ServersScreen(
     onToggleFavorite: (String) -> Unit,
     onRefreshConfig: () -> Unit,
     onRefreshPing: () -> Unit,
-    onTelegramChannelClick: () -> Unit,
-    onRenewTelegramClick: () -> Unit,
-    onBuyOnWebsiteClick: () -> Unit,
+    onTelegramBotClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = nuboColors()
@@ -132,8 +130,7 @@ fun ServersScreen(
         when {
             subscriptionExpired -> {
                 SubscriptionExpiredCard(
-                    onRenewTelegramClick = onRenewTelegramClick,
-                    onRenewWebsiteClick = onBuyOnWebsiteClick,
+                    onTelegramBotClick = onTelegramBotClick,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.weight(1f))
@@ -187,8 +184,6 @@ fun ServersScreen(
                 }
             }
         }
-
-        TelegramChannelBanner(onClick = onTelegramChannelClick)
     }
 }
 

@@ -18,9 +18,8 @@ android {
         versionCode = 2
         versionName = "1.0.0"
         buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://coffemaniavpn.online\"")
-        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://coffeemaniavpn.ru/register\"")
-        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/coffemaniavpn\"")
-        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/coffemaniavpnbot\"")
+        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/nubovpnchannel\"")
+        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/nubovpnbot\"")
     }
 
     signingConfigs {

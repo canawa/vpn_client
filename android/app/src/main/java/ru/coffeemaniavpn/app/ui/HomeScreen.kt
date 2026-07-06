@@ -57,8 +57,8 @@ fun HomeScreen(
     onSelectNode: (String) -> Unit,
     onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
-    onBuyOnWebsiteClick: () -> Unit,
-    onRenewTelegramClick: () -> Unit,
+    onTelegramBotClick: () -> Unit,
+    onRefreshPing: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = nuboColors()
@@ -96,8 +96,7 @@ fun HomeScreen(
 
         if (hasSubscription && subscriptionExpired) {
             SubscriptionExpiredCard(
-                onRenewTelegramClick = onRenewTelegramClick,
-                onRenewWebsiteClick = onBuyOnWebsiteClick,
+                onTelegramBotClick = onTelegramBotClick,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -105,7 +104,7 @@ fun HomeScreen(
         if (!hasSubscription) {
             SubscriptionCard(
                 onPasteLinkClick = onPasteLinkClick,
-                onBuyOnWebsiteClick = onBuyOnWebsiteClick,
+                onTelegramBotClick = onTelegramBotClick,
             )
             state.message?.let {
                 Text(
@@ -119,12 +118,11 @@ fun HomeScreen(
             HomeSubscriptionCard(
                 uiState = state,
                 onRefreshConfig = onRefreshConfig,
+                onRefreshPing = onRefreshPing,
                 onSelectNode = onSelectNode,
                 onOpenServers = onOpenServers,
             )
         }
-
-        WebsiteBanner(onClick = onBuyOnWebsiteClick)
     }
 }
 
@@ -320,11 +318,13 @@ private fun ConnectionSpeedRow(speed: TrafficSpeed, modifier: Modifier = Modifie
 private fun HomeSubscriptionCard(
     uiState: MainUiState,
     onRefreshConfig: () -> Unit,
+    onRefreshPing: () -> Unit,
     onSelectNode: (String) -> Unit,
     onOpenServers: () -> Unit,
 ) {
     val colors = nuboColors()
     val subscriptionInfo = uiState.subscriptionInfo
+    val subscriptionExpired = subscriptionInfo?.isExpired() == true
 
     NuboCard(modifier = Modifier.fillMaxWidth()) {
         Column {
@@ -354,6 +354,11 @@ private fun HomeSubscriptionCard(
                     isRefreshing = uiState.isLoading,
                     enabled = true,
                     onClick = onRefreshConfig,
+                )
+                PingTestButton(
+                    isPinging = uiState.isPinging,
+                    enabled = uiState.nodes.isNotEmpty() && !subscriptionExpired,
+                    onClick = onRefreshPing,
                 )
             }
 

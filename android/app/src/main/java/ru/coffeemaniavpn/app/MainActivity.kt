@@ -96,10 +96,9 @@ class MainActivity : ComponentActivity() {
                         onRefreshPing = viewModel::pingAllNodes,
                         onRefreshConfig = viewModel::refreshConfig,
                         onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
-                        onBuyOnWebsiteClick = ::openSubscriptionRegister,
                         onDeleteSubscriptionClick = viewModel::deleteSubscription,
                         onTelegramChannelClick = ::openTelegramChannel,
-                        onRenewTelegramClick = ::openTelegramBot,
+                        onTelegramBotClick = ::openTelegramBot,
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
                         onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
@@ -185,14 +184,6 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TELEGRAM_BOT_URL)))
         }.onFailure {
             AppLog.e("openTelegramBot failed", it)
-        }
-    }
-
-    private fun openSubscriptionRegister() {
-        runCatching {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.SUBSCRIPTION_REGISTER_URL)))
-        }.onFailure {
-            AppLog.e("openSubscriptionRegister failed", it)
         }
     }
 

@@ -44,7 +44,6 @@ import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
@@ -908,8 +907,7 @@ fun ServerListCard(
 
 @Composable
 fun SubscriptionExpiredCard(
-    onRenewTelegramClick: () -> Unit,
-    onRenewWebsiteClick: () -> Unit,
+    onTelegramBotClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = nuboColors()
@@ -935,15 +933,9 @@ fun SubscriptionExpiredCard(
                 color = colors.textMid,
             )
             SubscriptionActionButton(
-                text = "Продлить в телеграмме",
+                text = "Продлить в боте",
                 icon = Icons.AutoMirrored.Filled.Send,
-                onClick = onRenewTelegramClick,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            SubscriptionActionButton(
-                text = "Продлить на сайте",
-                icon = Icons.Default.ShoppingCart,
-                onClick = onRenewWebsiteClick,
+                onClick = onTelegramBotClick,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -953,7 +945,7 @@ fun SubscriptionExpiredCard(
 @Composable
 fun SubscriptionCard(
     onPasteLinkClick: () -> Unit,
-    onBuyOnWebsiteClick: () -> Unit,
+    onTelegramBotClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = nuboColors()
@@ -976,9 +968,9 @@ fun SubscriptionCard(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 SubscriptionActionButton(
-                    text = "Купить на сайте",
-                    icon = Icons.Default.ShoppingCart,
-                    onClick = onBuyOnWebsiteClick,
+                    text = "Купить в боте",
+                    icon = Icons.AutoMirrored.Filled.Send,
+                    onClick = onTelegramBotClick,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -1033,57 +1025,6 @@ fun SubscriptionActionButton(
             overflow = TextOverflow.Ellipsis,
         )
     }
-}
-
-@Composable
-fun PromoBanner(
-    @androidx.annotation.DrawableRes imageRes: Int,
-    contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        shadowElevation = 8.dp,
-        color = Color.Transparent,
-    ) {
-        Image(
-            painter = painterResource(imageRes),
-            contentDescription = contentDescription,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp)),
-            contentScale = ContentScale.FillWidth,
-        )
-    }
-}
-
-@Composable
-fun WebsiteBanner(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    PromoBanner(
-        imageRes = R.drawable.banner_go_web,
-        contentDescription = "Управляйте ключами на сайте",
-        onClick = onClick,
-        modifier = modifier,
-    )
-}
-
-@Composable
-fun TelegramChannelBanner(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    PromoBanner(
-        imageRes = R.drawable.banner_got_tg,
-        contentDescription = "Перейти в Telegram-канал",
-        onClick = onClick,
-        modifier = modifier,
-    )
 }
 
 @Composable

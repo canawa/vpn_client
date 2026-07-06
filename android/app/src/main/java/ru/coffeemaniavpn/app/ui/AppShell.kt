@@ -40,10 +40,9 @@ fun AppShell(
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
-    onBuyOnWebsiteClick: () -> Unit,
     onDeleteSubscriptionClick: () -> Unit,
     onTelegramChannelClick: () -> Unit,
-    onRenewTelegramClick: () -> Unit,
+    onTelegramBotClick: () -> Unit,
     onCloseApp: () -> Unit,
     onSaveConnectionSettings: (ru.coffeemaniavpn.app.data.ConnectionSettingsState) -> Unit,
     onSubscriptionAutoUpdateIntervalChange: (ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval) -> Unit,
@@ -127,8 +126,8 @@ fun AppShell(
                 onSelectNode = onSelectNode,
                 onRefreshConfig = onRefreshConfig,
                 onPasteLinkClick = onPasteLinkClick,
-                onBuyOnWebsiteClick = onBuyOnWebsiteClick,
-                onRenewTelegramClick = onRenewTelegramClick,
+                onTelegramBotClick = onTelegramBotClick,
+                onRefreshPing = onRefreshPing,
             )
             AppTab.Servers -> ServersScreen(
                 modifier = Modifier.padding(padding),
@@ -150,9 +149,7 @@ fun AppShell(
                 onToggleFavorite = onToggleFavorite,
                 onRefreshConfig = onRefreshConfig,
                 onRefreshPing = onRefreshPing,
-                onTelegramChannelClick = onTelegramChannelClick,
-                onRenewTelegramClick = onRenewTelegramClick,
-                onBuyOnWebsiteClick = onBuyOnWebsiteClick,
+                onTelegramBotClick = onTelegramBotClick,
             )
             AppTab.Settings -> SettingsScreen(
                 modifier = Modifier.padding(padding),
@@ -170,7 +167,7 @@ fun AppShell(
                 onPasteLink = onPasteLinkClick,
                 onRefreshSubscription = onRefreshSubscription,
                 onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
-                onBuyOnWebsite = onBuyOnWebsiteClick,
+                onTelegramBot = onTelegramBotClick,
                 onShowLogs = onShowLogs,
                 onDownloadLogs = onDownloadLogs,
                 onTelegramChannel = onTelegramChannelClick,
