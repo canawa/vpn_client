@@ -26,6 +26,11 @@ data class ProxyNode(
     val downMbps: Int? = null,
     val alpn: List<String>? = null,
     val transport: String = "tcp",
+    val grpcServiceName: String? = null,
+    val grpcAuthority: String? = null,
+    val grpcMultiMode: Boolean? = null,
+    val wsPath: String? = null,
+    val wsHost: String? = null,
     val xhttpHost: String? = null,
     val xhttpPath: String? = null,
     val xhttpMode: String? = null,
@@ -37,4 +42,7 @@ data class ProxyNode(
     val isXhttp: Boolean
         get() = transport.equals("xhttp", ignoreCase = true) ||
             transport.equals("splithttp", ignoreCase = true)
+
+    val isGrpc: Boolean
+        get() = transport.equals("grpc", ignoreCase = true)
 }

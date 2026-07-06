@@ -7,6 +7,7 @@ object XrayConfigBuilder {
     private const val TUN_ADDRESS = "172.19.0.1"
     private const val TUN_PREFIX = 30
     private const val TUN_DNS = "8.8.8.8"
+    private val IPv4_REGEX = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
 
     fun build(node: ProxyNode): String {
         val config = buildBaseConfig(node)
@@ -37,8 +38,13 @@ object XrayConfigBuilder {
     }
 
     private fun buildDns(node: ProxyNode): JSONObject {
-        val parentDomain = node.host.substringAfter('.', missingDelimiterValue = "")
-            .takeIf { it.contains('.') }
+        val isIpHost = IPv4_REGEX.matches(node.host)
+        val parentDomain = if (!isIpHost) {
+            node.host.substringAfter('.', missingDelimiterValue = "")
+                .takeIf { it.contains('.') }
+        } else {
+            null
+        }
 
         return JSONObject().apply {
             put("servers", JSONArray().apply {
@@ -103,7 +109,7 @@ object XrayConfigBuilder {
         val user = JSONObject().apply {
             put("id", node.uuid)
             put("encryption", node.encryption.ifBlank { "none" })
-            if (!node.isXhttp && !node.flow.isNullOrBlank()) {
+            if (!node.isXhttp && !node.isGrpc && !node.flow.isNullOrBlank()) {
                 put("flow", node.flow)
             }
         }
@@ -126,14 +132,32 @@ object XrayConfigBuilder {
 
     private fun buildVlessStreamSettings(node: ProxyNode): JSONObject {
         return JSONObject().apply {
-            if (node.isXhttp) {
-                put("network", "xhttp")
-                put("xhttpSettings", buildXhttpSettings(node))
-            } else {
-                put("network", "tcp")
-                put("tcpSettings", JSONObject().apply {
-                    put("header", JSONObject().put("type", "none"))
-                })
+            when {
+                node.isXhttp -> {
+                    put("network", "xhttp")
+                    put("xhttpSettings", buildXhttpSettings(node))
+                }
+                node.isGrpc -> {
+                    put("network", "grpc")
+                    put("grpcSettings", JSONObject().apply {
+                        put("serviceName", node.grpcServiceName.orEmpty())
+                        node.grpcAuthority?.let { put("authority", it) }
+                        node.grpcMultiMode?.let { put("multiMode", it) }
+                    })
+                }
+                node.transport.equals("ws", ignoreCase = true) -> {
+                    put("network", "ws")
+                    put("wsSettings", JSONObject().apply {
+                        put("path", node.wsPath ?: "/")
+                        node.wsHost?.let { put("host", it) }
+                    })
+                }
+                else -> {
+                    put("network", "tcp")
+                    put("tcpSettings", JSONObject().apply {
+                        put("header", JSONObject().put("type", "none"))
+                    })
+                }
             }
             applyTls(this, node)
         }

@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
 
             setContent {
                 val state by viewModel.uiState.collectAsState()
-                NuboTheme(themeMode = state.appThemeMode) {
+                NuboTheme {
                     var showLogs by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
@@ -102,7 +102,6 @@ class MainActivity : ComponentActivity() {
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
                         onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
-                        onAppThemeModeChange = viewModel::setAppThemeMode,
                     )
 
                     BackHandler(enabled = showLogs) {

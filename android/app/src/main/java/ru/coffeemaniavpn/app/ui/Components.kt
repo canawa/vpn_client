@@ -1,6 +1,9 @@
 package ru.coffeemaniavpn.app.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -17,7 +20,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +62,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
@@ -67,6 +70,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
@@ -77,6 +81,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
+import ru.coffeemaniavpn.app.data.PingState
 import ru.coffeemaniavpn.app.vpn.VpnStatus
 
 enum class AppTab { Servers, Home, Settings }
@@ -262,12 +267,12 @@ private fun SideNavItem(
     // Плавные переходы цвета вместо резкого переключения
     val fg by animateColorAsState(
         targetValue = if (selected) colors.blue else colors.textFaint,
-        animationSpec = tween(durationMillis = 250),
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "sideNavFg",
     )
     val iconBg by animateColorAsState(
         targetValue = if (selected) colors.blue.copy(alpha = 0.15f) else Color.Transparent,
-        animationSpec = tween(durationMillis = 250),
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "sideNavBg",
     )
 
@@ -341,14 +346,6 @@ private fun CenterNavItem(
         label = "glowAlpha",
     )
 
-    // Плавное сжатие кнопки при нажатии вместо прямоугольного ripple
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.90f else 1f,
-        animationSpec = tween(durationMillis = 150),
-        label = "centerPressScale",
-    )
     val labelColor by animateColorAsState(
         targetValue = if (selected) colors.sky else colors.textFaint,
         animationSpec = tween(durationMillis = 250),
@@ -357,23 +354,13 @@ private fun CenterNavItem(
 
     // Кнопка сверху, подпись — в зоне той же высоты, что у боковых пунктов
     Column(
-        modifier = modifier
-            .width(buttonSize + 24.dp)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            ),
+        modifier = modifier.width(buttonSize + 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ── Кнопка (фиксированный размер, свечение через drawBehind) ──
         Box(
             modifier = Modifier
                 .size(buttonSize)
-                .graphicsLayer {
-                    scaleX = pressScale
-                    scaleY = pressScale
-                }
                 .drawBehind {
                     if (selected) {
                         val radius = size.minDimension * 0.85f
@@ -395,6 +382,11 @@ private fun CenterNavItem(
                     1.5.dp,
                     if (selected) colors.cyan.copy(alpha = 0.45f) else colors.border,
                     CircleShape,
+                )
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onClick,
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -428,7 +420,13 @@ private fun CenterNavItem(
 
         // ── Подпись — та же зона высоты, что у боковых пунктов ──
         Box(
-            modifier = Modifier.height(labelHeight),
+            modifier = Modifier
+                .height(labelHeight)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onClick,
+                ),
             contentAlignment = Alignment.TopCenter,
         ) {
             Text(
@@ -457,6 +455,17 @@ fun NuboConnectButton(
     val isDisconnecting = vpnStatus == VpnStatus.Stopping
     val isBusy = isConnecting || isDisconnecting
 
+    val connectedProgress by animateFloatAsState(
+        targetValue = if (isConnected) 1f else 0f,
+        animationSpec = tween(durationMillis = 750, easing = FastOutSlowInEasing),
+        label = "connectedProgress",
+    )
+    val busyProgress by animateFloatAsState(
+        targetValue = if (isBusy) 1f else 0f,
+        animationSpec = tween(durationMillis = 550, easing = FastOutSlowInEasing),
+        label = "busyProgress",
+    )
+
     // «Дыхание» — медленная пульсация свечения и лёгкое масштабирование
     val breathTransition = rememberInfiniteTransition(label = "connectBreath")
     val breath by breathTransition.animateFloat(
@@ -469,30 +478,52 @@ fun NuboConnectButton(
         label = "breath",
     )
 
-    // Плавные переходы цвета рамки и масштаба кнопки между состояниями
-    val borderColor by animateColorAsState(
-        targetValue = when {
-            isConnected -> colors.cyan.copy(alpha = 0.55f + breath * 0.30f)
-            isBusy -> colors.blue.copy(alpha = 0.5f)
-            !enabled -> Color(0xFF1A2A44)
-            else -> Color(0xFF1A3C78).copy(alpha = 0.5f)
-        },
-        animationSpec = tween(durationMillis = 450),
-        label = "borderColor",
+    val idleBorderColor = if (!enabled) Color(0xFF1A2A44) else Color(0xFF1A3C78).copy(alpha = 0.5f)
+    val busyBorderColor = if (isDisconnecting) colors.red.copy(alpha = 0.5f) else colors.blue.copy(alpha = 0.5f)
+    val connectedBorderColor = colors.cyan.copy(alpha = 0.55f + breath * 0.30f)
+    val borderColor = lerp(
+        start = lerp(idleBorderColor, busyBorderColor, busyProgress),
+        stop = connectedBorderColor,
+        fraction = connectedProgress,
     )
-    val buttonScale by animateFloatAsState(
-        targetValue = if (isConnected) 1f + breath * 0.02f else 1f,
-        animationSpec = tween(durationMillis = 300),
-        label = "buttonScale",
+    val buttonScale = 1f + connectedProgress * breath * 0.02f
+
+    val busyBrush = Brush.radialGradient(
+        colors = listOf(Color(0xFF112888), Color(0xFF070D1A)),
+        center = Offset(150f, 120f),
+        radius = 400f,
+    )
+    val idleBrush = Brush.radialGradient(
+        colors = listOf(Color(0xFF0F1E3A), Color(0xFF070D1A)),
+        center = Offset(150f, 120f),
+        radius = 400f,
+    )
+    val connectedBrush = Brush.radialGradient(
+        colors = listOf(Color(0xFF1E60FF), Color(0xFF081640)),
+        center = Offset(0.38f, 0.32f).let { Offset(it.x * 400f, it.y * 400f) },
+        radius = 400f,
+    )
+    val busyIconTint = if (isDisconnecting) colors.red.copy(alpha = 0.85f) else Color(0xFF4A80E0)
+    val idleIconTint = if (!enabled) Color(0xFF1E3050) else Color(0xFF2A4A7A)
+    val iconTint = lerp(
+        start = lerp(idleIconTint, busyIconTint, busyProgress),
+        stop = colors.sky,
+        fraction = connectedProgress,
+    )
+    val innerBorderColor = lerp(
+        Color(0xFF28508C).copy(alpha = 0.3f),
+        colors.sky.copy(alpha = 0.4f),
+        connectedProgress,
     )
 
     Box(
         modifier = modifier.size(200.dp),
         contentAlignment = Alignment.Center,
     ) {
-        // Фоновое свечение — «дышит» в подключённом состоянии
-        if (isConnected || isConnecting) {
-            val glowAlpha = if (isConnected) 0.22f + breath * 0.16f else 0.14f
+        if (busyProgress > 0.01f || connectedProgress > 0.01f) {
+            val connectingGlow = 0.14f * busyProgress * (1f - connectedProgress)
+            val connectedGlow = (0.22f + breath * 0.16f) * connectedProgress
+            val glowAlpha = connectingGlow + connectedGlow
             Box(
                 modifier = Modifier
                     .size(200.dp)
@@ -505,63 +536,46 @@ fun NuboConnectButton(
             )
         }
 
-        // Расходящиеся кольца, когда подключено
-        if (isConnected) {
-            ConnectPulseRings(color = colors.cyan)
+        if (connectedProgress > 0.01f) {
+            ConnectPulseRings(
+                color = colors.cyan,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(connectedProgress),
+            )
         }
 
-        // Две встречные дуги при подключении/отключении
-        if (isBusy) {
+        if (busyProgress > 0.01f) {
             val busyColor = if (isDisconnecting) colors.red else colors.cyan
-            SpinningArc(
-                color = busyColor,
-                durationMillis = 1_100,
-                sweepAngle = 110f,
-                modifier = Modifier.size(184.dp),
-            )
-            SpinningArc(
-                color = busyColor.copy(alpha = 0.55f),
-                durationMillis = 1_600,
-                sweepAngle = 70f,
-                reverse = true,
-                modifier = Modifier.size(166.dp),
-            )
-        }
-
-        // Неоновое кольцо, когда подключено — яркость дышит вместе со свечением
-        if (isConnected) {
-            Canvas(modifier = Modifier.size(184.dp)) {
-                drawCircle(
-                    color = colors.cyan.copy(alpha = 0.35f + breath * 0.30f),
-                    radius = size.minDimension / 2f - 1.dp.toPx(),
-                    style = Stroke(width = 1.5.dp.toPx()),
+            Box(modifier = Modifier.alpha(busyProgress)) {
+                SpinningArc(
+                    color = busyColor,
+                    durationMillis = 1_100,
+                    sweepAngle = 110f,
+                    modifier = Modifier.size(184.dp),
+                )
+                SpinningArc(
+                    color = busyColor.copy(alpha = 0.55f),
+                    durationMillis = 1_600,
+                    sweepAngle = 70f,
+                    reverse = true,
+                    modifier = Modifier.size(166.dp),
                 )
             }
         }
 
-        // Сама кнопка
-        val buttonBrush = when {
-            isConnected -> Brush.radialGradient(
-                colors = listOf(Color(0xFF1E60FF), Color(0xFF081640)),
-                center = Offset(0.38f, 0.32f).let { Offset(it.x * 400f, it.y * 400f) },
-                radius = 400f,
-            )
-            isBusy -> Brush.radialGradient(
-                colors = listOf(Color(0xFF112888), Color(0xFF070D1A)),
-                center = Offset(150f, 120f),
-                radius = 400f,
-            )
-            else -> Brush.radialGradient(
-                colors = listOf(Color(0xFF0F1E3A), Color(0xFF070D1A)),
-                center = Offset(150f, 120f),
-                radius = 400f,
-            )
-        }
-        val iconTint = when {
-            isConnected -> colors.sky
-            isBusy -> Color(0xFF4A80E0)
-            !enabled -> Color(0xFF1E3050)
-            else -> Color(0xFF2A4A7A)
+        if (connectedProgress > 0.01f) {
+            Canvas(
+                modifier = Modifier
+                    .size(184.dp)
+                    .alpha(connectedProgress),
+            ) {
+                drawCircle(
+                    color = colors.cyan.copy(alpha = (0.35f + breath * 0.30f) * connectedProgress),
+                    radius = size.minDimension / 2f - 1.dp.toPx(),
+                    style = Stroke(width = 1.5.dp.toPx()),
+                )
+            }
         }
 
         Box(
@@ -572,20 +586,37 @@ fun NuboConnectButton(
                     scaleY = buttonScale
                 }
                 .clip(CircleShape)
-                .background(buttonBrush)
-                .border(2.dp, borderColor, CircleShape)
                 .clickable(enabled = enabled && !isBusy, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
+                    .fillMaxSize()
+                    .alpha((1f - connectedProgress) * (1f - busyProgress))
+                    .background(idleBrush),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha((1f - connectedProgress) * busyProgress)
+                    .background(busyBrush),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(connectedProgress)
+                    .background(connectedBrush),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(2.dp, borderColor, CircleShape),
+            )
+            Box(
+                modifier = Modifier
                     .size(114.dp)
                     .clip(CircleShape)
-                    .border(
-                        1.dp,
-                        if (isConnected) colors.sky.copy(alpha = 0.4f) else Color(0xFF28508C).copy(alpha = 0.3f),
-                        CircleShape,
-                    ),
+                    .border(1.dp, innerBorderColor, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -813,6 +844,7 @@ fun SelectedCheck(modifier: Modifier = Modifier) {
 @Composable
 fun ServerListCard(
     display: ServerDisplay,
+    ping: PingState?,
     selected: Boolean,
     isFavorite: Boolean,
     onClick: () -> Unit,
@@ -822,26 +854,28 @@ fun ServerListCard(
 ) {
     val colors = nuboColors()
     val shape = RoundedCornerShape(16.dp)
-    val background = if (selected) {
-        Modifier.background(
-            Brush.linearGradient(
-                listOf(
-                    colors.blue.copy(alpha = 0.25f),
-                    colors.blueDeep.copy(alpha = 0.30f),
-                ),
-            ),
-            shape,
-        )
-    } else {
-        Modifier.background(colors.card, shape)
-    }
+    val selectedProgress by animateFloatAsState(
+        targetValue = if (selected) 1f else 0f,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "serverCardSelected",
+    )
+    val cardColor by animateColorAsState(
+        targetValue = lerp(colors.card, colors.blue.copy(alpha = 0.22f), selectedProgress),
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "serverCardBg",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = lerp(colors.border, colors.borderStrong, selectedProgress),
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "serverCardBorder",
+    )
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .then(background)
-            .border(1.dp, if (selected) colors.borderStrong else colors.border, shape)
+            .background(cardColor, shape)
+            .border(1.dp, borderColor, shape)
             .combinedClickable(onClick = onClick, onDoubleClick = onDoubleClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -876,19 +910,17 @@ fun ServerListCard(
             )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                PingBadge(pingText = display.pingText, pingMs = display.pingMs)
-                SignalBars(pingMs = display.pingMs)
-            }
+            ServerPingIndicator(ping = ping)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(top = 4.dp),
             ) {
-                if (selected) {
+                AnimatedVisibility(
+                    visible = selected,
+                    enter = fadeIn(tween(220, easing = FastOutSlowInEasing)),
+                    exit = fadeOut(tween(180, easing = FastOutSlowInEasing)),
+                ) {
                     SelectedCheck()
                 }
                 Icon(
@@ -902,6 +934,29 @@ fun ServerListCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun ServerPingIndicator(
+    ping: PingState?,
+    modifier: Modifier = Modifier,
+) {
+    val pingText = when (ping) {
+        null -> "—"
+        PingState.Loading -> "…"
+        is PingState.Result -> "${ping.latencyMs} ms"
+        PingState.Unreachable -> "N/A"
+    }
+    val pingMs = (ping as? PingState.Result)?.latencyMs
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        PingBadge(pingText = pingText, pingMs = pingMs)
+        SignalBars(pingMs = pingMs)
     }
 }
 

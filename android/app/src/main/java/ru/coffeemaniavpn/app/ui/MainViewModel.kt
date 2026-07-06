@@ -31,9 +31,11 @@ import ru.coffeemaniavpn.app.data.SubscriptionInfo
 import ru.coffeemaniavpn.app.data.SubscriptionParser
 import ru.coffeemaniavpn.app.data.SubscriptionRepository
 import org.json.JSONObject
+import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.deeplink.DeepLinkAction
 import ru.coffeemaniavpn.app.deeplink.DeepLinkEffect
 import ru.coffeemaniavpn.app.deeplink.DeepLinkParser
+import java.util.concurrent.ConcurrentHashMap
 import ru.coffeemaniavpn.app.ktx.readClipboardText
 import ru.coffeemaniavpn.app.util.AppLog
 import ru.coffeemaniavpn.app.vpn.KillSwitchVpnService
@@ -177,6 +179,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 restartSubscriptionAutoUpdate(interval)
             }
         }
+        viewModelScope.launch(Dispatchers.IO) {
+            preferences.nodes.collect { nodes ->
+                if (nodes.isEmpty()) return@collect
+                val flags = nodes.map { node -> ServerDisplayMapper.map(node).flag }
+                FlagImagePrefetcher.prefetch(App.instance, flags)
+            }
+        }
         viewModelScope.launch {
             VpnManager.status.collect { status ->
                 if (status != VpnStatus.Stopped) return@collect
@@ -250,11 +259,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         pingJob = viewModelScope.launch(Dispatchers.IO) {
             isPinging.value = true
             nodePings.value = nodes.associate { it.id to PingState.Loading }
+            val pending = ConcurrentHashMap<String, PingState>()
+            val flushJob = launch {
+                while (isActive) {
+                    delay(150)
+                    if (pending.isEmpty()) continue
+                    val batch = pending.toMap()
+                    pending.keys.forEach { pending.remove(it) }
+                    nodePings.value = nodePings.value + batch
+                }
+            }
             try {
                 ServerPinger.pingAll(nodes) { nodeId, state ->
-                    nodePings.value = nodePings.value + (nodeId to state)
+                    pending[nodeId] = state
+                }
+                if (pending.isNotEmpty()) {
+                    nodePings.value = nodePings.value + pending.toMap()
+                    pending.clear()
                 }
             } finally {
+                flushJob.cancel()
                 isPinging.value = false
             }
         }

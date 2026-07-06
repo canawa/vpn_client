@@ -87,7 +87,11 @@ object VpnManager {
         KillSwitchVpnService.release(App.instance)
         try {
             val config = XrayConfigBuilder.build(node)
-            AppLog.i("VpnManager.connect node=${node.name} protocol=${node.protocol}")
+            AppLog.i(
+                "VpnManager.connect node=${node.name} protocol=${node.protocol} " +
+                    "transport=${node.transport} security=${node.security}" +
+                    (node.grpcServiceName?.let { " grpcService=$it" }.orEmpty()),
+            )
             AppLog.i("VpnManager config preview:\n${config.take(1200)}")
             App.configFile.writeText(config)
             BoxService.start()

@@ -1,5 +1,9 @@
 package ru.coffeemaniavpn.app.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -250,19 +255,32 @@ private fun FilterPill(
 ) {
     val colors = nuboColors()
     val shape = RoundedCornerShape(999.dp)
-    val background = if (active) {
-        Modifier.background(
-            Brush.linearGradient(listOf(Color(0xFF1A4FFF), Color(0xFF0A2A9A))),
-            shape,
-        )
-    } else {
-        Modifier.background(colors.card, shape)
-    }
+    val activeProgress by animateFloatAsState(
+        targetValue = if (active) 1f else 0f,
+        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+        label = "filterPillActive",
+    )
+    val backgroundColor by animateColorAsState(
+        targetValue = lerp(colors.card, Color(0xFF1A4FFF), activeProgress),
+        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+        label = "filterPillBg",
+    )
+    val textColor by animateColorAsState(
+        targetValue = lerp(colors.textDim, Color.White, activeProgress),
+        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+        label = "filterPillText",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = lerp(colors.border, colors.borderStrong, activeProgress),
+        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+        label = "filterPillBorder",
+    )
+
     Box(
         modifier = Modifier
             .clip(shape)
-            .then(background)
-            .border(1.dp, if (active) colors.borderStrong else colors.border, shape)
+            .background(backgroundColor, shape)
+            .border(1.dp, borderColor, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 6.dp),
     ) {
@@ -270,7 +288,7 @@ private fun FilterPill(
             text = text,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color = if (active) Color.White else colors.textDim,
+            color = textColor,
         )
     }
 }
@@ -285,9 +303,11 @@ private fun ServersStatsBar(
     val countryCount = remember(nodes) {
         nodes.map { ServerDisplayMapper.map(it).flag }.distinct().size
     }
-    val minPing = nodePings.values
-        .filterIsInstance<PingState.Result>()
-        .minOfOrNull { it.latencyMs }
+    val minPing = remember(nodePings) {
+        nodePings.values
+            .filterIsInstance<PingState.Result>()
+            .minOfOrNull { it.latencyMs }
+    }
 
     NuboCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
@@ -356,8 +376,8 @@ private fun ServerListItem(
     onConnectToNode: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
 ) {
-    val display = remember(node.id, ping) {
-        ServerDisplayMapper.map(node, ping)
+    val staticDisplay = remember(node.id, node.name) {
+        ServerDisplayMapper.map(node, ping = null)
     }
     val onClick = remember(node.id, enabled, onSelectNode) {
         { if (enabled) onSelectNode(node.id) }
@@ -370,7 +390,8 @@ private fun ServerListItem(
     }
 
     ServerListCard(
-        display = display,
+        display = staticDisplay,
+        ping = ping,
         selected = selected,
         isFavorite = isFavorite,
         onClick = onClick,

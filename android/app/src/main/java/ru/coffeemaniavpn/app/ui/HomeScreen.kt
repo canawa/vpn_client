@@ -3,6 +3,13 @@ package ru.coffeemaniavpn.app.ui
 import android.net.TrafficStats
 import android.os.Process
 import android.os.SystemClock
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +43,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -136,7 +144,18 @@ private fun ConnectArea(
 ) {
     val colors = nuboColors()
     val isConnected = vpnStatus == VpnStatus.Started
+    val isBusy = vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping
+    val connectedProgress by animateFloatAsState(
+        targetValue = if (isConnected) 1f else 0f,
+        animationSpec = tween(durationMillis = 750, easing = FastOutSlowInEasing),
+        label = "connectAreaConnected",
+    )
     val shape = RoundedCornerShape(16.dp)
+    val borderColor by animateColorAsState(
+        targetValue = if (isConnected) colors.borderStrong else colors.border,
+        animationSpec = tween(durationMillis = 550, easing = FastOutSlowInEasing),
+        label = "connectAreaBorder",
+    )
 
     Box(
         modifier = Modifier
@@ -146,16 +165,13 @@ private fun ConnectArea(
                 Brush.verticalGradient(listOf(colors.card, colors.background)),
                 shape,
             )
-            .border(
-                1.dp,
-                if (isConnected) colors.borderStrong else colors.border,
-                shape,
-            ),
+            .border(1.dp, borderColor, shape),
     ) {
-        if (isConnected) {
+        if (connectedProgress > 0.01f) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
+                    .alpha(connectedProgress)
                     .background(
                         Brush.radialGradient(
                             listOf(colors.blue.copy(alpha = 0.12f), Color.Transparent),
@@ -178,13 +194,16 @@ private fun ConnectArea(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val statusColor = when {
-                subscriptionExpired && !isConnected -> colors.red
-                vpnStatus == VpnStatus.Started -> colors.cyan
-                vpnStatus == VpnStatus.Starting -> colors.textMain
-                vpnStatus == VpnStatus.Stopping -> colors.textMain
-                else -> colors.red
-            }
+            val statusColor by animateColorAsState(
+                targetValue = when {
+                    subscriptionExpired && !isConnected -> colors.red
+                    isConnected -> colors.cyan
+                    isBusy -> colors.textMain
+                    else -> colors.red
+                },
+                animationSpec = tween(durationMillis = 550, easing = FastOutSlowInEasing),
+                label = "connectStatusColor",
+            )
             Text(
                 text = if (subscriptionExpired && !isConnected) {
                     "ПОДПИСКА ИСТЕКЛА"
@@ -196,22 +215,28 @@ private fun ConnectArea(
                 letterSpacing = 2.sp,
                 color = statusColor,
             )
-            if (isConnected) {
-                Text(
-                    text = formatConnectionDuration(connectionElapsedMs),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 18.sp,
-                    ),
-                    color = colors.textMain,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+            AnimatedVisibility(
+                visible = isConnected,
+                enter = fadeIn(animationSpec = tween(550, easing = FastOutSlowInEasing)),
+                exit = fadeOut(animationSpec = tween(350, easing = FastOutSlowInEasing)),
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = formatConnectionDuration(connectionElapsedMs),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 18.sp,
+                        ),
+                        color = colors.textMain,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
 
-                val speed by rememberTrafficSpeed(isConnected = true)
-                ConnectionSpeedRow(
-                    speed = speed,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
+                    val speed by rememberTrafficSpeed(isConnected = true)
+                    ConnectionSpeedRow(
+                        speed = speed,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
             }
         }
     }
@@ -402,7 +427,10 @@ private fun HomeSubscriptionCard(
                 (selected + rest).take(5)
             }
             miniNodes.forEachIndexed { index, node ->
-                val display = ServerDisplayMapper.map(node, uiState.nodePings[node.id])
+                val staticDisplay = remember(node.id, node.name) {
+                    ServerDisplayMapper.map(node, ping = null)
+                }
+                val ping = uiState.nodePings[node.id]
                 val isSelected = node.id == selectedId
                 Row(
                     modifier = Modifier
@@ -413,39 +441,23 @@ private fun HomeSubscriptionCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (isSelected) colors.blue.copy(alpha = 0.25f) else colors.blue.copy(alpha = 0.10f),
-                            )
-                            .border(
-                                1.dp,
-                                if (isSelected) colors.borderStrong else colors.border,
-                                RoundedCornerShape(8.dp),
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(text = display.flag, fontSize = 14.sp)
-                    }
+                    ServerListFlag(flag = staticDisplay.flag, height = 28.dp)
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = display.title +
-                                if (display.subtitle.isNotBlank()) " — ${display.subtitle}" else "",
+                            text = staticDisplay.title +
+                                if (staticDisplay.subtitle.isNotBlank()) " — ${staticDisplay.subtitle}" else "",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = if (isSelected) colors.textMain else colors.textMid,
                             maxLines = 1,
                         )
                         Text(
-                            text = display.protocolLabel,
+                            text = staticDisplay.protocolLabel,
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.textFaint,
                         )
                     }
-                    PingBadge(pingText = display.pingText, pingMs = display.pingMs)
-                    SignalBars(pingMs = display.pingMs)
+                    ServerPingIndicator(ping = ping)
                 }
                 if (index < miniNodes.lastIndex) {
                     HorizontalDivider(thickness = 1.dp, color = colors.border.copy(alpha = 0.5f))

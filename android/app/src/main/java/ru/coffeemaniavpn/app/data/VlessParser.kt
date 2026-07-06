@@ -47,7 +47,7 @@ object VlessParser {
             val params = parseQuery(query)
             val name = URLDecoder.decode(namePart, StandardCharsets.UTF_8.name())
                 .ifBlank { "$host:$port" }
-            val transport = XhttpParseHelper.transportFromParams(params)
+            val transportInfo = TransportParseHelper.fromVlessParams(params)
             val xhttpHost = params["host"]?.takeIf { it.isNotBlank() }
             val xhttpPath = params["path"]?.takeIf { it.isNotBlank() }
             val xhttpMode = params["mode"]?.takeIf { it.isNotBlank() }
@@ -61,14 +61,21 @@ object VlessParser {
                 host = host,
                 port = port,
                 encryption = params["encryption"] ?: "none",
-                flow = params["flow"].takeIf { transport != "xhttp" && transport != "splithttp" },
+                flow = params["flow"].takeIf {
+                    transportInfo.type !in setOf("xhttp", "splithttp", "grpc")
+                },
                 security = params["security"] ?: "none",
                 sni = params["sni"],
                 fingerprint = params["fp"],
                 publicKey = params["pbk"],
                 shortId = params["sid"],
                 spiderX = params["spx"],
-                transport = transport,
+                transport = transportInfo.type,
+                grpcServiceName = transportInfo.grpcServiceName ?: params["serviceName"],
+                grpcAuthority = transportInfo.grpcAuthority,
+                grpcMultiMode = transportInfo.grpcMultiMode,
+                wsPath = transportInfo.wsPath,
+                wsHost = transportInfo.wsHost,
                 xhttpHost = xhttpHost,
                 xhttpPath = xhttpPath,
                 xhttpMode = xhttpMode,

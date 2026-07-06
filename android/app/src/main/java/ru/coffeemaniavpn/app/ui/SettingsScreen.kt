@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Update
@@ -62,7 +61,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import ru.coffeemaniavpn.app.data.AppThemeMode
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 import ru.coffeemaniavpn.app.data.SubscriptionInfo
@@ -71,7 +69,6 @@ fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     SettingsPage.SplitTunnelSites,
     SettingsPage.SplitTunnelApps,
     SettingsPage.Subscription,
-    SettingsPage.Theme,
     SettingsPage.Logs,
     SettingsPage.About,
     -> SettingsPage.Main
@@ -92,7 +89,6 @@ enum class SettingsPage(
         headerTitle = "Туннелирование приложений",
     ),
     Subscription("Подписка"),
-    Theme("Тема"),
     Logs("Логи"),
     About("О приложении"),
 }
@@ -112,8 +108,6 @@ fun SettingsScreen(
     onTelegramBot: () -> Unit,
     subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
-    appThemeMode: AppThemeMode,
-    onAppThemeModeChange: (AppThemeMode) -> Unit,
     onShowLogs: () -> Unit,
     onDownloadLogs: () -> Unit,
     onTelegramChannel: () -> Unit,
@@ -128,7 +122,6 @@ fun SettingsScreen(
             subscriptionInfo = subscriptionInfo,
             connectionSettings = connectionSettings,
             onSaveConnectionSettings = onSaveConnectionSettings,
-            appThemeMode = appThemeMode,
             onPageChange = onPageChange,
             onTelegramChannel = onTelegramChannel,
             onDeleteSubscription = onDeleteSubscription,
@@ -143,11 +136,6 @@ fun SettingsScreen(
             modifier = modifier,
             settings = connectionSettings,
             onSave = onSaveConnectionSettings,
-        )
-        SettingsPage.Theme -> ThemeSettingsScreen(
-            modifier = modifier,
-            selectedTheme = appThemeMode,
-            onThemeChange = onAppThemeModeChange,
         )
         SettingsPage.Subscription -> SubscriptionSettingsScreen(
             modifier = modifier,
@@ -202,7 +190,6 @@ private fun SettingsMainScreen(
     subscriptionInfo: SubscriptionInfo?,
     connectionSettings: ConnectionSettingsState,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
-    appThemeMode: AppThemeMode,
     onPageChange: (SettingsPage) -> Unit,
     onTelegramChannel: () -> Unit,
     onDeleteSubscription: () -> Unit,
@@ -267,12 +254,6 @@ private fun SettingsMainScreen(
         }
 
         SettingsSection(title = "Приложение") {
-            SettingsNavCard(
-                icon = Icons.Default.Palette,
-                title = "Тема",
-                subtitle = appThemeMode.label,
-                onClick = { onPageChange(SettingsPage.Theme) },
-            )
             SettingsNavCard(
                 icon = Icons.Default.BugReport,
                 title = "Логи",

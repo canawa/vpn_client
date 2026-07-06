@@ -16,9 +16,15 @@ object FlagUtils {
         }.lowercase()
     }
 
-    fun flagImageUrl(flag: String): String {
+    fun flagImageUrl(flag: String, pixelWidth: Int = 160): String {
         emojiToCountryCode(flag)?.let { code ->
-            return "https://flagcdn.com/w160/$code.png"
+            val size = when {
+                pixelWidth <= 40 -> "w40"
+                pixelWidth <= 80 -> "w80"
+                pixelWidth <= 160 -> "w160"
+                else -> "w320"
+            }
+            return "https://flagcdn.com/$size/$code.png"
         }
 
         val hex = buildList {

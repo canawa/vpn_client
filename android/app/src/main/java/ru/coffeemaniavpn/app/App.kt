@@ -7,6 +7,10 @@ import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.PowerManager
 import androidx.core.content.getSystemService
+import coil.Coil
+import coil.ImageLoader
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +32,22 @@ class App : Application() {
         AppLog.init(this)
         AppLog.installCrashHandler(Thread.getDefaultUncaughtExceptionHandler())
         AppLog.i("Application.onCreate start, version=${BuildConfig.VERSION_NAME}")
+        Coil.setImageLoader(
+            ImageLoader.Builder(this)
+                .memoryCache {
+                    MemoryCache.Builder(this)
+                        .maxSizePercent(0.25)
+                        .build()
+                }
+                .diskCache {
+                    DiskCache.Builder()
+                        .directory(cacheDir.resolve("image_cache"))
+                        .maxSizePercent(0.02)
+                        .build()
+                }
+                .crossfade(false)
+                .build(),
+        )
         VpnManager.init()
 
         applicationScope.launch(Dispatchers.IO) {

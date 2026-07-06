@@ -127,15 +127,20 @@ object SubscriptionParser {
         val user = vnext.optJSONArray("users")?.optJSONObject(0) ?: return null
         val stream = outbound.optJSONObject("streamSettings") ?: JSONObject()
         val reality = stream.optJSONObject("realitySettings") ?: JSONObject()
-        val network = stream.optString("network").lowercase()
         val xhttpSettings = stream.optJSONObject("xhttpSettings")
             ?: stream.optJSONObject("splithttpSettings")
-        val isXhttp = network in setOf("xhttp", "splithttp") || xhttpSettings != null
-        val xhttp = XhttpParseHelper.parseFromSettings(xhttpSettings)
+        val transportInfo = TransportParseHelper.fromXrayStream(stream)
+        val xhttp = if (transportInfo.type in setOf("xhttp", "splithttp")) {
+            XhttpParseHelper.parseFromSettings(xhttpSettings)
+        } else {
+            null
+        }
         val tag = outbound.optString("tag")
         val host = vnext.optString("address")
         val port = vnext.optInt("port")
-        val flow = user.optString("flow").takeIf { it.isNotBlank() && !isXhttp }
+        val flow = user.optString("flow").takeIf {
+            it.isNotBlank() && transportInfo.type !in setOf("xhttp", "splithttp", "grpc")
+        }
 
         return ProxyNode(
             id = stableId("$profileName|$tag|$host|$port|vless|${user.optString("id")}"),
@@ -153,7 +158,12 @@ object SubscriptionParser {
             publicKey = reality.optString("publicKey").takeIf { it.isNotBlank() },
             shortId = reality.optString("shortId").takeIf { it.isNotBlank() },
             spiderX = reality.optString("spiderX").takeIf { it.isNotBlank() },
-            transport = if (isXhttp) "xhttp" else "tcp",
+            transport = transportInfo.type,
+            grpcServiceName = transportInfo.grpcServiceName,
+            grpcAuthority = transportInfo.grpcAuthority,
+            grpcMultiMode = transportInfo.grpcMultiMode,
+            wsPath = transportInfo.wsPath,
+            wsHost = transportInfo.wsHost,
             xhttpHost = xhttp?.host,
             xhttpPath = xhttp?.path,
             xhttpMode = xhttp?.mode,
@@ -236,9 +246,13 @@ object SubscriptionParser {
     private fun parseSingBoxVless(outbound: JSONObject, profileName: String): ProxyNode? {
         val tls = outbound.optJSONObject("tls") ?: JSONObject()
         val reality = tls.optJSONObject("reality") ?: JSONObject()
-        val transport = outbound.optJSONObject("transport")
-        val xhttp = XhttpParseHelper.parseFromTransport(transport)
-        val isXhttp = xhttp != null
+        val transportJson = outbound.optJSONObject("transport")
+        val transportInfo = TransportParseHelper.fromSingBoxTransport(transportJson)
+        val xhttp = if (transportInfo.type in setOf("xhttp", "splithttp")) {
+            XhttpParseHelper.parseFromTransport(transportJson)
+        } else {
+            null
+        }
         val host = outbound.optString("server")
             .ifBlank { outbound.optString("address") }
         val port = readPort(outbound, "server_port", default = 443)
@@ -257,7 +271,7 @@ object SubscriptionParser {
                     ?.optString("flow")
                     .orEmpty()
             }
-            .takeIf { it.isNotBlank() && !isXhttp }
+            .takeIf { it.isNotBlank() && transportInfo.type !in setOf("xhttp", "splithttp", "grpc") }
 
         if (host.isBlank() || uuid.isBlank()) return null
 
@@ -275,7 +289,12 @@ object SubscriptionParser {
             fingerprint = tls.optJSONObject("utls")?.optString("fingerprint"),
             publicKey = reality.optString("public_key").takeIf { it.isNotBlank() },
             shortId = reality.optString("short_id").takeIf { it.isNotBlank() },
-            transport = if (isXhttp) "xhttp" else "tcp",
+            transport = transportInfo.type,
+            grpcServiceName = transportInfo.grpcServiceName,
+            grpcAuthority = transportInfo.grpcAuthority,
+            grpcMultiMode = transportInfo.grpcMultiMode,
+            wsPath = transportInfo.wsPath,
+            wsHost = transportInfo.wsHost,
             xhttpHost = xhttp?.host,
             xhttpPath = xhttp?.path,
             xhttpMode = xhttp?.mode,

@@ -16,10 +16,10 @@ object LogExporter {
     private val fileNameFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US)
 
     fun suggestedFileName(): String =
-        "coffemania-vpn-logs-${fileNameFormat.format(Date())}.txt"
+        "nubovpn-logs-${fileNameFormat.format(Date())}.txt"
 
     fun buildExportText(): String = buildString {
-        appendLine("=== Coffemania VPN — export ===")
+        appendLine("=== NUBO VPN — export ===")
         appendLine("version=${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
         appendLine("exported=${fileNameFormat.format(Date())}")
         appendLine("logFile=${AppLog.logPath()}")

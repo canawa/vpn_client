@@ -29,7 +29,6 @@ object ServerPinger {
         nodes.map { node ->
             async {
                 semaphore.withPermit {
-                    onUpdate(node.id, PingState.Loading)
                     val latencyMs = tcpConnectLatency(node.host, node.port)
                     val state = latencyMs?.let(PingState::Result) ?: PingState.Unreachable
                     AppLog.i("ping ${node.name} ${node.host}:${node.port} -> $state")
