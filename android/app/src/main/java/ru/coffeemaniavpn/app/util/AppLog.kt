@@ -8,7 +8,7 @@ import java.util.Date
 import java.util.Locale
 
 object AppLog {
-    private const val TAG = "CoffemaniaVPN"
+    private const val TAG = "NuboVPN"
     private const val MAX_FILE_BYTES = 512 * 1024
 
     private val lock = Any()

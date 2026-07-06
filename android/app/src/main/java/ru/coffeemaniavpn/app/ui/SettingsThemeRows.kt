@@ -19,7 +19,7 @@ internal fun SettingsThemeRadioRow(
     selected: Boolean,
     onSelect: () -> Unit,
 ) {
-    val colors = coffemaniaColors()
+    val colors = nuboColors()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -34,7 +34,7 @@ internal fun SettingsThemeRadioRow(
         Text(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
-            color = colors.espresso,
+            color = colors.textMain,
             modifier = Modifier.padding(start = 4.dp, end = 20.dp),
         )
     }

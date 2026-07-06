@@ -7,38 +7,43 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SettingsInputAntenna
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,24 +52,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import ru.coffeemaniavpn.app.data.AppThemeMode
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
+import ru.coffeemaniavpn.app.data.SubscriptionInfo
 
 fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     SettingsPage.SplitTunnelSites,
     SettingsPage.SplitTunnelApps,
-    SettingsPage.KillSwitch,
-    -> SettingsPage.Connection
-    SettingsPage.Connection,
     SettingsPage.Subscription,
     SettingsPage.Theme,
     SettingsPage.Logs,
@@ -78,7 +84,6 @@ enum class SettingsPage(
     val headerTitle: String = title,
 ) {
     Main("Настройки"),
-    Connection("Соединение"),
     SplitTunnelSites(
         title = "Раздельное туннелирование сайтов",
         headerTitle = "Туннелирование сайтов",
@@ -87,7 +92,6 @@ enum class SettingsPage(
         title = "Раздельное туннелирование приложений",
         headerTitle = "Туннелирование приложений",
     ),
-    KillSwitch("Kill switch"),
     Subscription("Подписка"),
     Theme("Тема"),
     Logs("Логи"),
@@ -100,9 +104,9 @@ fun SettingsScreen(
     onPageChange: (SettingsPage) -> Unit,
     appVersion: String,
     hasSubscription: Boolean,
+    subscriptionInfo: SubscriptionInfo?,
     connectionSettings: ConnectionSettingsState,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
-    onOpenServers: () -> Unit,
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
@@ -120,13 +124,17 @@ fun SettingsScreen(
     when (page) {
         SettingsPage.Main -> SettingsMainScreen(
             modifier = modifier,
-            onOpenServers = onOpenServers,
+            appVersion = appVersion,
+            hasSubscription = hasSubscription,
+            subscriptionInfo = subscriptionInfo,
+            connectionSettings = connectionSettings,
+            onSaveConnectionSettings = onSaveConnectionSettings,
+            appThemeMode = appThemeMode,
             onPageChange = onPageChange,
+            onTelegramChannel = onTelegramChannel,
+            onBuyOnWebsite = onBuyOnWebsite,
+            onDeleteSubscription = onDeleteSubscription,
             onCloseApp = onCloseApp,
-        )
-        SettingsPage.Connection -> ConnectionMenuScreen(
-            modifier = modifier,
-            onPageChange = onPageChange,
         )
         SettingsPage.SplitTunnelSites -> SplitTunnelSitesScreen(
             modifier = modifier,
@@ -134,11 +142,6 @@ fun SettingsScreen(
             onSave = onSaveConnectionSettings,
         )
         SettingsPage.SplitTunnelApps -> SplitTunnelAppsScreen(
-            modifier = modifier,
-            settings = connectionSettings,
-            onSave = onSaveConnectionSettings,
-        )
-        SettingsPage.KillSwitch -> KillSwitchScreen(
             modifier = modifier,
             settings = connectionSettings,
             onSave = onSaveConnectionSettings,
@@ -175,12 +178,370 @@ fun SettingsScreen(
         )
         SettingsPage.About -> SettingsDetailScreen(
             modifier = modifier,
-            items = aboutItems(
-                appVersion = appVersion,
-                onTelegramChannel = onTelegramChannel,
+            items = listOf(
+                SettingsAction(
+                    title = "Версия $appVersion",
+                    icon = Icons.Default.Info,
+                    onClick = {},
+                    enabled = false,
+                    showChevron = false,
+                ),
+                SettingsAction(
+                    title = "Канал в Telegram",
+                    icon = Icons.AutoMirrored.Filled.Send,
+                    onClick = onTelegramChannel,
+                ),
             ),
         )
     }
+}
+
+/** Главная страница настроек в стиле NUBO: секции карточек-строк. */
+@Composable
+private fun SettingsMainScreen(
+    appVersion: String,
+    hasSubscription: Boolean,
+    subscriptionInfo: SubscriptionInfo?,
+    connectionSettings: ConnectionSettingsState,
+    onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
+    appThemeMode: AppThemeMode,
+    onPageChange: (SettingsPage) -> Unit,
+    onTelegramChannel: () -> Unit,
+    onBuyOnWebsite: () -> Unit,
+    onDeleteSubscription: () -> Unit,
+    onCloseApp: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = nuboColors()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
+            .padding(top = 4.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        SubscriptionProfileCard(
+            hasSubscription = hasSubscription,
+            subscriptionInfo = subscriptionInfo,
+            onClick = { onPageChange(SettingsPage.Subscription) },
+        )
+
+        SettingsSection(title = "Защита") {
+            SettingsToggleCard(
+                icon = Icons.Default.Shield,
+                title = "Kill Switch",
+                subtitle = "Блокировать трафик при обрыве VPN",
+                checked = connectionSettings.killSwitchEnabled,
+                onCheckedChange = { enabled ->
+                    onSaveConnectionSettings(connectionSettings.copy(killSwitchEnabled = enabled))
+                },
+            )
+            SettingsNavCard(
+                icon = Icons.Default.Language,
+                title = "Туннелирование сайтов",
+                subtitle = if (connectionSettings.sitesEnabled) {
+                    "Включено · ${connectionSettings.siteDomains.size} сайтов"
+                } else {
+                    "Выключено"
+                },
+                onClick = { onPageChange(SettingsPage.SplitTunnelSites) },
+            )
+            SettingsNavCard(
+                icon = Icons.Default.Apps,
+                title = "Туннелирование приложений",
+                subtitle = if (connectionSettings.appsEnabled) {
+                    "Включено · ${connectionSettings.appPackages.size} приложений"
+                } else {
+                    "Выключено"
+                },
+                onClick = { onPageChange(SettingsPage.SplitTunnelApps) },
+            )
+        }
+
+        SettingsSection(title = "Подписка") {
+            SettingsNavCard(
+                icon = Icons.Default.Update,
+                title = "Управление подпиской",
+                subtitle = "Автообновление, ссылка, продление",
+                onClick = { onPageChange(SettingsPage.Subscription) },
+            )
+            SettingsNavCard(
+                icon = Icons.Default.ShoppingCart,
+                title = "Купить на сайте",
+                subtitle = null,
+                onClick = onBuyOnWebsite,
+            )
+        }
+
+        SettingsSection(title = "Приложение") {
+            SettingsNavCard(
+                icon = Icons.Default.Palette,
+                title = "Тема",
+                subtitle = appThemeMode.label,
+                onClick = { onPageChange(SettingsPage.Theme) },
+            )
+            SettingsNavCard(
+                icon = Icons.Default.BugReport,
+                title = "Логи",
+                subtitle = "Просмотр и выгрузка",
+                onClick = { onPageChange(SettingsPage.Logs) },
+            )
+        }
+
+        SettingsSection(title = "Поддержка") {
+            SettingsNavCard(
+                icon = Icons.AutoMirrored.Filled.Send,
+                title = "Канал в Telegram",
+                subtitle = null,
+                onClick = onTelegramChannel,
+            )
+            SettingsNavCard(
+                icon = Icons.Default.Info,
+                title = "О приложении",
+                subtitle = "NUBO VPN v$appVersion",
+                onClick = { onPageChange(SettingsPage.About) },
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (hasSubscription) {
+                SettingsDangerCard(
+                    icon = Icons.Default.Delete,
+                    title = "Удалить подписку",
+                    onClick = onDeleteSubscription,
+                )
+            }
+            SettingsDangerCard(
+                icon = Icons.Default.Cancel,
+                title = "Закрыть приложение",
+                onClick = onCloseApp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SubscriptionProfileCard(
+    hasSubscription: Boolean,
+    subscriptionInfo: SubscriptionInfo?,
+    onClick: () -> Unit,
+) {
+    val colors = nuboColors()
+    val shape = RoundedCornerShape(16.dp)
+    val expired = subscriptionInfo?.isExpired() == true
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    listOf(colors.cardHigh, colors.card),
+                ),
+                shape,
+            )
+            .border(1.dp, colors.borderStrong, shape)
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        NuboLogoBadge(size = 52.dp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = subscriptionInfo?.takeIf { it.hasTitle }?.title ?: "NUBO VPN",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.textMain,
+                maxLines = 1,
+            )
+            Text(
+                text = when {
+                    !hasSubscription -> "Подписка не добавлена"
+                    else -> subscriptionInfo?.expireLabel() ?: "Подписка добавлена"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textDim,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+            SubscriptionBadge(
+                hasSubscription = hasSubscription,
+                expired = expired,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = colors.textFaint,
+        )
+    }
+}
+
+@Composable
+private fun SubscriptionBadge(
+    hasSubscription: Boolean,
+    expired: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val colors = nuboColors()
+    val (text, color) = when {
+        !hasSubscription -> "Нет подписки" to colors.textDim
+        expired -> "Подписка истекла" to colors.red
+        else -> "Подписка активна" to colors.yellow
+    }
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(color.copy(alpha = 0.15f))
+            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(999.dp))
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.WorkspacePremium,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(12.dp),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+        )
+    }
+}
+
+@Composable
+private fun SettingsSection(
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    Column {
+        SectionLabel(text = title)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun SettingsRowScaffold(
+    icon: ImageVector,
+    title: String,
+    subtitle: String?,
+    danger: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit,
+) {
+    val colors = nuboColors()
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.card, shape)
+            .border(1.dp, colors.border, shape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (danger) colors.red.copy(alpha = 0.15f) else colors.blue.copy(alpha = 0.15f),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (danger) colors.red else colors.blue,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = if (danger) colors.red else colors.textMain,
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textDim,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        }
+        trailing()
+    }
+}
+
+@Composable
+private fun SettingsNavCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String?,
+    onClick: () -> Unit,
+) {
+    val colors = nuboColors()
+    SettingsRowScaffold(
+        icon = icon,
+        title = title,
+        subtitle = subtitle,
+        onClick = onClick,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = colors.textFaint,
+        )
+    }
+}
+
+@Composable
+private fun SettingsToggleCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String?,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    SettingsRowScaffold(
+        icon = icon,
+        title = title,
+        subtitle = subtitle,
+        onClick = { onCheckedChange(!checked) },
+    ) {
+        NuboSwitch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
+    }
+}
+
+@Composable
+private fun SettingsDangerCard(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit,
+) {
+    SettingsRowScaffold(
+        icon = icon,
+        title = title,
+        subtitle = null,
+        danger = true,
+        onClick = onClick,
+    ) {}
 }
 
 @Composable
@@ -188,95 +549,8 @@ fun SettingsDivider() {
     HorizontalDivider(
         modifier = Modifier.fillMaxWidth(),
         thickness = 1.dp,
-        color = coffemaniaColors().latte,
+        color = nuboColors().border,
     )
-}
-
-@Composable
-private fun ConnectionMenuScreen(
-    onPageChange: (SettingsPage) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-    ) {
-        SettingsNavRow(
-            title = "Раздельное туннелирование сайтов",
-            icon = Icons.Default.Language,
-            onClick = { onPageChange(SettingsPage.SplitTunnelSites) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = "Раздельное туннелирование приложений",
-            icon = Icons.Default.Apps,
-            onClick = { onPageChange(SettingsPage.SplitTunnelApps) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = "Kill switch",
-            icon = Icons.Default.Shield,
-            onClick = { onPageChange(SettingsPage.KillSwitch) },
-        )
-    }
-}
-
-@Composable
-private fun SettingsMainScreen(
-    onOpenServers: () -> Unit,
-    onPageChange: (SettingsPage) -> Unit,
-    onCloseApp: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-    ) {
-        SettingsNavRow(
-            title = "Серверы",
-            icon = Icons.Default.Dns,
-            onClick = onOpenServers,
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = "Соединение",
-            icon = Icons.Default.SettingsInputAntenna,
-            onClick = { onPageChange(SettingsPage.Connection) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = "Подписка",
-            icon = Icons.Default.Link,
-            onClick = { onPageChange(SettingsPage.Subscription) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = "Тема",
-            icon = Icons.Default.Palette,
-            onClick = { onPageChange(SettingsPage.Theme) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = "Логи",
-            icon = Icons.Default.BugReport,
-            onClick = { onPageChange(SettingsPage.Logs) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = "О КОФЕМАНИЯ ВПН",
-            icon = Icons.Default.Info,
-            onClick = { onPageChange(SettingsPage.About) },
-        )
-        SettingsDivider()
-        SettingsActionRow(
-            title = "Закрыть приложение",
-            icon = Icons.Default.Cancel,
-            onClick = onCloseApp,
-            showChevron = false,
-        )
-    }
 }
 
 @Composable
@@ -368,7 +642,7 @@ private fun SubscriptionAutoUpdateExpandable(
     onIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val colors = coffemaniaColors()
+    val colors = nuboColors()
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = tween(SETTINGS_EXPAND_ANIM_MS),
@@ -392,19 +666,19 @@ private fun SubscriptionAutoUpdateExpandable(
             Text(
                 text = "Автообновление подписки",
                 style = MaterialTheme.typography.bodyLarge,
-                color = colors.espresso,
+                color = colors.textMain,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = selectedInterval.label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = colors.mocha,
+                color = colors.textDim,
                 modifier = Modifier.padding(end = 8.dp),
             )
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = null,
-                tint = colors.mocha,
+                tint = colors.textDim,
                 modifier = Modifier
                     .size(24.dp)
                     .rotate(chevronRotation),
@@ -424,7 +698,7 @@ private fun SubscriptionAutoUpdateExpandable(
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 SubscriptionAutoUpdateInterval.entries.forEachIndexed { index, interval ->
-                    SettingsIntervalRadioRow(
+                    SettingsThemeRadioRow(
                         title = interval.label,
                         selected = selectedInterval == interval,
                         onSelect = {
@@ -439,19 +713,6 @@ private fun SubscriptionAutoUpdateExpandable(
             }
         }
     }
-}
-
-@Composable
-private fun SettingsIntervalRadioRow(
-    title: String,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
-    SettingsThemeRadioRow(
-        title = title,
-        selected = selected,
-        onSelect = onSelect,
-    )
 }
 
 private fun subscriptionItems(
@@ -495,38 +756,6 @@ private fun subscriptionItems(
     }
 }
 
-private fun aboutItems(
-    appVersion: String,
-    onTelegramChannel: () -> Unit,
-): List<SettingsAction> = listOf(
-    SettingsAction(
-        title = "Версия $appVersion",
-        icon = Icons.Default.Info,
-        onClick = {},
-        enabled = false,
-        showChevron = false,
-    ),
-    SettingsAction(
-        title = "Канал в Telegram",
-        icon = Icons.AutoMirrored.Filled.Send,
-        onClick = onTelegramChannel,
-    ),
-)
-
-@Composable
-private fun SettingsNavRow(
-    title: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-) {
-    SettingsActionRow(
-        title = title,
-        icon = icon,
-        onClick = onClick,
-        showChevron = true,
-    )
-}
-
 @Composable
 private fun SettingsActionRow(
     title: String,
@@ -536,11 +765,11 @@ private fun SettingsActionRow(
     destructive: Boolean = false,
     showChevron: Boolean = true,
 ) {
-    val colors = coffemaniaColors()
+    val colors = nuboColors()
     val contentColor = when {
-        !enabled -> colors.mocha.copy(alpha = 0.5f)
-        destructive -> MaterialTheme.colorScheme.error
-        else -> colors.espresso
+        !enabled -> colors.textDim.copy(alpha = 0.6f)
+        destructive -> colors.red
+        else -> colors.textMain
     }
 
     Row(
@@ -568,7 +797,7 @@ private fun SettingsActionRow(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = colors.mocha,
+                tint = colors.textDim,
                 modifier = Modifier.size(24.dp),
             )
         }

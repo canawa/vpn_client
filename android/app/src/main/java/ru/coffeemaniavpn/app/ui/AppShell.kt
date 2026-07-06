@@ -1,5 +1,7 @@
 package ru.coffeemaniavpn.app.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,10 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,12 +22,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import ru.coffeemaniavpn.app.BuildConfig
-import ru.coffeemaniavpn.app.R
 
 @Composable
 fun AppShell(
@@ -35,6 +32,7 @@ fun AppShell(
     onRefreshSubscription: () -> Unit,
     onSelectNode: (String) -> Unit,
     onConnectToNode: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onShowLogs: () -> Unit,
@@ -52,35 +50,26 @@ fun AppShell(
     onAppThemeModeChange: (ru.coffeemaniavpn.app.data.AppThemeMode) -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
-    var showSettings by remember { mutableStateOf(false) }
     var settingsPage by remember { mutableStateOf(SettingsPage.Main) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
 
     val hasSubscription = state.subscriptionUrl.isNotBlank() && state.nodes.isNotEmpty()
 
-    val selectedNode = state.nodes.find { it.id == state.selectedNodeId }
-    val selectedDisplay = selectedNode?.let {
-        ServerDisplayMapper.map(it, state.nodePings[it.id])
-    }
+    val inSettingsSubPage = selectedTab == AppTab.Settings && settingsPage != SettingsPage.Main
 
     val canNavigateBack =
         showDeleteSubscriptionConfirm ||
-            showSettings ||
+            inSettingsSubPage ||
             selectedTab != AppTab.Home
 
     fun navigateBack() {
         when {
             showDeleteSubscriptionConfirm -> showDeleteSubscriptionConfirm = false
-            showSettings -> {
-                val parent = settingsPage.parentPage()
-                if (parent != null) {
-                    settingsPage = parent
-                } else {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                }
+            inSettingsSubPage -> settingsPage = settingsPage.parentPage() ?: SettingsPage.Main
+            selectedTab != AppTab.Home -> {
+                settingsPage = SettingsPage.Main
+                selectedTab = AppTab.Home
             }
-            selectedTab != AppTab.Home -> selectedTab = AppTab.Home
         }
     }
 
@@ -90,7 +79,7 @@ fun AppShell(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = coffemaniaColors().milkFoam,
+        containerColor = nuboColors().background,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             Box(
@@ -98,121 +87,95 @@ fun AppShell(
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars),
             ) {
-                when {
-                    showSettings -> CoffemaniaTopBar(
+                if (inSettingsSubPage) {
+                    NuboTopBar(
                         title = settingsPage.headerTitle,
                         showBackButton = true,
                         onBackClick = { navigateBack() },
-                        showSettingsButton = false,
                     )
-                    selectedTab == AppTab.Servers -> CoffemaniaTopBar(
-                        title = "Серверы",
-                        showBackButton = true,
-                        onBackClick = { navigateBack() },
-                        onSettingsClick = {
-                            settingsPage = SettingsPage.Main
-                            showSettings = true
-                        },
-                    )
-                    else -> CoffemaniaTopBar(
-                        title = stringResource(R.string.app_name),
-                        onSettingsClick = {
-                            settingsPage = SettingsPage.Main
-                            showSettings = true
+                } else {
+                    NuboTopBar(
+                        title = when (selectedTab) {
+                            AppTab.Servers -> "Серверы"
+                            AppTab.Settings -> "Настройки"
+                            AppTab.Home -> null
                         },
                     )
                 }
             }
         },
         bottomBar = {
-            if (!showSettings) {
-                CoffemaniaBottomBar(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it },
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                )
-            }
+            NuboBottomBar(
+                selectedTab = selectedTab,
+                onTabSelected = { tab ->
+                    if (tab != AppTab.Settings) {
+                        settingsPage = SettingsPage.Main
+                    }
+                    selectedTab = tab
+                },
+                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+            )
         },
     ) { padding ->
-        if (showSettings) {
-            SettingsScreen(
+        when (selectedTab) {
+            AppTab.Home -> HomeScreen(
+                modifier = Modifier.padding(padding),
+                state = state,
+                onConnectClick = onConnectClick,
+                onDisconnectClick = onDisconnectClick,
+                onOpenServers = { selectedTab = AppTab.Servers },
+                onSelectNode = onSelectNode,
+                onRefreshConfig = onRefreshConfig,
+                onPasteLinkClick = onPasteLinkClick,
+                onBuyOnWebsiteClick = onBuyOnWebsiteClick,
+                onRenewTelegramClick = onRenewTelegramClick,
+            )
+            AppTab.Servers -> ServersScreen(
+                modifier = Modifier.padding(padding),
+                nodes = state.nodes,
+                selectedNodeId = state.selectedNodeId,
+                nodePings = state.nodePings,
+                favoriteNodeIds = state.favoriteNodeIds,
+                subscriptionInfo = state.subscriptionInfo,
+                isRefreshing = state.isLoading,
+                isPinging = state.isPinging,
+                canRefreshConfig = state.subscriptionUrl.isNotBlank(),
+                enabled = state.vpnStatus != ru.coffeemaniavpn.app.vpn.VpnStatus.Starting &&
+                    state.vpnStatus != ru.coffeemaniavpn.app.vpn.VpnStatus.Stopping,
+                onSelectNode = onSelectNode,
+                onConnectToNode = { nodeId ->
+                    selectedTab = AppTab.Home
+                    onConnectToNode(nodeId)
+                },
+                onToggleFavorite = onToggleFavorite,
+                onRefreshConfig = onRefreshConfig,
+                onRefreshPing = onRefreshPing,
+                onTelegramChannelClick = onTelegramChannelClick,
+                onRenewTelegramClick = onRenewTelegramClick,
+                onBuyOnWebsiteClick = onBuyOnWebsiteClick,
+            )
+            AppTab.Settings -> SettingsScreen(
                 modifier = Modifier.padding(padding),
                 page = settingsPage,
                 onPageChange = { settingsPage = it },
                 appVersion = BuildConfig.VERSION_NAME,
                 hasSubscription = hasSubscription,
+                subscriptionInfo = state.subscriptionInfo,
                 connectionSettings = state.connectionSettings,
                 onSaveConnectionSettings = onSaveConnectionSettings,
                 subscriptionAutoUpdateInterval = state.subscriptionAutoUpdateInterval,
                 onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
                 appThemeMode = state.appThemeMode,
                 onAppThemeModeChange = onAppThemeModeChange,
-                onOpenServers = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    selectedTab = AppTab.Servers
-                },
-                onPasteLink = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    onPasteLinkClick()
-                },
-                onRefreshSubscription = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    onRefreshSubscription()
-                },
+                onPasteLink = onPasteLinkClick,
+                onRefreshSubscription = onRefreshSubscription,
                 onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
-                onBuyOnWebsite = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    onBuyOnWebsiteClick()
-                },
-                onShowLogs = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    onShowLogs()
-                },
+                onBuyOnWebsite = onBuyOnWebsiteClick,
+                onShowLogs = onShowLogs,
                 onDownloadLogs = onDownloadLogs,
                 onTelegramChannel = onTelegramChannelClick,
                 onCloseApp = onCloseApp,
             )
-        } else {
-            when (selectedTab) {
-                AppTab.Home -> HomeScreen(
-                    modifier = Modifier.padding(padding),
-                    state = state,
-                    selectedDisplay = selectedDisplay,
-                    onConnectClick = onConnectClick,
-                    onDisconnectClick = onDisconnectClick,
-                    onOpenServers = { selectedTab = AppTab.Servers },
-                    onPasteLinkClick = onPasteLinkClick,
-                    onBuyOnWebsiteClick = onBuyOnWebsiteClick,
-                    onRenewTelegramClick = onRenewTelegramClick,
-                )
-                AppTab.Servers -> ServersScreen(
-                    modifier = Modifier.padding(padding),
-                    nodes = state.nodes,
-                    selectedNodeId = state.selectedNodeId,
-                    nodePings = state.nodePings,
-                    subscriptionInfo = state.subscriptionInfo,
-                    isRefreshing = state.isLoading,
-                    isPinging = state.isPinging,
-                    canRefreshConfig = state.subscriptionUrl.isNotBlank(),
-                    enabled = state.vpnStatus != ru.coffeemaniavpn.app.vpn.VpnStatus.Starting &&
-                        state.vpnStatus != ru.coffeemaniavpn.app.vpn.VpnStatus.Stopping,
-                    onSelectNode = onSelectNode,
-                    onConnectToNode = { nodeId ->
-                        selectedTab = AppTab.Home
-                        onConnectToNode(nodeId)
-                    },
-                    onRefreshConfig = onRefreshConfig,
-                    onRefreshPing = onRefreshPing,
-                    onTelegramChannelClick = onTelegramChannelClick,
-                    onRenewTelegramClick = onRenewTelegramClick,
-                    onBuyOnWebsiteClick = onBuyOnWebsiteClick,
-                )
-            }
         }
     }
 
@@ -225,7 +188,7 @@ fun AppShell(
                 TextButton(
                     onClick = {
                         showDeleteSubscriptionConfirm = false
-                        showSettings = false
+                        settingsPage = SettingsPage.Main
                         onDeleteSubscriptionClick()
                     },
                 ) {

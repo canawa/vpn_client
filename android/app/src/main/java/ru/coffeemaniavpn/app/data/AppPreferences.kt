@@ -94,6 +94,35 @@ class AppPreferences(private val context: Context) {
         }
     }
 
+    val favoriteNodeIds: Flow<Set<String>> = context.dataStore.data
+        .map { prefs ->
+            val raw = prefs[KEY_FAVORITE_NODE_IDS].orEmpty()
+            if (raw.isBlank()) {
+                emptySet()
+            } else {
+                runCatching {
+                    json.decodeFromString<List<String>>(raw).toSet()
+                }.getOrDefault(emptySet())
+            }
+        }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun toggleFavoriteNodeId(nodeId: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[KEY_FAVORITE_NODE_IDS].orEmpty().let { raw ->
+                if (raw.isBlank()) {
+                    emptySet()
+                } else {
+                    runCatching {
+                        json.decodeFromString<List<String>>(raw).toSet()
+                    }.getOrDefault(emptySet())
+                }
+            }
+            val updated = if (nodeId in current) current - nodeId else current + nodeId
+            prefs[KEY_FAVORITE_NODE_IDS] = json.encodeToString(updated.toList())
+        }
+    }
+
     suspend fun clearSubscription() {
         AppLog.w("clearSubscription called")
         context.dataStore.edit { prefs ->
@@ -237,6 +266,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_SUBSCRIPTION_URL = stringPreferencesKey("subscription_url")
         private val KEY_NODES = stringPreferencesKey("nodes")
         private val KEY_SELECTED_NODE_ID = stringPreferencesKey("selected_node_id")
+        private val KEY_FAVORITE_NODE_IDS = stringPreferencesKey("favorite_node_ids")
         private val KEY_SUBSCRIPTION_INFO = stringPreferencesKey("subscription_info")
         private val KEY_ROUTING_PROFILE = stringPreferencesKey("routing_profile")
         private val KEY_ROUTING_ENABLED = booleanPreferencesKey("routing_enabled")

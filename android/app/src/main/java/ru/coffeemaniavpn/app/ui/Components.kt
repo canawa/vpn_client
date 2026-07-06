@@ -1,165 +1,168 @@
 package ru.coffeemaniavpn.app.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
-import ru.coffeemaniavpn.app.data.SubscriptionInfo
 import ru.coffeemaniavpn.app.vpn.VpnStatus
 
-enum class AppTab { Home, Servers }
+enum class AppTab { Servers, Home, Settings }
 
 @Composable
-fun CoffemaniaSwitch(
+fun NuboSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val colors = nuboColors()
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = modifier,
         enabled = enabled,
         colors = SwitchDefaults.colors(
-            checkedThumbColor = coffemaniaColors().milkFoam,
-            checkedTrackColor = coffemaniaColors().espresso,
-            checkedBorderColor = coffemaniaColors().espresso,
-            uncheckedThumbColor = coffemaniaColors().milkFoam,
-            uncheckedTrackColor = coffemaniaColors().latte,
-            uncheckedBorderColor = coffemaniaColors().espresso,
-            disabledCheckedThumbColor = coffemaniaColors().milkFoam.copy(alpha = 0.7f),
-            disabledCheckedTrackColor = coffemaniaColors().mocha.copy(alpha = 0.5f),
-            disabledCheckedBorderColor = coffemaniaColors().mocha.copy(alpha = 0.5f),
-            disabledUncheckedThumbColor = coffemaniaColors().cappuccino,
-            disabledUncheckedTrackColor = coffemaniaColors().latte.copy(alpha = 0.7f),
-            disabledUncheckedBorderColor = coffemaniaColors().mocha,
+            checkedThumbColor = colors.sky,
+            checkedTrackColor = colors.blue,
+            checkedBorderColor = colors.borderStrong,
+            uncheckedThumbColor = colors.textFaint,
+            uncheckedTrackColor = colors.cardHigh,
+            uncheckedBorderColor = colors.border,
+            disabledCheckedThumbColor = colors.sky.copy(alpha = 0.5f),
+            disabledCheckedTrackColor = colors.blue.copy(alpha = 0.35f),
+            disabledCheckedBorderColor = colors.border,
+            disabledUncheckedThumbColor = colors.textFaint.copy(alpha = 0.5f),
+            disabledUncheckedTrackColor = colors.cardHigh.copy(alpha = 0.5f),
+            disabledUncheckedBorderColor = colors.border,
         ),
     )
 }
 
 @Composable
-fun CoffemaniaTopBar(
-    title: String,
+fun NuboTopBar(
     modifier: Modifier = Modifier,
+    title: String? = null,
     showBackButton: Boolean = false,
     onBackClick: () -> Unit = {},
-    showSettingsButton: Boolean = true,
-    onSettingsClick: () -> Unit = {},
 ) {
+    val colors = nuboColors()
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = coffemaniaColors().milkFoam,
+        color = colors.background,
         shadowElevation = 0.dp,
     ) {
-        val horizontalPadding = if (showBackButton) 12.dp else 24.dp
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .padding(horizontal = horizontalPadding, vertical = 8.dp),
+                .heightIn(min = 56.dp)
+                .padding(horizontal = if (showBackButton) 8.dp else 20.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(
-                    space = if (showBackButton) 4.dp else 16.dp,
-                ),
-            ) {
-                if (showBackButton) {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Назад",
-                            tint = coffemaniaColors().espresso,
-                        )
-                    }
-                } else {
-                    CoffeeLogo(modifier = Modifier.size(28.dp), tint = coffemaniaColors().espresso)
+            if (showBackButton) {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Назад",
+                        tint = colors.textMain,
+                    )
                 }
                 Text(
-                    text = title,
-                    modifier = Modifier.weight(1f),
-                    style = if (showBackButton) {
-                        MaterialTheme.typography.titleMedium
-                    } else {
-                        MaterialTheme.typography.headlineMedium
-                    },
-                    color = coffemaniaColors().espresso,
-                    maxLines = 2,
+                    text = title.orEmpty(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.textMain,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 4.dp),
                 )
-            }
-            if (showSettingsButton) {
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Настройки",
-                        tint = coffemaniaColors().espresso,
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.nubo_logo),
+                    contentDescription = "NUBO VPN",
+                    modifier = Modifier.height(32.dp),
+                    contentScale = ContentScale.FillHeight,
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                title?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.textDim,
                     )
                 }
             }
@@ -168,188 +171,469 @@ fun CoffemaniaTopBar(
 }
 
 @Composable
-fun CoffemaniaBottomBar(
+fun NuboBottomBar(
     selectedTab: AppTab,
     onTabSelected: (AppTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = coffemaniaColors().cappuccino,
-        shadowElevation = 8.dp,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    val colors = nuboColors()
+
+    // Фиксированные константы — НЕ меняются при переключении вкладок
+    val barHeight = 64.dp
+    val buttonSize = 68.dp
+    val labelHeight = 20.dp       // одинаковая зона подписи у всех пунктов
+    val totalHeight = buttonSize + labelHeight  // 88.dp, кнопка торчит на 24.dp
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(totalHeight),   // строго фиксированная высота
     ) {
+        // ── Фон + верхняя линия бара ────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(barHeight)
+                .align(Alignment.BottomCenter)
+                .background(colors.backgroundDeep),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(colors.border)
+                    .align(Alignment.TopCenter),
+            )
+        }
+
+        // ── Боковые пункты меню (выровнены по центру бара) ──────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .height(barHeight)
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            BottomNavItem(
-                label = "Главная",
-                selected = selectedTab == AppTab.Home,
-                onClick = { onTabSelected(AppTab.Home) },
-                useCoffeeLogo = true,
-            )
-            BottomNavItem(
+            SideNavItem(
                 label = "Серверы",
-                icon = Icons.Default.Language,
+                icon = Icons.Default.Dns,
                 selected = selectedTab == AppTab.Servers,
+                barHeight = barHeight,
+                labelHeight = labelHeight,
                 onClick = { onTabSelected(AppTab.Servers) },
             )
-        }
-    }
-}
-
-@Composable
-private fun BottomNavItem(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    useCoffeeLogo: Boolean = false,
-) {
-    val bg = if (selected) coffemaniaColors().latte else Color.Transparent
-    val fg = if (selected) coffemaniaColors().espresso else coffemaniaColors().mocha
-
-    Column(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(bg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (useCoffeeLogo) {
-            CoffeeLogo(
-                modifier = Modifier.size(24.dp),
-                tint = fg,
-            )
-        } else {
-            Icon(
-                imageVector = icon ?: Icons.Default.Home,
-                contentDescription = label,
-                tint = fg,
-                modifier = Modifier.size(24.dp),
+            // Пустое место под кнопку — такого же размера, чтобы боковые
+            // пункты симметрично расходились по краям
+            Spacer(modifier = Modifier.width(buttonSize + 16.dp))
+            SideNavItem(
+                label = "Настройки",
+                icon = Icons.Default.Settings,
+                selected = selectedTab == AppTab.Settings,
+                barHeight = barHeight,
+                labelHeight = labelHeight,
+                onClick = { onTabSelected(AppTab.Settings) },
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = fg,
+
+        // ── Центральная кнопка (поверх всего, по горизонтали центр) ──
+        CenterNavItem(
+            label = "Подключение",
+            selected = selectedTab == AppTab.Home,
+            buttonSize = buttonSize,
+            labelHeight = labelHeight,
+            onClick = { onTabSelected(AppTab.Home) },
+            modifier = Modifier.align(Alignment.TopCenter),
         )
     }
 }
 
 @Composable
-fun BrewConnectButton(
+private fun SideNavItem(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    barHeight: androidx.compose.ui.unit.Dp,
+    labelHeight: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+) {
+    val colors = nuboColors()
+
+    // Плавные переходы цвета вместо резкого переключения
+    val fg by animateColorAsState(
+        targetValue = if (selected) colors.blue else colors.textFaint,
+        animationSpec = tween(durationMillis = 250),
+        label = "sideNavFg",
+    )
+    val iconBg by animateColorAsState(
+        targetValue = if (selected) colors.blue.copy(alpha = 0.15f) else Color.Transparent,
+        animationSpec = tween(durationMillis = 250),
+        label = "sideNavBg",
+    )
+
+    val interactionSource = remember { MutableInteractionSource() }
+    Column(
+        modifier = Modifier
+            .height(barHeight)
+            .clickable(
+                interactionSource = interactionSource,
+                // Мягкая круглая подсветка вместо прямоугольной
+                indication = ripple(bounded = false, radius = 36.dp, color = colors.blue),
+                onClick = onClick,
+            )
+            .padding(horizontal = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Иконка занимает всё место над зоной подписи
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(iconBg),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = fg,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+        // Подпись — в зоне фиксированной высоты, одинаковой у всех пунктов
+        Box(
+            modifier = Modifier.height(labelHeight),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = fg,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CenterNavItem(
+    label: String,
+    selected: Boolean,
+    buttonSize: androidx.compose.ui.unit.Dp,
+    labelHeight: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = nuboColors()
+
+    // Пульсирующее свечение — только визуальный эффект, не влияет на layout
+    val pulseTransition = rememberInfiniteTransition(label = "navPulse")
+    val glowAlpha by pulseTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "glowAlpha",
+    )
+
+    // Плавное сжатие кнопки при нажатии вместо прямоугольного ripple
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.90f else 1f,
+        animationSpec = tween(durationMillis = 150),
+        label = "centerPressScale",
+    )
+    val labelColor by animateColorAsState(
+        targetValue = if (selected) colors.sky else colors.textFaint,
+        animationSpec = tween(durationMillis = 250),
+        label = "centerLabelColor",
+    )
+
+    // Кнопка сверху, подпись — в зоне той же высоты, что у боковых пунктов
+    Column(
+        modifier = modifier
+            .width(buttonSize + 24.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // ── Кнопка (фиксированный размер, свечение через drawBehind) ──
+        Box(
+            modifier = Modifier
+                .size(buttonSize)
+                .graphicsLayer {
+                    scaleX = pressScale
+                    scaleY = pressScale
+                }
+                .drawBehind {
+                    if (selected) {
+                        val radius = size.minDimension * 0.85f
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF1A7FFF).copy(alpha = glowAlpha * 0.6f),
+                                    Color(0xFF1A7FFF).copy(alpha = 0f),
+                                ),
+                                radius = radius * 1.3f,
+                            ),
+                            radius = radius * 1.3f,
+                        )
+                    }
+                }
+                .clip(CircleShape)
+                .background(colors.backgroundDeep)
+                .border(
+                    1.5.dp,
+                    if (selected) colors.cyan.copy(alpha = 0.45f) else colors.border,
+                    CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            // Внутренний заполненный круг
+            Box(
+                modifier = Modifier
+                    .size(buttonSize * 0.79f)
+                    .clip(CircleShape)
+                    .background(
+                        if (selected) {
+                            Brush.linearGradient(listOf(Color(0xFF1E5FFF), Color(0xFF0A1A8A)))
+                        } else {
+                            Brush.linearGradient(listOf(Color(0xFF12213A), Color(0xFF070D1A)))
+                        },
+                    )
+                    .border(
+                        2.dp,
+                        if (selected) colors.borderStrong else Color(0xFF1A3060).copy(alpha = 0.5f),
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PowerSettingsNew,
+                    contentDescription = label,
+                    tint = if (selected) Color.White else colors.textDim,
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+        }
+
+        // ── Подпись — та же зона высоты, что у боковых пунктов ──
+        Box(
+            modifier = Modifier.height(labelHeight),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = labelColor,
+            )
+        }
+    }
+}
+
+/**
+ * Большая круглая кнопка подключения в стиле NUBO:
+ * тёмный круг → две встречные дуги при подключении → неоновое «дыхание», когда подключено.
+ */
+@Composable
+fun NuboConnectButton(
     vpnStatus: VpnStatus,
-    connectionElapsedMs: Long,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = nuboColors()
     val isConnected = vpnStatus == VpnStatus.Started
     val isConnecting = vpnStatus == VpnStatus.Starting
     val isDisconnecting = vpnStatus == VpnStatus.Stopping
     val isBusy = isConnecting || isDisconnecting
-    val isDimmed = !enabled && !isConnected && !isBusy
-    val isDisconnected = vpnStatus == VpnStatus.Stopped && !isDimmed
 
-    val connectedGreen = CoffemaniaColors.PingGood
-    val disconnectRed = CoffemaniaColors.PingBad
+    // «Дыхание» — медленная пульсация свечения и лёгкое масштабирование
+    val breathTransition = rememberInfiniteTransition(label = "connectBreath")
+    val breath by breathTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2_200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "breath",
+    )
 
-    val outerBg = when {
-        isDimmed -> coffemaniaColors().connectDisabledOuter
-        isConnected -> connectedGreen.copy(alpha = 0.18f)
-        isConnecting -> connectedGreen.copy(alpha = 0.12f)
-        isDisconnecting -> disconnectRed.copy(alpha = 0.12f)
-        isDisconnected -> disconnectRed.copy(alpha = 0.12f)
-        else -> coffemaniaColors().cappuccino
-    }
-    val outerBorder = when {
-        isDimmed -> coffemaniaColors().connectDisabledBorder
-        isConnected -> connectedGreen
-        isConnecting -> connectedGreen.copy(alpha = 0.75f)
-        isDisconnecting -> disconnectRed
-        isDisconnected -> disconnectRed
-        else -> coffemaniaColors().latte
-    }
-    val outerBorderWidth = if (isConnected || isDisconnected) 3.dp else 2.dp
-    val innerBg = if (isDimmed) coffemaniaColors().connectDisabledInner else coffemaniaColors().milkFoam
-    val innerBorder = when {
-        isDimmed -> coffemaniaColors().connectDisabledBorder
-        isConnected -> connectedGreen.copy(alpha = 0.45f)
-        isConnecting -> connectedGreen.copy(alpha = 0.35f)
-        isDisconnecting -> disconnectRed.copy(alpha = 0.35f)
-        isDisconnected -> disconnectRed.copy(alpha = 0.35f)
-        else -> coffemaniaColors().latte
-    }
-    val logoTint = if (isDimmed) coffemaniaColors().connectDisabledIcon else coffemaniaColors().espresso
-    val progressColor = when {
-        isConnecting -> connectedGreen
-        isDisconnecting -> disconnectRed
-        else -> coffemaniaColors().espresso
-    }
+    // Плавные переходы цвета рамки и масштаба кнопки между состояниями
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            isConnected -> colors.cyan.copy(alpha = 0.55f + breath * 0.30f)
+            isBusy -> colors.blue.copy(alpha = 0.5f)
+            !enabled -> Color(0xFF1A2A44)
+            else -> Color(0xFF1A3C78).copy(alpha = 0.5f)
+        },
+        animationSpec = tween(durationMillis = 450),
+        label = "borderColor",
+    )
+    val buttonScale by animateFloatAsState(
+        targetValue = if (isConnected) 1f + breath * 0.02f else 1f,
+        animationSpec = tween(durationMillis = 300),
+        label = "buttonScale",
+    )
 
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        modifier = modifier.size(200.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier.size(220.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (isConnecting) {
-                ConnectPulseRings(color = connectedGreen)
-            }
-            if (isDisconnecting) {
-                ConnectPulseRings(color = disconnectRed)
-            }
-
+        // Фоновое свечение — «дышит» в подключённом состоянии
+        if (isConnected || isConnecting) {
+            val glowAlpha = if (isConnected) 0.22f + breath * 0.16f else 0.14f
             Box(
                 modifier = Modifier
-                    .size(192.dp)
-                    .clip(CircleShape)
-                    .background(outerBg)
-                    .border(outerBorderWidth, outerBorder, CircleShape)
-                    .clickable(enabled = enabled && !isBusy, onClick = onClick)
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(CircleShape)
-                        .background(innerBg)
-                        .border(1.5.dp, innerBorder, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (isBusy) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp),
-                            color = progressColor,
-                            strokeWidth = 3.dp,
-                        )
-                    } else {
-                        CoffeeLogo(
-                            modifier = Modifier.size(88.dp),
-                            tint = logoTint,
-                        )
-                    }
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(20.dp))
-        if (isConnected) {
-            Text(
-                text = formatConnectionDuration(connectionElapsedMs),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = connectedGreen,
+                    .size(200.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(colors.blue.copy(alpha = glowAlpha), Color.Transparent),
+                        ),
+                        CircleShape,
+                    ),
             )
         }
+
+        // Расходящиеся кольца, когда подключено
+        if (isConnected) {
+            ConnectPulseRings(color = colors.cyan)
+        }
+
+        // Две встречные дуги при подключении/отключении
+        if (isBusy) {
+            val busyColor = if (isDisconnecting) colors.red else colors.cyan
+            SpinningArc(
+                color = busyColor,
+                durationMillis = 1_100,
+                sweepAngle = 110f,
+                modifier = Modifier.size(184.dp),
+            )
+            SpinningArc(
+                color = busyColor.copy(alpha = 0.55f),
+                durationMillis = 1_600,
+                sweepAngle = 70f,
+                reverse = true,
+                modifier = Modifier.size(166.dp),
+            )
+        }
+
+        // Неоновое кольцо, когда подключено — яркость дышит вместе со свечением
+        if (isConnected) {
+            Canvas(modifier = Modifier.size(184.dp)) {
+                drawCircle(
+                    color = colors.cyan.copy(alpha = 0.35f + breath * 0.30f),
+                    radius = size.minDimension / 2f - 1.dp.toPx(),
+                    style = Stroke(width = 1.5.dp.toPx()),
+                )
+            }
+        }
+
+        // Сама кнопка
+        val buttonBrush = when {
+            isConnected -> Brush.radialGradient(
+                colors = listOf(Color(0xFF1E60FF), Color(0xFF081640)),
+                center = Offset(0.38f, 0.32f).let { Offset(it.x * 400f, it.y * 400f) },
+                radius = 400f,
+            )
+            isBusy -> Brush.radialGradient(
+                colors = listOf(Color(0xFF112888), Color(0xFF070D1A)),
+                center = Offset(150f, 120f),
+                radius = 400f,
+            )
+            else -> Brush.radialGradient(
+                colors = listOf(Color(0xFF0F1E3A), Color(0xFF070D1A)),
+                center = Offset(150f, 120f),
+                radius = 400f,
+            )
+        }
+        val iconTint = when {
+            isConnected -> colors.sky
+            isBusy -> Color(0xFF4A80E0)
+            !enabled -> Color(0xFF1E3050)
+            else -> Color(0xFF2A4A7A)
+        }
+
+        Box(
+            modifier = Modifier
+                .size(156.dp)
+                .graphicsLayer {
+                    scaleX = buttonScale
+                    scaleY = buttonScale
+                }
+                .clip(CircleShape)
+                .background(buttonBrush)
+                .border(2.dp, borderColor, CircleShape)
+                .clickable(enabled = enabled && !isBusy, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(114.dp)
+                    .clip(CircleShape)
+                    .border(
+                        1.dp,
+                        if (isConnected) colors.sky.copy(alpha = 0.4f) else Color(0xFF28508C).copy(alpha = 0.3f),
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PowerSettingsNew,
+                    contentDescription = "Подключить",
+                    tint = iconTint,
+                    modifier = Modifier.size(44.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpinningArc(
+    color: Color,
+    modifier: Modifier = Modifier,
+    durationMillis: Int = 1_200,
+    sweepAngle: Float = 100f,
+    reverse: Boolean = false,
+) {
+    val transition = rememberInfiniteTransition(label = "arcSpin")
+    val angle by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = if (reverse) -360f else 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = durationMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "arcAngle",
+    )
+    Canvas(modifier = modifier.rotate(angle)) {
+        val stroke = 2.5.dp.toPx()
+        drawArc(
+            brush = Brush.sweepGradient(
+                colors = listOf(color.copy(alpha = 0f), color),
+            ),
+            startAngle = 0f,
+            sweepAngle = sweepAngle,
+            useCenter = false,
+            style = Stroke(width = stroke, cap = StrokeCap.Round),
+            topLeft = Offset(stroke / 2, stroke / 2),
+            size = androidx.compose.ui.geometry.Size(
+                size.width - stroke,
+                size.height - stroke,
+            ),
+        )
     }
 }
 
@@ -363,7 +647,7 @@ private fun ConnectPulseRings(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1_400, easing = LinearEasing),
+            animation = tween(durationMillis = 2_400, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "pulse1",
@@ -372,7 +656,7 @@ private fun ConnectPulseRings(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1_400, delayMillis = 700, easing = LinearEasing),
+            animation = tween(durationMillis = 2_400, delayMillis = 1_200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "pulse2",
@@ -380,12 +664,12 @@ private fun ConnectPulseRings(
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = center
-        val baseRadius = size.minDimension / 2f
-        val strokeWidth = 3.dp.toPx()
+        val baseRadius = size.minDimension / 2f * 0.82f
+        val strokeWidth = 1.5.dp.toPx()
 
         listOf(pulse1, pulse2).forEach { progress ->
-            val radius = baseRadius * (0.82f + progress * 0.38f)
-            val alpha = (1f - progress) * 0.55f
+            val radius = baseRadius * (1f + progress * 0.35f)
+            val alpha = (1f - progress) * 0.5f
             drawCircle(
                 color = color.copy(alpha = alpha),
                 radius = radius,
@@ -396,74 +680,133 @@ private fun ConnectPulseRings(
     }
 }
 
-private fun formatConnectionDuration(elapsedMs: Long): String {
+fun formatConnectionDuration(elapsedMs: Long): String {
     val totalSeconds = (elapsedMs / 1_000).coerceAtLeast(0)
     val hours = totalSeconds / 3_600
     val minutes = (totalSeconds % 3_600) / 60
     val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+}
+
+fun statusHeadline(vpnStatus: VpnStatus): String = when (vpnStatus) {
+    VpnStatus.Stopped -> "ОТКЛЮЧЕНО"
+    VpnStatus.Starting -> "ПОДКЛЮЧЕНИЕ…"
+    VpnStatus.Started -> "ПОДКЛЮЧЕНО"
+    VpnStatus.Stopping -> "ОТКЛЮЧЕНИЕ…"
+}
+
+@Composable
+fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = nuboColors().textFaint,
+        modifier = modifier.padding(start = 4.dp, bottom = 8.dp),
+    )
+}
+
+/** Карточка в стиле NUBO: тёмная поверхность с мягкой синей обводкой. */
+@Composable
+fun NuboCard(
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    val colors = nuboColors()
+    val shape = RoundedCornerShape(16.dp)
+    val background = if (selected) {
+        Modifier.background(
+            Brush.linearGradient(
+                listOf(
+                    colors.blue.copy(alpha = 0.25f),
+                    colors.blueDeep.copy(alpha = 0.30f),
+                ),
+            ),
+            shape,
+        )
     } else {
-        String.format("%02d:%02d", minutes, seconds)
+        Modifier.background(colors.card, shape)
+    }
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .then(background)
+            .border(1.dp, if (selected) colors.borderStrong else colors.border, shape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+    ) {
+        content()
+    }
+}
+
+/** Цветной бейдж пинга. */
+@Composable
+fun PingBadge(
+    pingText: String,
+    pingMs: Int?,
+    modifier: Modifier = Modifier,
+) {
+    val colors = nuboColors()
+    val color = when {
+        pingMs != null -> colors.pingColor(pingMs)
+        pingText == "N/A" -> colors.red
+        else -> colors.textDim
+    }
+    Text(
+        text = pingText,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = color,
+        modifier = modifier,
+    )
+}
+
+/** Столбики уровня сигнала (по пингу). */
+@Composable
+fun SignalBars(
+    pingMs: Int?,
+    modifier: Modifier = Modifier,
+) {
+    val colors = nuboColors()
+    val level = when {
+        pingMs == null -> 0
+        pingMs <= 100 -> 4
+        pingMs <= 200 -> 3
+        pingMs <= 400 -> 2
+        else -> 1
+    }
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        repeat(4) { i ->
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height((4 + i * 2.5).dp)
+                    .clip(RoundedCornerShape(1.dp))
+                    .background(if (i < level) colors.cyan else colors.textFaint.copy(alpha = 0.3f)),
+            )
+        }
     }
 }
 
 @Composable
-fun SelectedServerCard(
-    display: ServerDisplay,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
+fun SelectedCheck(modifier: Modifier = Modifier) {
+    Box(
         modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = coffemaniaColors().cappuccino,
-        border = androidx.compose.foundation.BorderStroke(1.dp, coffemaniaColors().latte),
+            .size(20.dp)
+            .clip(CircleShape)
+            .background(nuboColors().blue),
+        contentAlignment = Alignment.Center,
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.weight(1f),
-            ) {
-                ServerFlag(
-                    flag = display.flag,
-                    height = 48.dp,
-                    crossfade = true,
-                    showShadow = true,
-                )
-                Column {
-                    Text(
-                        text = display.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = coffemaniaColors().espresso,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (display.subtitle.isNotBlank()) {
-                        Text(
-                            text = display.subtitle,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = coffemaniaColors().mocha,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = coffemaniaColors().espresso,
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = "Выбран",
+            tint = Color.White,
+            modifier = Modifier.size(12.dp),
+        )
     }
 }
 
@@ -472,105 +815,95 @@ fun SelectedServerCard(
 fun ServerListCard(
     display: ServerDisplay,
     selected: Boolean,
+    isFavorite: Boolean,
     onClick: () -> Unit,
     onDoubleClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bg = coffemaniaColors().cappuccino
-    val borderColor = if (selected) coffemaniaColors().espresso else coffemaniaColors().latte
-    val pingColor = when {
-        display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
-        display.pingText == "N/A" -> CoffemaniaColors.PingBad
-        else -> coffemaniaColors().mocha
+    val colors = nuboColors()
+    val shape = RoundedCornerShape(16.dp)
+    val background = if (selected) {
+        Modifier.background(
+            Brush.linearGradient(
+                listOf(
+                    colors.blue.copy(alpha = 0.25f),
+                    colors.blueDeep.copy(alpha = 0.30f),
+                ),
+            ),
+            shape,
+        )
+    } else {
+        Modifier.background(colors.card, shape)
     }
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer { clip = true }
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(1.dp, borderColor, RoundedCornerShape(10.dp))
-            .combinedClickable(
-                onClick = onClick,
-                onDoubleClick = onDoubleClick,
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .clip(shape)
+            .then(background)
+            .border(1.dp, if (selected) colors.borderStrong else colors.border, shape)
+            .combinedClickable(onClick = onClick, onDoubleClick = onDoubleClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.weight(1f),
-        ) {
-            ServerListFlag(flag = display.flag, height = 32.dp)
-            Column {
+        ServerListFlag(flag = display.flag, height = 30.dp)
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = display.title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = coffemaniaColors().espresso,
+                    color = colors.textMain,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 2.dp),
-                ) {
+                if (display.subtitle.isNotBlank()) {
                     Text(
-                        text = display.protocolLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = coffemaniaColors().espresso,
-                        modifier = Modifier
-                            .background(coffemaniaColors().latte, CircleShape)
-                            .padding(horizontal = 8.dp, vertical = 1.dp),
+                        text = " | ${display.subtitle}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textDim,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    if (display.subtitle.isNotBlank()) {
-                        Text(
-                            text = display.subtitle,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Normal,
-                                letterSpacing = 0.sp,
-                            ),
-                            color = coffemaniaColors().mocha,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                 }
             }
+            Text(
+                text = display.protocolLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textFaint,
+                modifier = Modifier.padding(top = 2.dp),
+            )
         }
-        Text(
-            text = display.pingText,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = pingColor,
-        )
+        Column(horizontalAlignment = Alignment.End) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                PingBadge(pingText = display.pingText, pingMs = display.pingMs)
+                SignalBars(pingMs = display.pingMs)
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                if (selected) {
+                    SelectedCheck()
+                }
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.StarBorder,
+                    contentDescription = if (isFavorite) "Убрать из избранного" else "В избранное",
+                    tint = if (isFavorite) colors.yellow else colors.textFaint,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onToggleFavorite),
+                )
+            }
+        }
     }
-}
-
-@Composable
-private fun ProtocolBadge(text: String, bg: Color, fg: Color) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = fg,
-        modifier = Modifier
-            .background(bg, CircleShape)
-            .padding(horizontal = 8.dp, vertical = 1.dp),
-    )
-}
-
-@Composable
-fun SectionLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        color = coffemaniaColors().mocha,
-        modifier = modifier.padding(start = 8.dp, bottom = 8.dp),
-    )
 }
 
 @Composable
@@ -579,11 +912,12 @@ fun SubscriptionExpiredCard(
     onRenewWebsiteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = nuboColors()
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+        shape = RoundedCornerShape(16.dp),
+        color = colors.errorContainer.copy(alpha = 0.6f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, colors.red.copy(alpha = 0.6f)),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -593,12 +927,12 @@ fun SubscriptionExpiredCard(
                 text = "Подписка истекла",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.error,
+                color = colors.red,
             )
             Text(
                 text = "Продлите подписку, чтобы снова пользоваться VPN",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
+                color = colors.textMid,
             )
             SubscriptionActionButton(
                 text = "Продлить в телеграмме",
@@ -622,19 +956,14 @@ fun SubscriptionCard(
     onBuyOnWebsiteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = coffemaniaColors().cappuccino,
-        border = androidx.compose.foundation.BorderStroke(1.dp, coffemaniaColors().latte),
-        shadowElevation = 1.dp,
-    ) {
+    val colors = nuboColors()
+    NuboCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = "Добавить подписку",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = coffemaniaColors().espresso,
+                color = colors.textMain,
             )
             Column(
                 modifier = Modifier.padding(top = 16.dp),
@@ -654,6 +983,55 @@ fun SubscriptionCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun SubscriptionActionButton(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    isLoading: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val colors = nuboColors()
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(
+                Brush.linearGradient(listOf(Color(0xFF1A4FFF), Color(0xFF0A2A9A))),
+                shape,
+            )
+            .border(1.dp, colors.borderStrong, shape)
+            .clickable(enabled = !isLoading, onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = Color.White,
+            )
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = Color.White,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -689,7 +1067,7 @@ fun WebsiteBanner(
 ) {
     PromoBanner(
         imageRes = R.drawable.banner_go_web,
-        contentDescription = "Управляйте ключами на сайте coffeemaniavpn.ru",
+        contentDescription = "Управляйте ключами на сайте",
         onClick = onClick,
         modifier = modifier,
     )
@@ -709,254 +1087,30 @@ fun TelegramChannelBanner(
 }
 
 @Composable
-private fun SubscriptionActionButton(
-    text: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-    isLoading: Boolean = false,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.clickable(enabled = !isLoading, onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        color = coffemaniaColors().milkFoam,
-    ) {
-        Row(
-            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = coffemaniaColors().espresso,
-                )
-            } else {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = coffemaniaColors().espresso,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = coffemaniaColors().espresso,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-fun SubscriptionStatusBar(
-    nodeCount: Int,
-    subscriptionInfo: SubscriptionInfo?,
-    isRefreshing: Boolean,
-    isPinging: Boolean,
-    canRefresh: Boolean,
-    canPing: Boolean,
-    onRefreshConfig: () -> Unit,
-    onRefreshPing: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = coffemaniaColors().cappuccino,
-        border = androidx.compose.foundation.BorderStroke(1.dp, coffemaniaColors().latte),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            subscriptionInfo?.let { info ->
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = coffemaniaColors().espresso,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    info.expireLabel()?.let { expireText ->
-                        val expired = info.isExpired()
-                        Text(
-                            text = expireText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (expired) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                coffemaniaColors().mocha
-                            },
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(coffemaniaColors().latte),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = nodeCount.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = coffemaniaColors().espresso,
-                        )
-                    }
-                    Text(
-                        text = "Серверов",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = coffemaniaColors().mocha,
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    ConfigRefreshButton(
-                        isRefreshing = isRefreshing,
-                        enabled = canRefresh,
-                        onClick = onRefreshConfig,
-                    )
-                    PingTestButton(
-                        isPinging = isPinging,
-                        enabled = canPing,
-                        onClick = onRefreshPing,
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (subscriptionInfo != null && subscriptionInfo.isUnlimitedTraffic) {
-                    Text(
-                        text = "∞",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = coffemaniaColors().espresso,
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(16.dp)
-                            .background(coffemaniaColors().latte),
-                    )
-                }
-
-                TrafficProgressBar(
-                    subscriptionInfo = subscriptionInfo,
-                    modifier = Modifier.weight(1f),
-                )
-
-                Text(
-                    text = subscriptionInfo?.trafficLabel() ?: "— / —",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = coffemaniaColors().mocha,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TrafficProgressBar(
-    subscriptionInfo: SubscriptionInfo?,
-    modifier: Modifier = Modifier,
-) {
-    val trackColor = coffemaniaColors().milkFoam
-    val progressColor = coffemaniaColors().espresso
-
-    if (subscriptionInfo == null) {
-        Box(
-            modifier = modifier
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(trackColor),
-        )
-        return
-    }
-
-    if (subscriptionInfo.isUnlimitedTraffic) {
-        Box(
-            modifier = modifier
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(trackColor),
-        ) {
-            if (subscriptionInfo.used > 0) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.08f)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(progressColor),
-                )
-            }
-        }
-        return
-    }
-
-    Box(
-        modifier = modifier
-            .height(6.dp)
-            .clip(RoundedCornerShape(3.dp))
-            .background(trackColor),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(subscriptionInfo.usageFraction.coerceIn(0f, 1f))
-                .clip(RoundedCornerShape(3.dp))
-                .background(progressColor),
-        )
-    }
-}
-
-@Composable
 fun ConfigRefreshButton(
     isRefreshing: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = nuboColors()
     IconButton(
         onClick = onClick,
         enabled = enabled && !isRefreshing,
-        modifier = modifier.size(48.dp),
+        modifier = modifier.size(44.dp),
     ) {
         if (isRefreshing) {
             CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(22.dp),
                 strokeWidth = 2.dp,
-                color = coffemaniaColors().espresso,
+                color = colors.blue,
             )
         } else {
             Icon(
                 imageVector = Icons.Default.Refresh,
                 contentDescription = "Обновить конфиг",
-                tint = coffemaniaColors().espresso,
-                modifier = Modifier.size(28.dp),
+                tint = if (enabled) colors.textMid else colors.textFaint,
+                modifier = Modifier.size(24.dp),
             )
         }
     }
@@ -969,31 +1123,25 @@ fun PingTestButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = nuboColors()
     IconButton(
         onClick = onClick,
         enabled = enabled && !isPinging,
-        modifier = modifier.size(48.dp),
+        modifier = modifier.size(44.dp),
     ) {
         if (isPinging) {
             CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(22.dp),
                 strokeWidth = 2.dp,
-                color = coffemaniaColors().espresso,
+                color = colors.blue,
             )
         } else {
             Icon(
                 imageVector = Icons.Default.Speed,
                 contentDescription = "Проверить пинг",
-                tint = coffemaniaColors().espresso,
-                modifier = Modifier.size(28.dp),
+                tint = if (enabled) colors.textMid else colors.textFaint,
+                modifier = Modifier.size(24.dp),
             )
         }
     }
-}
-
-fun statusHeadline(vpnStatus: VpnStatus): String = when (vpnStatus) {
-    VpnStatus.Stopped -> "Отключено"
-    VpnStatus.Starting -> "Подключение…"
-    VpnStatus.Started -> "Подключено"
-    VpnStatus.Stopping -> "Отключение…"
 }

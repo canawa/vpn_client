@@ -153,7 +153,7 @@ fun SplitTunnelSitesScreen(
         Text(
             text = "Укажите домены без протокола, например youtube.com",
             style = MaterialTheme.typography.bodySmall,
-            color = coffemaniaColors().mocha,
+            color = nuboColors().textDim,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
         )
         SettingsDivider()
@@ -165,10 +165,10 @@ fun SplitTunnelSitesScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = coffemaniaColors().espresso,
-                contentColor = coffemaniaColors().milkFoam,
-                disabledContainerColor = coffemaniaColors().latte,
-                disabledContentColor = coffemaniaColors().mocha,
+                containerColor = nuboColors().blue,
+                contentColor = androidx.compose.ui.graphics.Color.White,
+                disabledContainerColor = nuboColors().cardHigh,
+                disabledContentColor = nuboColors().textDim,
             ),
         ) {
             Text(if (domainsDirty) "Применить" else "Применено")
@@ -282,7 +282,7 @@ fun SplitTunnelAppsScreen(
             Text(
                 text = "Загрузка списка…",
                 style = MaterialTheme.typography.bodyMedium,
-                color = coffemaniaColors().mocha,
+                color = nuboColors().textDim,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
         }
@@ -313,35 +313,6 @@ fun SplitTunnelAppsScreen(
 }
 
 @Composable
-fun KillSwitchScreen(
-    settings: ConnectionSettingsState,
-    onSave: (ConnectionSettingsState) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-    ) {
-        SettingsToggleRow(
-            title = "Kill Switch",
-            checked = settings.killSwitchEnabled,
-            onCheckedChange = { enabled ->
-                onSave(settings.copy(killSwitchEnabled = enabled))
-            },
-        )
-        SettingsDivider()
-        Text(
-            text = "При неожиданном обрыве VPN весь интернет-трафик будет заблокирован, " +
-                "пока вы снова не подключитесь.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = coffemaniaColors().mocha,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-        )
-    }
-}
-
-@Composable
 private fun AppListIcon(packageName: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val bitmap = remember(packageName) {
@@ -364,7 +335,7 @@ private fun SettingsSectionLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleSmall,
-        color = coffemaniaColors().espresso,
+        color = nuboColors().textMain,
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
     )
 }
@@ -403,7 +374,7 @@ private fun SettingsToggleRow(
                 SettingsToggleSubtitle(subtitle, enabled)
             }
         }
-        CoffemaniaSwitch(
+        NuboSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
@@ -416,7 +387,7 @@ private fun SettingsToggleTitle(title: String, enabled: Boolean) {
     Text(
         text = title,
         style = MaterialTheme.typography.bodyLarge,
-        color = if (enabled) coffemaniaColors().espresso else coffemaniaColors().mocha,
+        color = if (enabled) nuboColors().textMain else nuboColors().textDim,
     )
 }
 
@@ -426,7 +397,7 @@ private fun SettingsToggleSubtitle(subtitle: String?, enabled: Boolean) {
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodySmall,
-            color = coffemaniaColors().mocha,
+            color = nuboColors().textDim,
         )
     }
 }
@@ -452,7 +423,7 @@ private fun SettingsRadioRow(
         Text(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (enabled) coffemaniaColors().espresso else coffemaniaColors().mocha,
+            color = if (enabled) nuboColors().textMain else nuboColors().textDim,
             modifier = Modifier.padding(start = 4.dp, end = 20.dp),
         )
     }

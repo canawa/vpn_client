@@ -24,8 +24,8 @@ import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.ktx.hasPermission
 import ru.coffeemaniavpn.app.deeplink.DeepLinkEffect
 import ru.coffeemaniavpn.app.ui.AppShell
-import ru.coffeemaniavpn.app.ui.CoffemaniaTheme
 import ru.coffeemaniavpn.app.ui.LogsDialog
+import ru.coffeemaniavpn.app.ui.NuboTheme
 import ru.coffeemaniavpn.app.ui.MainViewModel
 import ru.coffeemaniavpn.app.util.AppLog
 import ru.coffeemaniavpn.app.util.LogExporter
@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
 
             setContent {
                 val state by viewModel.uiState.collectAsState()
-                CoffemaniaTheme(themeMode = state.appThemeMode) {
+                NuboTheme(themeMode = state.appThemeMode) {
                     var showLogs by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
@@ -88,6 +88,7 @@ class MainActivity : ComponentActivity() {
                         onRefreshSubscription = viewModel::refreshSubscription,
                         onSelectNode = viewModel::selectNode,
                         onConnectToNode = viewModel::requestConnectToNode,
+                        onToggleFavorite = viewModel::toggleFavoriteNode,
                         onConnectClick = ::requestConnect,
                         onDisconnectClick = VpnManager::disconnect,
                         onShowLogs = { showLogs = true },

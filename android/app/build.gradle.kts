@@ -12,7 +12,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "ru.coffeemaniavpn.app"
+        applicationId = "ru.nubovpn.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 2
@@ -26,16 +26,14 @@ android {
     signingConfigs {
         create("release") {
             val keystorePropsFile = rootProject.file("keystore.properties")
-            require(keystorePropsFile.exists()) {
-                "Missing android/keystore.properties — copy keystore.properties.example and fill in upload key credentials."
+            if (keystorePropsFile.exists()) {
+                val keystoreProps = Properties()
+                keystorePropsFile.inputStream().use { keystoreProps.load(it) }
+                keystoreProps.getProperty("storeFile")?.let { storeFile = rootProject.file(it) }
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
             }
-            val keystoreProps = Properties()
-            keystorePropsFile.inputStream().use { keystoreProps.load(it) }
-            val storePath = checkNotNull(keystoreProps.getProperty("storeFile")) { "storeFile is missing" }
-            storeFile = rootProject.file(storePath)
-            storePassword = checkNotNull(keystoreProps.getProperty("storePassword")) { "storePassword is missing" }
-            keyAlias = checkNotNull(keystoreProps.getProperty("keyAlias")) { "keyAlias is missing" }
-            keyPassword = checkNotNull(keystoreProps.getProperty("keyPassword")) { "keyPassword is missing" }
         }
     }
 

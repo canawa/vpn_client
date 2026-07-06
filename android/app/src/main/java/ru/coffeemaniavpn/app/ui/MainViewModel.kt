@@ -45,6 +45,7 @@ data class MainUiState(
     val subscriptionUrl: String = "",
     val nodes: List<ProxyNode> = emptyList(),
     val selectedNodeId: String? = null,
+    val favoriteNodeIds: Set<String> = emptySet(),
     val vpnStatus: VpnStatus = VpnStatus.Stopped,
     val connectionElapsedMs: Long = 0L,
     val isLoading: Boolean = false,
@@ -92,9 +93,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             },
             preferences.selectedNodeId,
             preferences.subscriptionInfo,
-        ) { savedUrl, nodes, selectedNodeId, subscriptionInfo ->
+            preferences.favoriteNodeIds,
+        ) { savedUrl, nodes, selectedNodeId, subscriptionInfo, favoriteNodeIds ->
             AppLog.i("prefs loaded urlLen=${savedUrl.length} nodes=${nodes.size}")
-            SavedData(savedUrl, nodes, selectedNodeId, subscriptionInfo)
+            SavedData(savedUrl, nodes, selectedNodeId, subscriptionInfo, favoriteNodeIds)
         },
         combine(
             VpnManager.status,
@@ -117,7 +119,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         startupCrash,
     ) { savedData, vpnData, localData, settingsData, crash ->
         val (connectionSettings, autoUpdateInterval, appThemeMode) = settingsData
-        val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
+        val (savedUrl, nodes, selectedNodeId, subscriptionInfo, favoriteNodeIds) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
 
@@ -125,6 +127,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             subscriptionUrl = inputUrl.trim().ifBlank { savedUrl.trim() },
             nodes = nodes,
             selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
+            favoriteNodeIds = favoriteNodeIds,
             vpnStatus = vpnStatus,
             connectionElapsedMs = connectionElapsedMs,
             isLoading = loading,
@@ -270,7 +273,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         AppLog.i("processDeepLink action=$action")
         when (action) {
             DeepLinkAction.Open -> {
-                message.value = "КОФЕМАНИЯ ВПН"
+                message.value = "NUBO VPN"
             }
             DeepLinkAction.Connect -> {
                 if (prepareConnect(showErrors = true)) {
@@ -502,6 +505,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun toggleFavoriteNode(nodeId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            preferences.toggleFavoriteNodeId(nodeId)
+        }
+    }
+
     fun requestConnectToNode(nodeId: String) {
         clearMessages()
         if (!prepareConnect()) return
@@ -574,6 +583,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val nodes: List<ProxyNode>,
         val selectedNodeId: String?,
         val subscriptionInfo: SubscriptionInfo?,
+        val favoriteNodeIds: Set<String>,
     )
 
     private data class LocalUiState(
