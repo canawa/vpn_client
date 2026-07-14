@@ -8,6 +8,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
     <queries>
         <intent>
@@ -48,6 +53,12 @@
                 <data android:scheme="nubo" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.qr.QrScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.NuboVpn" />
 
         <service
             android:name=".vpn.KillSwitchVpnService"

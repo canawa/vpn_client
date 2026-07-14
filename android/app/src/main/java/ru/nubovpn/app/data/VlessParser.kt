@@ -62,7 +62,7 @@ object VlessParser {
                 port = port,
                 encryption = params["encryption"] ?: "none",
                 flow = params["flow"].takeIf {
-                    transportInfo.type !in setOf("xhttp", "splithttp", "grpc")
+                    transportInfo.type !in SubscriptionParser.NO_FLOW_TRANSPORTS
                 },
                 security = params["security"] ?: "none",
                 sni = params["sni"],

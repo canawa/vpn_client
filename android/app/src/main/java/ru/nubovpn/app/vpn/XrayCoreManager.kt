@@ -47,11 +47,17 @@ object XrayCoreManager {
 
         override fun shutdown(): Long {
             AppLog.i("XrayCoreManager shutdown callback")
+            // Ядро остановилось само (крэш/обрыв) — сообщаем сервису,
+            // иначе приложение продолжает показывать «подключено» при мёртвом туннеле
+            BoxService.onCoreStopped()
             return 0
         }
 
         override fun onEmitStatus(code: Long, message: String?): Long {
             AppLog.i("xray: ${message.orEmpty()}")
+            if (message?.contains("Core stopped", ignoreCase = true) == true) {
+                BoxService.onCoreStopped()
+            }
             return 0
         }
     }

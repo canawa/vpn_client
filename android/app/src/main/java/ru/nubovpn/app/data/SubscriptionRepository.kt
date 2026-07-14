@@ -4,17 +4,61 @@ import android.content.Context
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import ru.nubovpn.app.util.AppLog
+import java.io.IOException
+import java.io.InterruptedIOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLException
 
 class SubscriptionRepository(
     private val context: Context,
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(20, TimeUnit.SECONDS)
+        .callTimeout(45, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
         .build(),
 ) {
-    fun fetchSubscription(url: String): SubscriptionFetchResult {
-        val requestBuilder = Request.Builder().url(url.trim())
+    companion object {
+        private const val MAX_ATTEMPTS = 3
+    }
+
+    /**
+     * Загружает подписку с сетевыми ретраями: временные сбои (обрыв соединения,
+     * таймаут, недоступный сервер) повторяются до [MAX_ATTEMPTS] раз.
+     */
+    fun fetchSubscription(
+        url: String,
+        onAttempt: (attempt: Int, maxAttempts: Int) -> Unit = { _, _ -> },
+    ): SubscriptionFetchResult {
+        var lastNetworkError: IOException? = null
+        for (attempt in 1..MAX_ATTEMPTS) {
+            onAttempt(attempt, MAX_ATTEMPTS)
+            try {
+                return fetchOnce(url)
+            } catch (e: IOException) {
+                lastNetworkError = e
+                AppLog.w("fetchSubscription attempt=$attempt/$MAX_ATTEMPTS failed: ${e.message}")
+                if (attempt < MAX_ATTEMPTS) {
+                    try {
+                        Thread.sleep(1_200L * attempt)
+                    } catch (_: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        break
+                    }
+                }
+            }
+        }
+        throw IllegalStateException(friendlyNetworkError(lastNetworkError), lastNetworkError)
+    }
+
+    private fun fetchOnce(url: String): SubscriptionFetchResult {
+        val requestBuilder = Request.Builder()
+            .url(url.trim())
+            .header("Accept", "*/*")
         DeviceIdentity.subscriptionHeaders(context).forEach { (name, value) ->
             requestBuilder.header(name, value)
         }
@@ -51,6 +95,19 @@ class SubscriptionRepository(
             AppLog.i("fetchSubscription ok nodes=${nodes.size} hwid=${DeviceIdentity.hwid(context).take(8)}…")
             return SubscriptionFetchResult(nodes = nodes, info = info)
         }
+    }
+
+    private fun friendlyNetworkError(e: IOException?): String = when (e) {
+        is SocketTimeoutException, is InterruptedIOException ->
+            "Таймаут при загрузке подписки — проверьте интернет. Если VPN включён, отключите его и попробуйте снова"
+        is UnknownHostException ->
+            "Не удалось найти сервер подписки — проверьте подключение к интернету или смените сеть (Wi-Fi/мобильная)"
+        is ConnectException ->
+            "Сервер подписки недоступен — возможно, он блокируется вашим провайдером. Попробуйте другую сеть или включите/выключите VPN"
+        is SSLException ->
+            "Ошибка защищённого соединения с сервером подписки — попробуйте другую сеть"
+        else ->
+            "Не удалось загрузить подписку (${e?.message ?: "сетевая ошибка"}) — попробуйте ещё раз или смените сеть"
     }
 
     fun fetchNodes(url: String): List<ProxyNode> = fetchSubscription(url).nodes

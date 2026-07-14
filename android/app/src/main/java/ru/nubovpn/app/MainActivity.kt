@@ -27,6 +27,7 @@ import ru.nubovpn.app.ui.AppShell
 import ru.nubovpn.app.ui.LogsDialog
 import ru.nubovpn.app.ui.NuboTheme
 import ru.nubovpn.app.ui.MainViewModel
+import ru.nubovpn.app.ui.qr.QrScanActivity
 import ru.nubovpn.app.util.AppLog
 import ru.nubovpn.app.util.LogExporter
 import ru.nubovpn.app.vpn.VpnManager
@@ -60,6 +61,17 @@ class MainActivity : ComponentActivity() {
             .onFailure { toast("Не удалось сохранить: ${it.message}") }
     }
 
+    private val qrScanLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val content = result.data?.getStringExtra(QrScanActivity.EXTRA_RESULT)
+        if (content.isNullOrBlank()) {
+            AppLog.i("qr scan cancelled")
+            return@registerForActivityResult
+        }
+        viewModel.importFromQr(content)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -87,8 +99,6 @@ class MainActivity : ComponentActivity() {
                         state = state,
                         onRefreshSubscription = viewModel::refreshSubscription,
                         onSelectNode = viewModel::selectNode,
-                        onConnectToNode = viewModel::requestConnectToNode,
-                        onToggleFavorite = viewModel::toggleFavoriteNode,
                         onConnectClick = ::requestConnect,
                         onDisconnectClick = VpnManager::disconnect,
                         onShowLogs = { showLogs = true },
@@ -96,10 +106,13 @@ class MainActivity : ComponentActivity() {
                         onRefreshPing = viewModel::pingAllNodes,
                         onRefreshConfig = viewModel::refreshConfig,
                         onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
+                        onScanQrClick = ::scanQrCode,
+                        onToggleSortByPing = viewModel::toggleSortByPing,
                         onDeleteSubscriptionClick = viewModel::deleteSubscription,
                         onTelegramChannelClick = ::openTelegramChannel,
                         onTelegramBotClick = ::openTelegramBot,
                         onSubInfoButtonClick = ::openUrl,
+                        onOpenSiteClick = { openUrl(BuildConfig.SUBSCRIPTION_STORE_URL) },
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
                         onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
@@ -169,6 +182,15 @@ class MainActivity : ComponentActivity() {
 
     private fun toast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+
+    private fun scanQrCode() {
+        runCatching {
+            qrScanLauncher.launch(Intent(this, QrScanActivity::class.java))
+        }.onFailure {
+            AppLog.e("scanQrCode failed", it)
+            toast("Не удалось открыть сканер QR-кода")
+        }
     }
 
     private fun openTelegramChannel() {

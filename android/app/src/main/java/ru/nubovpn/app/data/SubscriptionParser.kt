@@ -8,6 +8,8 @@ import java.util.UUID
 import ru.nubovpn.app.util.AppLog
 
 object SubscriptionParser {
+    internal val NO_FLOW_TRANSPORTS = setOf("xhttp", "splithttp", "grpc", "ws", "httpupgrade")
+
     fun parse(body: String): List<ProxyNode> {
         AppLog.i("SubscriptionParser.parse bodyLen=${body.length} prefix=${body.take(32)}")
         val normalized = body.trim().removePrefix("\uFEFF").trim()
@@ -148,7 +150,7 @@ object SubscriptionParser {
         val host = vnext.optString("address")
         val port = vnext.optInt("port")
         val flow = user.optString("flow").takeIf {
-            it.isNotBlank() && transportInfo.type !in setOf("xhttp", "splithttp", "grpc")
+            it.isNotBlank() && transportInfo.type !in NO_FLOW_TRANSPORTS
         }
 
         return ProxyNode(
@@ -177,6 +179,7 @@ object SubscriptionParser {
             xhttpPath = xhttp?.path,
             xhttpMode = xhttp?.mode,
             xhttpExtra = xhttp?.extra,
+            rawOutboundJson = outbound.toString(),
         )
     }
 
@@ -241,6 +244,7 @@ object SubscriptionParser {
             upMbps = if (useBbr) null else readPositiveInt(settings, "up_mbps", "up"),
             downMbps = if (useBbr) null else readPositiveInt(settings, "down_mbps", "down"),
             alpn = readStringList(tls.optJSONArray("alpn")),
+            rawOutboundJson = outbound.toString(),
         )
     }
 
@@ -280,7 +284,7 @@ object SubscriptionParser {
                     ?.optString("flow")
                     .orEmpty()
             }
-            .takeIf { it.isNotBlank() && transportInfo.type !in setOf("xhttp", "splithttp", "grpc") }
+            .takeIf { it.isNotBlank() && transportInfo.type !in NO_FLOW_TRANSPORTS }
 
         if (host.isBlank() || uuid.isBlank()) return null
 
@@ -293,7 +297,11 @@ object SubscriptionParser {
             port = port,
             encryption = outbound.optString("encryption", "none"),
             flow = flow,
-            security = if (reality.optBoolean("enabled")) "reality" else outbound.optString("security", "none"),
+            security = when {
+                reality.optBoolean("enabled") -> "reality"
+                tls.optBoolean("enabled") -> "tls"
+                else -> outbound.optString("security", "none")
+            },
             sni = tls.optString("server_name").takeIf { it.isNotBlank() },
             fingerprint = tls.optJSONObject("utls")?.optString("fingerprint"),
             publicKey = reality.optString("public_key").takeIf { it.isNotBlank() },
@@ -308,6 +316,7 @@ object SubscriptionParser {
             xhttpPath = xhttp?.path,
             xhttpMode = xhttp?.mode,
             xhttpExtra = xhttp?.extra,
+            rawOutboundJson = outbound.toString(),
         )
     }
 

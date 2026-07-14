@@ -132,7 +132,9 @@ object XrayRoutingApplier {
         rule.optString("type") == "field" &&
             rule.optString("network") == "tcp,udp" &&
             !rule.has("domain") &&
-            !rule.has("ip")
+            !rule.has("ip") &&
+            !rule.has("port") &&
+            !rule.has("inboundTag")
 
     private fun addGeositeRules(source: JSONArray, outbound: String, target: JSONArray) {
         for (i in 0 until source.length()) {

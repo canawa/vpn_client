@@ -93,14 +93,23 @@ fun ServerFlag(
         )
         .background(colors.cardHigh, shape)
 
-    AsyncImage(
-        model = imageRequest,
-        contentDescription = flag,
-        modifier = containerModifier,
-        contentScale = ContentScale.Crop,
-        placeholder = ColorPainter(colors.cardHigh),
-        error = ColorPainter(colors.cardHigh),
-    )
+    if (countryCode != null) {
+        AsyncImage(
+            model = imageRequest,
+            contentDescription = flag,
+            modifier = containerModifier,
+            contentScale = ContentScale.Crop,
+            placeholder = ColorPainter(colors.cardHigh),
+            error = ColorPainter(colors.cardHigh),
+        )
+    } else {
+        Box(
+            modifier = containerModifier,
+            contentAlignment = Alignment.Center,
+        ) {
+            FlagEmojiFallback(flag = flag, width = width, height = height)
+        }
+    }
 }
 
 @Composable

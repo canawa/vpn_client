@@ -39,7 +39,9 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
+            // R8: убирает debug-обвязку Compose и ускоряет UI в release-сборке
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -94,6 +96,15 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Сканер QR-кодов для добавления подписки
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    val cameraXVersion = "1.4.1"
+    implementation("androidx.camera:camera-camera2:$cameraXVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraXVersion")
+    implementation("androidx.camera:camera-view:$cameraXVersion")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

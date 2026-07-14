@@ -35,10 +35,13 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,9 +50,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import ru.nubovpn.app.vpn.GeoFilesUpdater
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
@@ -103,6 +110,8 @@ fun SettingsScreen(
     connectionSettings: ConnectionSettingsState,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
     onPasteLink: () -> Unit,
+    onScanQr: () -> Unit,
+    onOpenSite: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
     onTelegramBot: () -> Unit,
@@ -112,6 +121,7 @@ fun SettingsScreen(
     onDownloadLogs: () -> Unit,
     onTelegramChannel: () -> Unit,
     onCloseApp: () -> Unit,
+    subscriptionLoad: SubscriptionLoadState = SubscriptionLoadState(),
     modifier: Modifier = Modifier,
 ) {
     when (page) {
@@ -124,6 +134,7 @@ fun SettingsScreen(
             onSaveConnectionSettings = onSaveConnectionSettings,
             onPageChange = onPageChange,
             onTelegramChannel = onTelegramChannel,
+            onOpenSite = onOpenSite,
             onDeleteSubscription = onDeleteSubscription,
             onCloseApp = onCloseApp,
         )
@@ -143,9 +154,12 @@ fun SettingsScreen(
             autoUpdateInterval = subscriptionAutoUpdateInterval,
             onAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
             onPasteLink = onPasteLink,
+            onScanQr = onScanQr,
             onRefreshSubscription = onRefreshSubscription,
             onDeleteSubscription = onDeleteSubscription,
             onTelegramBot = onTelegramBot,
+            onOpenSite = onOpenSite,
+            subscriptionLoad = subscriptionLoad,
         )
         SettingsPage.Logs -> SettingsDetailScreen(
             modifier = modifier,
@@ -192,6 +206,7 @@ private fun SettingsMainScreen(
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
     onPageChange: (SettingsPage) -> Unit,
     onTelegramChannel: () -> Unit,
+    onOpenSite: () -> Unit,
     onDeleteSubscription: () -> Unit,
     onCloseApp: () -> Unit,
     modifier: Modifier = Modifier,
@@ -253,6 +268,10 @@ private fun SettingsMainScreen(
             )
         }
 
+        SettingsSection(title = "Маршрутизация") {
+            GeoFilesCard()
+        }
+
         SettingsSection(title = "Приложение") {
             SettingsNavCard(
                 icon = Icons.Default.BugReport,
@@ -263,6 +282,12 @@ private fun SettingsMainScreen(
         }
 
         SettingsSection(title = "Поддержка") {
+            SettingsNavCard(
+                icon = Icons.Default.Language,
+                title = "Наш сайт",
+                subtitle = "nb.nubov.org — личный кабинет и продление",
+                onClick = onOpenSite,
+            )
             SettingsNavCard(
                 icon = Icons.AutoMirrored.Filled.Send,
                 title = "Канал в Telegram",
@@ -301,26 +326,27 @@ private fun SubscriptionProfileCard(
     onClick: () -> Unit,
 ) {
     val colors = nuboColors()
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(20.dp)
     val expired = subscriptionInfo?.isExpired() == true
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(
-                Brush.linearGradient(
-                    listOf(colors.cardHigh, colors.card),
-                ),
-                shape,
-            )
-            .border(1.dp, colors.borderStrong, shape)
+            .background(colors.card, shape)
+            .border(1.dp, colors.border, shape)
             .clickable(onClick = onClick)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        NuboLogoBadge(size = 52.dp)
+        // Логотип без круглой синей подложки — прозрачный PNG на фоне карточки
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(ru.nubovpn.app.R.drawable.nubo_logo),
+            contentDescription = "NUBO VPN",
+            modifier = Modifier.size(width = 72.dp, height = 48.dp),
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = subscriptionInfo?.takeIf { it.hasTitle }?.title ?: "NUBO VPN",
@@ -384,6 +410,104 @@ private fun SubscriptionBadge(
             style = MaterialTheme.typography.labelSmall,
             color = color,
         )
+    }
+}
+
+/**
+ * Гео-файлы маршрутизации (geoip.dat / geosite.dat) — статус и ручное обновление.
+ * Файлы скачиваются приложением, как в Happ.
+ */
+@Composable
+private fun GeoFilesCard() {
+    val colors = nuboColors()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var installed by remember { mutableStateOf(GeoFilesUpdater.isInstalled(context)) }
+    var lastUpdated by remember { mutableStateOf(GeoFilesUpdater.lastUpdatedAt(context)) }
+    var updating by remember { mutableStateOf(false) }
+    var progress by remember { mutableStateOf(0f) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val subtitle = when {
+        updating -> statusMessage ?: "Загрузка…"
+        errorMessage != null -> errorMessage
+        !installed -> "Гео-файлы не загружены — нажмите, чтобы скачать"
+        else -> {
+            val date = lastUpdated?.let {
+                java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault())
+                    .format(java.util.Date(it))
+            }
+            "geoip.dat, geosite.dat" + (date?.let { " · обновлено $it" }.orEmpty())
+        }
+    }
+
+    Column {
+        SettingsRowScaffold(
+            icon = Icons.Default.Public,
+            title = "Гео-файлы маршрутизации",
+            subtitle = subtitle,
+            onClick = {
+                if (updating) return@SettingsRowScaffold
+                updating = true
+                progress = 0f
+                errorMessage = null
+                scope.launch {
+                    runCatching {
+                        GeoFilesUpdater.update(context) { message, value ->
+                            statusMessage = message
+                            progress = value
+                        }
+                    }.onSuccess {
+                        installed = true
+                        lastUpdated = GeoFilesUpdater.lastUpdatedAt(context)
+                    }.onFailure {
+                        errorMessage = it.message ?: "Не удалось скачать гео-файлы"
+                    }
+                    updating = false
+                }
+            },
+        ) {
+            if (updating) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = colors.blue,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = "Обновить гео-файлы",
+                    tint = colors.blue,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+
+        if (updating) {
+            val animatedProgress by animateFloatAsState(
+                targetValue = progress.coerceIn(0f, 1f),
+                animationSpec = tween(300),
+                label = "geoFilesProgress",
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(colors.border),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(animatedProgress.coerceAtLeast(0.03f))
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(colors.blue),
+                )
+            }
+        }
     }
 }
 
@@ -566,17 +690,23 @@ private fun SubscriptionSettingsScreen(
     autoUpdateInterval: SubscriptionAutoUpdateInterval,
     onAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     onPasteLink: () -> Unit,
+    onScanQr: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
     onTelegramBot: () -> Unit,
+    onOpenSite: () -> Unit,
+    subscriptionLoad: SubscriptionLoadState = SubscriptionLoadState(),
     modifier: Modifier = Modifier,
 ) {
     val actions = subscriptionItems(
         hasSubscription = hasSubscription,
         onPasteLink = onPasteLink,
+        onScanQr = onScanQr,
         onRefreshSubscription = onRefreshSubscription,
         onDeleteSubscription = onDeleteSubscription,
         onTelegramBot = onTelegramBot,
+        onOpenSite = onOpenSite,
+        subscriptionLoading = subscriptionLoad.active,
     )
 
     Column(
@@ -584,6 +714,10 @@ private fun SubscriptionSettingsScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
+        SubscriptionLoadProgress(
+            loadState = subscriptionLoad,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
         SubscriptionAutoUpdateExpandable(
             selectedInterval = autoUpdateInterval,
             onIntervalChange = onAutoUpdateIntervalChange,
@@ -690,22 +824,43 @@ private fun SubscriptionAutoUpdateExpandable(
 private fun subscriptionItems(
     hasSubscription: Boolean,
     onPasteLink: () -> Unit,
+    onScanQr: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
     onTelegramBot: () -> Unit,
+    onOpenSite: () -> Unit,
+    subscriptionLoading: Boolean = false,
 ): List<SettingsAction> = buildList {
+    add(
+        SettingsAction(
+            title = "Купить на сайте",
+            icon = Icons.Default.Language,
+            onClick = onOpenSite,
+            enabled = !subscriptionLoading,
+        ),
+    )
     add(
         SettingsAction(
             title = "Купить в боте",
             icon = Icons.AutoMirrored.Filled.Send,
             onClick = onTelegramBot,
+            enabled = !subscriptionLoading,
         ),
     )
     add(
         SettingsAction(
-            title = "Вставить ссылку",
+            title = if (subscriptionLoading) "Загрузка…" else "Вставить ссылку",
             icon = Icons.Default.ContentPaste,
             onClick = onPasteLink,
+            enabled = !subscriptionLoading,
+        ),
+    )
+    add(
+        SettingsAction(
+            title = "Сканировать QR-код",
+            icon = Icons.Default.QrCodeScanner,
+            onClick = onScanQr,
+            enabled = !subscriptionLoading,
         ),
     )
     add(
@@ -713,7 +868,7 @@ private fun subscriptionItems(
             title = "Обновить подписку",
             icon = Icons.Default.Refresh,
             onClick = onRefreshSubscription,
-            enabled = hasSubscription,
+            enabled = hasSubscription && !subscriptionLoading,
         ),
     )
     if (hasSubscription) {

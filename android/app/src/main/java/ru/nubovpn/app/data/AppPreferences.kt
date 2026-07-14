@@ -214,6 +214,17 @@ class AppPreferences(private val context: Context) {
         }
     }
 
+    val sortByPing: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[KEY_SORT_BY_PING] ?: false }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun setSortByPing(enabled: Boolean) {
+        AppLog.i("setSortByPing $enabled")
+        context.dataStore.edit { prefs ->
+            prefs[KEY_SORT_BY_PING] = enabled
+        }
+    }
+
     val connectionSettings: Flow<ConnectionSettingsState> = context.dataStore.data
         .map { prefs -> prefs.toConnectionSettings() }
         .flowOn(Dispatchers.IO)
@@ -280,5 +291,6 @@ class AppPreferences(private val context: Context) {
         private val KEY_APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
         private val KEY_SUB_AUTO_UPDATE_HOURS = intPreferencesKey("sub_auto_update_hours")
         private val KEY_SUB_LAST_AUTO_REFRESH_MS = longPreferencesKey("sub_last_auto_refresh_ms")
+        private val KEY_SORT_BY_PING = booleanPreferencesKey("sort_by_ping")
     }
 }

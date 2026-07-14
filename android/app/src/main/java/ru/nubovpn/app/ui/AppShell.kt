@@ -31,8 +31,6 @@ fun AppShell(
     state: MainUiState,
     onRefreshSubscription: () -> Unit,
     onSelectNode: (String) -> Unit,
-    onConnectToNode: (String) -> Unit,
-    onToggleFavorite: (String) -> Unit,
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onShowLogs: () -> Unit,
@@ -40,10 +38,13 @@ fun AppShell(
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
+    onScanQrClick: () -> Unit,
+    onToggleSortByPing: () -> Unit,
     onDeleteSubscriptionClick: () -> Unit,
     onTelegramChannelClick: () -> Unit,
     onTelegramBotClick: () -> Unit,
     onSubInfoButtonClick: (String) -> Unit,
+    onOpenSiteClick: () -> Unit,
     onCloseApp: () -> Unit,
     onSaveConnectionSettings: (ru.nubovpn.app.data.ConnectionSettingsState) -> Unit,
     onSubscriptionAutoUpdateIntervalChange: (ru.nubovpn.app.data.SubscriptionAutoUpdateInterval) -> Unit,
@@ -92,10 +93,14 @@ fun AppShell(
                         showBackButton = true,
                         onBackClick = { navigateBack() },
                     )
+                } else if (selectedTab == AppTab.Home) {
+                    HomeTopBar(
+                        onMenuClick = { selectedTab = AppTab.Settings },
+                        onGlobeClick = onOpenSiteClick,
+                    )
                 } else {
                     NuboTopBar(
                         title = when (selectedTab) {
-                            AppTab.Servers -> "Серверы"
                             AppTab.Settings -> "Настройки"
                             AppTab.Home -> null
                         },
@@ -122,35 +127,19 @@ fun AppShell(
                 state = state,
                 onConnectClick = onConnectClick,
                 onDisconnectClick = onDisconnectClick,
-                onOpenServers = { selectedTab = AppTab.Servers },
                 onSelectNode = onSelectNode,
                 onRefreshConfig = onRefreshConfig,
                 onPasteLinkClick = onPasteLinkClick,
+                onScanQrClick = onScanQrClick,
                 onTelegramBotClick = onTelegramBotClick,
+                onOpenSiteClick = onOpenSiteClick,
                 onSubInfoButtonClick = onSubInfoButtonClick,
                 onRefreshPing = onRefreshPing,
-            )
-            AppTab.Servers -> ServersScreen(
-                modifier = Modifier.padding(padding),
-                nodes = state.nodes,
-                selectedNodeId = state.selectedNodeId,
-                nodePings = state.nodePings,
-                favoriteNodeIds = state.favoriteNodeIds,
-                subscriptionInfo = state.subscriptionInfo,
-                isRefreshing = state.isLoading,
-                isPinging = state.isPinging,
-                canRefreshConfig = state.subscriptionUrl.isNotBlank(),
-                enabled = state.vpnStatus != ru.nubovpn.app.vpn.VpnStatus.Starting &&
-                    state.vpnStatus != ru.nubovpn.app.vpn.VpnStatus.Stopping,
-                onSelectNode = onSelectNode,
-                onConnectToNode = { nodeId ->
-                    selectedTab = AppTab.Home
-                    onConnectToNode(nodeId)
+                onToggleSortByPing = onToggleSortByPing,
+                onOpenSubscriptionSettings = {
+                    selectedTab = AppTab.Settings
+                    settingsPage = SettingsPage.Subscription
                 },
-                onToggleFavorite = onToggleFavorite,
-                onRefreshConfig = onRefreshConfig,
-                onRefreshPing = onRefreshPing,
-                onTelegramBotClick = onTelegramBotClick,
             )
             AppTab.Settings -> SettingsScreen(
                 modifier = Modifier.padding(padding),
@@ -164,6 +153,8 @@ fun AppShell(
                 subscriptionAutoUpdateInterval = state.subscriptionAutoUpdateInterval,
                 onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
                 onPasteLink = onPasteLinkClick,
+                onScanQr = onScanQrClick,
+                onOpenSite = onOpenSiteClick,
                 onRefreshSubscription = onRefreshSubscription,
                 onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
                 onTelegramBot = onTelegramBotClick,
@@ -171,6 +162,7 @@ fun AppShell(
                 onDownloadLogs = onDownloadLogs,
                 onTelegramChannel = onTelegramChannelClick,
                 onCloseApp = onCloseApp,
+                subscriptionLoad = state.subscriptionLoad,
             )
         }
     }

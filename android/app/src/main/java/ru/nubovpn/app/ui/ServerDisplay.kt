@@ -15,9 +15,52 @@ data class ServerDisplay(
 )
 
 object ServerDisplayMapper {
-    /** Первый emoji-флаг в названии (нулевая позиция / первый токен до пробела). */
-    private val firstFlagRegex = Regex("^(\\p{Regional_Indicator}{2}|\\p{Extended_Pictographic})")
+    /** Флаг по умолчанию для серверов без emoji в названии. */
+    private const val DEFAULT_FLAG = "🇪🇺"
+
     private val ipv4Regex = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
+
+    private data class EmojiMatch(val emoji: String, val startIndex: Int, val endIndex: Int)
+
+    private fun isRegionalIndicator(cp: Int): Boolean = cp in 0x1F1E6..0x1F1FF
+
+    private fun isEmojiCodePoint(cp: Int): Boolean = when {
+        isRegionalIndicator(cp) -> true
+        cp in 0x1F300..0x1FAFF -> true
+        cp in 0x2600..0x26FF -> true
+        cp in 0x2700..0x27BF -> true
+        else -> false
+    }
+
+    /** Первый emoji в названии: флаг страны или любой символ (👑, ⚡ и т.д.). */
+    private fun findFirstEmoji(text: String): EmojiMatch? {
+        var index = 0
+        while (index < text.length) {
+            val cp = text.codePointAt(index)
+            if (isRegionalIndicator(cp)) {
+                val nextIndex = index + Character.charCount(cp)
+                if (nextIndex < text.length) {
+                    val cp2 = text.codePointAt(nextIndex)
+                    if (isRegionalIndicator(cp2)) {
+                        val end = nextIndex + Character.charCount(cp2)
+                        return EmojiMatch(text.substring(index, end), index, end)
+                    }
+                }
+            }
+            if (isEmojiCodePoint(cp)) {
+                var end = index + Character.charCount(cp)
+                if (end < text.length && text.codePointAt(end) == 0xFE0F) {
+                    end += Character.charCount(0xFE0F)
+                }
+                return EmojiMatch(text.substring(index, end), index, end)
+            }
+            index += Character.charCount(cp)
+        }
+        return null
+    }
+
+    private fun stripEmoji(text: String, match: EmojiMatch): String =
+        (text.substring(0, match.startIndex) + text.substring(match.endIndex)).trim()
 
     private fun isAutoSelect(name: String, title: String): Boolean =
         name.contains("автовыбор", ignoreCase = true) ||
@@ -43,10 +86,9 @@ object ServerDisplayMapper {
 
     fun map(node: ProxyNode, ping: PingState? = null): ServerDisplay {
         val trimmed = node.name.trim()
-        val flag = firstFlagRegex.find(trimmed)?.value
-            ?: trimmed.substringBefore(' ').trim().takeIf { it.isNotEmpty() }
-            ?: "🌐"
-        val withoutFlag = trimmed.removePrefix(flag).trim()
+        val emojiMatch = findFirstEmoji(trimmed)
+        val flag = emojiMatch?.emoji ?: DEFAULT_FLAG
+        val withoutFlag = emojiMatch?.let { stripEmoji(trimmed, it) } ?: trimmed
         val autoSelect = isAutoSelect(trimmed, withoutFlag.substringBefore("|").trim())
 
         val title = withoutFlag.substringBefore("|").trim().let { candidate ->

@@ -6,6 +6,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.Executors
 
 object AppLog {
     private const val TAG = "NuboVPN"
@@ -13,6 +14,11 @@ object AppLog {
 
     private val lock = Any()
     private val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+
+    /** Запись в файл — на выделенном фоновом потоке, чтобы не блокировать UI. */
+    private val writeExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "AppLogWriter").apply { isDaemon = true }
+    }
 
     private var logFile: File? = null
     private var crashFile: File? = null
@@ -83,13 +89,15 @@ object AppLog {
             else -> Log.i(TAG, message, throwable)
         }
 
-        synchronized(lock) {
-            runCatching {
-                val file = logFile ?: return@runCatching
-                trimIfNeeded(file)
-                file.appendText(line + "\n")
-            }.onFailure {
-                Log.e(TAG, "Failed to write log file", it)
+        writeExecutor.execute {
+            synchronized(lock) {
+                runCatching {
+                    val file = logFile ?: return@runCatching
+                    trimIfNeeded(file)
+                    file.appendText(line + "\n")
+                }.onFailure {
+                    Log.e(TAG, "Failed to write log file", it)
+                }
             }
         }
     }

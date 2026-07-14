@@ -59,6 +59,11 @@ class App : Application() {
                 AppLog.e("Xray init failed", it)
             }
         }
+
+        // Гео-файлы маршрутизации (geoip/geosite) — тихая загрузка при первом запуске
+        applicationScope.launch(Dispatchers.IO) {
+            ru.nubovpn.app.vpn.GeoFilesUpdater.ensureInstalledSilently(this@App)
+        }
     }
 
     companion object {

@@ -35,6 +35,8 @@ data class ProxyNode(
     val xhttpPath: String? = null,
     val xhttpMode: String? = null,
     val xhttpExtra: String? = null,
+    /** Оригинальный outbound из подписки (Xray JSON) — без потери streamSettings. */
+    val rawOutboundJson: String? = null,
 ) {
     val isHysteria2: Boolean
         get() = protocol.equals("hysteria2", ignoreCase = true)

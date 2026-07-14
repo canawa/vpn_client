@@ -22,6 +22,8 @@ class BoxService(
 
     private val notification = ServiceNotification(service)
 
+    private var healthJob: kotlinx.coroutines.Job? = null
+
     private var receiverRegistered = false
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -38,6 +40,7 @@ class BoxService(
         if (VpnManager.status.value != VpnStatus.Stopped) {
             return android.app.Service.START_NOT_STICKY
         }
+        active = this
         VpnManager.setStatus(VpnStatus.Starting)
 
         if (!receiverRegistered) {
@@ -65,6 +68,7 @@ class BoxService(
     internal fun onBind(): IBinder? = null
 
     internal fun onDestroy() {
+        if (active === this) active = null
         notification.close()
     }
 
@@ -108,8 +112,25 @@ class BoxService(
 
         VpnManager.setStatus(VpnStatus.Started)
         AppLog.i("BoxService started xray=${XrayCoreManager.isRunning()}")
+        startHealthWatcher()
         withContext(Dispatchers.Main) {
             notification.show(service.getString(ru.nubovpn.app.R.string.vpn_connected))
+        }
+    }
+
+    /** Страховка: если ядро xray умерло тихо, замечаем это и сворачиваем туннель. */
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun startHealthWatcher() {
+        healthJob?.cancel()
+        healthJob = GlobalScope.launch(Dispatchers.IO) {
+            while (VpnManager.status.value == VpnStatus.Started) {
+                kotlinx.coroutines.delay(5_000)
+                if (VpnManager.status.value == VpnStatus.Started && !XrayCoreManager.isRunning()) {
+                    AppLog.w("BoxService health check: xray core is not running")
+                    onCoreStopped()
+                    break
+                }
+            }
         }
     }
 
@@ -120,6 +141,8 @@ class BoxService(
         ) {
             return
         }
+        healthJob?.cancel()
+        healthJob = null
         VpnManager.setStatus(VpnStatus.Stopping)
 
         if (receiverRegistered) {
@@ -141,6 +164,8 @@ class BoxService(
     }
 
     private suspend fun stopServiceWithError(message: String) {
+        healthJob?.cancel()
+        healthJob = null
         XrayCoreManager.stopLoop()
         fileDescriptor?.close()
         fileDescriptor = null
@@ -168,6 +193,9 @@ class BoxService(
     }
 
     companion object {
+        @Volatile
+        private var active: BoxService? = null
+
         fun start() {
             AppLog.i("BoxService.start requested")
             val intent = Intent(App.instance, VPNService::class.java)
@@ -178,6 +206,22 @@ class BoxService(
             App.instance.sendBroadcast(
                 Intent(VpnAction.SERVICE_CLOSE).setPackage(App.instance.packageName),
             )
+        }
+
+        /**
+         * Ядро xray остановилось само (крэш, обрыв). Раньше приложение продолжало
+         * показывать «подключено» при мёртвом туннеле — VPN «просто не работал».
+         * Сворачиваем туннель и запускаем автопереподключение.
+         */
+        fun onCoreStopped() {
+            if (VpnManager.status.value != VpnStatus.Started) return
+            val instance = active ?: return
+            AppLog.w("BoxService: xray core stopped unexpectedly, tearing down tunnel")
+            App.applicationScope.launch {
+                VpnManager.userInitiatedDisconnect = false
+                VpnManager.setError("Соединение прервано — переподключаемся…")
+                instance.stopService()
+            }
         }
     }
 }

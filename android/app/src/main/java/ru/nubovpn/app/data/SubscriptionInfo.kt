@@ -43,6 +43,30 @@ data class SubscriptionInfo(
         return SubscriptionExpireFormatter.formatRemaining(remainingSec)
     }
 
+    /** Короткая подпись остатка срока для карточки подписки, например «280 дней». */
+    fun daysRemainingLabel(nowMs: Long = System.currentTimeMillis()): String {
+        if (expire <= 0) return "Бессрочно"
+        val nowSec = TimeUnit.MILLISECONDS.toSeconds(nowMs)
+        val remainingSec = expire - nowSec
+        if (remainingSec <= 0) return "Истекла"
+        val days = (remainingSec / 86_400L).coerceAtLeast(1)
+        val mod10 = days % 10
+        val mod100 = days % 100
+        val word = when {
+            mod100 in 11L..14L -> "дней"
+            mod10 == 1L -> "день"
+            mod10 in 2L..4L -> "дня"
+            else -> "дней"
+        }
+        return "$days $word"
+    }
+
+    fun subscriptionStatusLabel(nowMs: Long = System.currentTimeMillis()): String = when {
+        expire <= 0 -> "Подписка активна"
+        isExpired(nowMs) -> "Подписка истекла"
+        else -> "Подписка активна"
+    }
+
     fun isExpired(nowMs: Long = System.currentTimeMillis()): Boolean {
         if (expire <= 0) return false
         return expire * 1_000L <= nowMs

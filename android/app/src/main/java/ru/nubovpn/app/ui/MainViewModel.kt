@@ -51,6 +51,7 @@ data class MainUiState(
     val vpnStatus: VpnStatus = VpnStatus.Stopped,
     val connectionElapsedMs: Long = 0L,
     val isLoading: Boolean = false,
+    val subscriptionLoad: SubscriptionLoadState = SubscriptionLoadState(),
     val isPinging: Boolean = false,
     val nodePings: Map<String, PingState> = emptyMap(),
     val subscriptionInfo: SubscriptionInfo? = null,
@@ -62,6 +63,7 @@ data class MainUiState(
     val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval =
         SubscriptionAutoUpdateInterval.DEFAULT,
     val appThemeMode: AppThemeMode = AppThemeMode.DEFAULT,
+    val sortByPing: Boolean = false,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -74,6 +76,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val subscriptionUrlInput = MutableStateFlow("")
     private val isLoading = MutableStateFlow(false)
+    private val subscriptionLoadState = MutableStateFlow(SubscriptionLoadState())
     private val isPinging = MutableStateFlow(false)
     private val nodePings = MutableStateFlow<Map<String, PingState>>(emptyMap())
     private val message = MutableStateFlow<String?>(null)
@@ -108,22 +111,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         ) { vpnStatus, vpnError, elapsedMs, inputUrl ->
             VpnUiState(vpnStatus, vpnError, elapsedMs, inputUrl)
         },
-        combine(isLoading, isPinging, nodePings, message, error) { loading, pinging, pings, info, localError ->
-            LocalUiState(loading, pinging, pings, info, localError)
+        combine(
+            combine(isLoading, subscriptionLoadState) { loading, load -> loading to load },
+            isPinging,
+            nodePings,
+            message,
+            error,
+        ) { loadingPair, pinging, pings, info, localError ->
+            val (loading, load) = loadingPair
+            LocalUiState(loading, load, pinging, pings, info, localError)
         },
         combine(
             preferences.connectionSettings,
             preferences.subscriptionAutoUpdateInterval,
             preferences.appThemeMode,
-        ) { connectionSettings, autoUpdateInterval, appThemeMode ->
-            SettingsUiState(connectionSettings, autoUpdateInterval, appThemeMode)
+            preferences.sortByPing,
+        ) { connectionSettings, autoUpdateInterval, appThemeMode, sortByPing ->
+            SettingsUiState(connectionSettings, autoUpdateInterval, appThemeMode, sortByPing)
         },
         startupCrash,
     ) { savedData, vpnData, localData, settingsData, crash ->
-        val (connectionSettings, autoUpdateInterval, appThemeMode) = settingsData
+        val (connectionSettings, autoUpdateInterval, appThemeMode, sortByPing) = settingsData
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo, favoriteNodeIds) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
-        val (loading, pinging, pings, info, localError) = localData
+        val (loading, load, pinging, pings, info, localError) = localData
 
         MainUiState(
             subscriptionUrl = inputUrl.trim().ifBlank { savedUrl.trim() },
@@ -133,6 +144,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             vpnStatus = vpnStatus,
             connectionElapsedMs = connectionElapsedMs,
             isLoading = loading,
+            subscriptionLoad = load,
             isPinging = pinging,
             nodePings = pings,
             subscriptionInfo = subscriptionInfo,
@@ -142,6 +154,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             connectionSettings = connectionSettings,
             subscriptionAutoUpdateInterval = autoUpdateInterval,
             appThemeMode = appThemeMode,
+            sortByPing = sortByPing,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -202,6 +215,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             restoreSubscriptionSession()
             VpnAutoReconnect.tryReconnectOnResume()
             maybeAutoRefreshSubscriptionOnResume()
+            val state = uiState.value
+            if (state.sortByPing && state.nodes.isNotEmpty() && state.nodePings.isEmpty() && !state.isPinging) {
+                pingAllNodes(
+                    nodes = state.nodes,
+                    selectBestOnComplete = true,
+                )
+            }
         }
     }
 
@@ -247,12 +267,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun pingAllNodes() {
-        pingAllNodes(uiState.value.nodes)
+        pingAllNodes(
+            nodes = uiState.value.nodes,
+            selectBestOnComplete = uiState.value.sortByPing,
+        )
     }
 
     private var pingJob: Job? = null
 
-    private fun pingAllNodes(nodes: List<ProxyNode>) {
+    private fun pingAllNodes(
+        nodes: List<ProxyNode>,
+        selectBestOnComplete: Boolean = false,
+    ) {
         if (nodes.isEmpty()) return
 
         pingJob?.cancel()
@@ -280,6 +306,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } finally {
                 flushJob.cancel()
                 isPinging.value = false
+                if (selectBestOnComplete) {
+                    selectBestNodeByPing(nodes)
+                }
+            }
+        }
+    }
+
+    private fun selectBestNodeByPing(nodes: List<ProxyNode>) {
+        val pings = nodePings.value
+        val bestNodeId = nodes
+            .mapNotNull { node ->
+                when (val ping = pings[node.id]) {
+                    is PingState.Result -> node.id to ping.latencyMs
+                    else -> null
+                }
+            }
+            .minByOrNull { it.second }
+            ?.first
+            ?: return
+
+        val bestNode = nodes.find { it.id == bestNodeId } ?: return
+        val currentId = uiState.value.selectedNodeId
+        if (currentId == bestNodeId) return
+
+        viewModelScope.launch {
+            preferences.setSelectedNodeId(bestNodeId)
+            message.value = "Выбран лучший сервер: ${bestNode.name}"
+            AppLog.i("selectBestNodeByPing node=${bestNode.name} ping=${pings[bestNodeId]}")
+            if (VpnManager.status.value != VpnStatus.Stopped) {
+                switchVpnToNode(bestNodeId)
             }
         }
     }
@@ -358,13 +414,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch {
-            isLoading.value = true
-            error.value = null
-            try {
+            runSubscriptionLoad {
+                report(0.15f, "Чтение конфигурации…")
                 val nodes = withContext(Dispatchers.IO) {
+                    report(0.45f, "Разбор серверов…")
                     SubscriptionParser.parse(trimmed)
                 }
                 if (nodes.isEmpty()) error("Подписка пуста")
+                report(0.85f, "Сохранение…")
                 preferences.saveSubscription(
                     LOCAL_IMPORT_URL,
                     nodes,
@@ -372,16 +429,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     null,
                 )
                 subscriptionUrlInput.value = LOCAL_IMPORT_URL
-                message.value = "Импортировано серверов: ${nodes.size}"
-                AppLog.i("importSubscriptionPayload ok nodes=${nodes.size}")
+                nodes.size
+            }.onSuccess { count ->
+                message.value = "Импортировано серверов: $count"
+                AppLog.i("importSubscriptionPayload ok nodes=$count")
                 if (connectAfter && prepareConnect(showErrors = true)) {
                     onEffect(DeepLinkEffect.RequestConnect)
                 }
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 AppLog.e("importSubscriptionPayload failed", e)
                 error.value = e.message ?: "Не удалось импортировать конфиг"
-            } finally {
-                isLoading.value = false
             }
         }
     }
@@ -410,7 +467,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         subscriptionUrlInput.value = text
-        message.value = "Ссылка вставлена"
         AppLog.i("pasteSubscriptionFromClipboard urlLen=${text.length}")
         refreshConfig(showUrlRequiredError = false)
     }
@@ -455,11 +511,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch {
-            isLoading.value = true
             error.value = null
             message.value = null
-            val success = runCatching {
-                fetchAndSaveSubscription(url)
+            val success = runSubscriptionLoad {
+                fetchAndSaveSubscription(url) { progress, msg -> report(progress, msg) }
             }.onSuccess { nodeCount ->
                 message.value = "Конфиг обновлён: $nodeCount серверов"
                 AppLog.i("refreshConfig ok, nodes=$nodeCount")
@@ -467,21 +522,72 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 AppLog.e("refreshConfig failed", e)
                 error.value = (e as? Exception)?.message ?: "Не удалось обновить конфиг"
             }.isSuccess
-            isLoading.value = false
             onComplete?.invoke(success)
         }
     }
 
-    private suspend fun fetchAndSaveSubscription(url: String): Int {
-        AppLog.i("fetchAndSaveSubscription start urlLen=${url.length}")
-        val result = withContext(Dispatchers.IO) {
-            repository.fetchSubscription(url)
+    private suspend fun runSubscriptionLoad(
+        block: suspend SubscriptionLoadReporter.() -> Int,
+    ): Result<Int> {
+        isLoading.value = true
+        val reporter = SubscriptionLoadReporter { progress, msg ->
+            subscriptionLoadState.value = SubscriptionLoadState(
+                active = true,
+                progress = progress.coerceIn(0f, 1f),
+                message = msg,
+            )
         }
+        return try {
+            reporter.report(0.05f, "Подготовка…")
+            delay(120)
+            val count = block(reporter)
+            reporter.report(1f, "Готово!")
+            delay(450)
+            Result.success(count)
+        } catch (e: Throwable) {
+            Result.failure(e)
+        } finally {
+            subscriptionLoadState.value = SubscriptionLoadState()
+            isLoading.value = false
+        }
+    }
+
+    private class SubscriptionLoadReporter(
+        private val emit: (Float, String) -> Unit,
+    ) {
+        fun report(progress: Float, message: String) = emit(progress, message)
+    }
+
+    private suspend fun fetchAndSaveSubscription(
+        url: String,
+        report: (Float, String) -> Unit = { _, _ -> },
+    ): Int {
+        report(0.2f, "Подключение к серверу…")
+        val result = withContext(Dispatchers.IO) {
+            repository.fetchSubscription(url) { attempt, maxAttempts ->
+                if (attempt == 1) {
+                    report(0.45f, "Загрузка подписки…")
+                } else {
+                    report(0.45f, "Повторная попытка $attempt из $maxAttempts…")
+                }
+            }
+        }
+        report(0.72f, "Разбор серверов…")
+        delay(150)
+        report(0.88f, "Сохранение…")
         val selected = uiState.value.selectedNodeId?.takeIf { id ->
             result.nodes.any { it.id == id }
         } ?: result.nodes.first().id
         preferences.saveSubscription(url, result.nodes, selected, result.info)
         preferences.setSubscriptionLastAutoRefreshAt(System.currentTimeMillis())
+        if (preferences.sortByPing.first()) {
+            withContext(Dispatchers.Main) {
+                pingAllNodes(
+                    nodes = result.nodes,
+                    selectBestOnComplete = true,
+                )
+            }
+        }
         return result.nodes.size
     }
 
@@ -527,6 +633,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             preferences.setSelectedNodeId(nodeId)
         }
+        // Как в v2rayNG: если VPN уже запущен, смена сервера сразу переподключает туннель
+        if (VpnManager.status.value != VpnStatus.Stopped) {
+            switchVpnToNode(nodeId)
+        }
     }
 
     fun toggleFavoriteNode(nodeId: String) {
@@ -535,12 +645,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun toggleSortByPing() {
+        val enabling = !uiState.value.sortByPing
+        viewModelScope.launch(Dispatchers.IO) {
+            preferences.setSortByPing(enabling)
+        }
+        if (enabling && uiState.value.nodes.isNotEmpty()) {
+            pingAllNodes(
+                nodes = uiState.value.nodes,
+                selectBestOnComplete = true,
+            )
+        }
+    }
+
+    /** Импорт подписки из отсканированного QR-кода (ссылка или конфиг). */
+    fun importFromQr(content: String) {
+        val trimmed = content.trim()
+        if (trimmed.isBlank()) {
+            error.value = "QR-код пуст"
+            return
+        }
+        AppLog.i("importFromQr len=${trimmed.length} prefix=${trimmed.take(24)}")
+        if (trimmed.startsWith("http://", ignoreCase = true) ||
+            trimmed.startsWith("https://", ignoreCase = true)
+        ) {
+            subscriptionUrlInput.value = trimmed
+            refreshConfig(showUrlRequiredError = false)
+        } else {
+            // vless://, hy2://, base64 или JSON-конфиг
+            importSubscriptionPayload(trimmed, connectAfter = false, onEffect = {})
+        }
+    }
+
     fun requestConnectToNode(nodeId: String) {
         clearMessages()
         if (!prepareConnect()) return
+        if (uiState.value.nodes.none { it.id == nodeId }) return
 
+        viewModelScope.launch { preferences.setSelectedNodeId(nodeId) }
+        switchVpnToNode(nodeId)
+    }
+
+    /** Подключает (или переподключает уже запущенный VPN) к указанному серверу. */
+    private fun switchVpnToNode(nodeId: String) {
         val node = uiState.value.nodes.find { it.id == nodeId } ?: return
-        selectNode(nodeId)
 
         when (VpnManager.status.value) {
             VpnStatus.Stopped -> {
@@ -549,6 +697,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             VpnStatus.Started -> {
                 val connectedId = VpnAutoReconnect.connectedNode()?.id
                 if (connectedId == nodeId) return
+                AppLog.i("switchVpnToNode reconnect to ${node.name}")
+                message.value = "Переподключение к ${node.name}…"
                 pendingConnectNodeId = nodeId
                 VpnManager.disconnect()
             }
@@ -612,6 +762,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private data class LocalUiState(
         val isLoading: Boolean,
+        val subscriptionLoad: SubscriptionLoadState,
         val isPinging: Boolean,
         val nodePings: Map<String, PingState>,
         val message: String?,
@@ -622,5 +773,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val connectionSettings: ConnectionSettingsState,
         val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
         val appThemeMode: AppThemeMode,
+        val sortByPing: Boolean,
     )
 }

@@ -14,14 +14,53 @@ object XrayConfigBuilder {
         XrayRoutingApplier.applyRoutingProfile(config)
         XrayRoutingApplier.applyConnectionSettings(config)
         XrayRoutingApplier.ensureDefaultProxyRule(config)
+        ensureProxyServerDirectRoute(config, node)
         return config.toString(2)
     }
 
-    private fun buildBaseConfig(node: ProxyNode): JSONObject {
-        val proxyOutbound = when {
-            node.isHysteria2 -> buildHysteria2Outbound(node)
-            else -> buildVlessOutbound(node)
+    /** Соединение с VPN-сервером иначе уходит в proxy и зависает (read timeout). */
+    private fun ensureProxyServerDirectRoute(config: JSONObject, node: ProxyNode) {
+        val routing = config.optJSONObject("routing") ?: return
+        val rules = routing.optJSONArray("rules") ?: return
+
+        val domains = JSONArray()
+        val ips = JSONArray()
+        proxyEndpointHosts(node).forEach { host ->
+            if (IPv4_REGEX.matches(host)) {
+                ips.put(host)
+            } else {
+                domains.put("full:$host")
+                val parent = host.substringAfter('.', "")
+                if (parent.contains('.')) domains.put("domain:.$parent")
+            }
         }
+        if (domains.length() == 0 && ips.length() == 0) return
+
+        val bypass = JSONObject().apply {
+            put("type", "field")
+            put("outboundTag", "direct")
+            domains.takeIf { it.length() > 0 }?.let { put("domain", it) }
+            ips.takeIf { it.length() > 0 }?.let { put("ip", it) }
+            put("port", node.port.toString())
+        }
+
+        val merged = JSONArray()
+        val privateRuleCount = 1.coerceAtMost(rules.length())
+        for (i in 0 until privateRuleCount) merged.put(rules.get(i))
+        merged.put(bypass)
+        for (i in privateRuleCount until rules.length()) merged.put(rules.get(i))
+        routing.put("rules", merged)
+    }
+
+    private fun proxyEndpointHosts(node: ProxyNode): Set<String> = buildSet {
+        listOfNotNull(node.host, node.sni, node.wsHost, node.xhttpHost, node.grpcAuthority)
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .forEach { add(it) }
+    }
+
+    private fun buildBaseConfig(node: ProxyNode): JSONObject {
+        val proxyOutbound = resolveProxyOutbound(node)
 
         return JSONObject().apply {
             put("log", JSONObject().put("loglevel", "warning"))
@@ -33,6 +72,7 @@ object XrayConfigBuilder {
                 put(proxyOutbound)
                 put(freedomOutbound("direct"))
                 put(blackholeOutbound("block"))
+                put(dnsOutbound("dns-out"))
             })
             put("routing", buildBaseRouting())
         }
@@ -48,8 +88,11 @@ object XrayConfigBuilder {
         }
 
         return JSONObject().apply {
+            put("queryStrategy", "UseIPv4")
             put("servers", JSONArray().apply {
                 put(TUN_DNS)
+                // Fallback: DNS-over-TCP — работает и там, где сервер не пропускает UDP
+                put("tcp://$TUN_DNS")
                 put(JSONObject().apply {
                     put("address", TUN_DNS)
                     put("domains", JSONArray().apply {
@@ -75,6 +118,7 @@ object XrayConfigBuilder {
             })
             put("sniffing", JSONObject().apply {
                 put("enabled", true)
+                put("routeOnly", true)
                 put("destOverride", JSONArray().apply {
                     put("http")
                     put("tls")
@@ -88,6 +132,16 @@ object XrayConfigBuilder {
         return JSONObject().apply {
             put("domainStrategy", "IPIfNonMatch")
             put("rules", JSONArray().apply {
+                // Перехват DNS: запросы приложений (порт 53) обрабатывает DNS-модуль xray.
+                // Без этого DNS уходит сырым UDP через прокси и часто теряется —
+                // туннель «подключён», а сайты не открываются.
+                put(JSONObject().apply {
+                    put("type", "field")
+                    put("inboundTag", JSONArray().put("tun-in"))
+                    put("port", "53")
+                    put("network", "tcp,udp")
+                    put("outboundTag", "dns-out")
+                })
                 put(fieldRule(
                     ip = JSONArray().apply {
                         put("0.0.0.0/8")
@@ -106,11 +160,24 @@ object XrayConfigBuilder {
         }
     }
 
+    private fun resolveProxyOutbound(node: ProxyNode): JSONObject {
+        node.rawOutboundJson?.let { raw ->
+            runCatching { JSONObject(raw) }.getOrNull()?.takeIf { it.has("protocol") }?.let { outbound ->
+                outbound.put("tag", "proxy")
+                return outbound
+            }
+        }
+        return when {
+            node.isHysteria2 -> buildHysteria2Outbound(node)
+            else -> buildVlessOutbound(node)
+        }
+    }
+
     private fun buildVlessOutbound(node: ProxyNode): JSONObject {
         val user = JSONObject().apply {
             put("id", node.uuid)
             put("encryption", node.encryption.ifBlank { "none" })
-            if (!node.isXhttp && !node.isGrpc && !node.flow.isNullOrBlank()) {
+            if (shouldUseFlow(node)) {
                 put("flow", node.flow)
             }
         }
@@ -134,6 +201,10 @@ object XrayConfigBuilder {
     private fun buildVlessStreamSettings(node: ProxyNode): JSONObject {
         return JSONObject().apply {
             when {
+                node.isXhttp && node.transport.equals("splithttp", ignoreCase = true) -> {
+                    put("network", "splithttp")
+                    put("splithttpSettings", buildXhttpSettings(node))
+                }
                 node.isXhttp -> {
                     put("network", "xhttp")
                     put("xhttpSettings", buildXhttpSettings(node))
@@ -149,6 +220,16 @@ object XrayConfigBuilder {
                 node.transport.equals("ws", ignoreCase = true) -> {
                     put("network", "ws")
                     put("wsSettings", JSONObject().apply {
+                        put("path", node.wsPath ?: "/")
+                        node.wsHost?.let { host ->
+                            put("host", host)
+                            put("headers", JSONObject().put("Host", host))
+                        }
+                    })
+                }
+                node.transport.equals("httpupgrade", ignoreCase = true) -> {
+                    put("network", "httpupgrade")
+                    put("httpupgradeSettings", JSONObject().apply {
                         put("path", node.wsPath ?: "/")
                         node.wsHost?.let { host ->
                             put("host", host)
@@ -258,12 +339,28 @@ object XrayConfigBuilder {
         }
     }
 
+    private fun dnsOutbound(tag: String): JSONObject {
+        return JSONObject().apply {
+            put("tag", tag)
+            put("protocol", "dns")
+            put("settings", JSONObject().apply {
+                put("nonIPQuery", "skip")
+            })
+        }
+    }
+
     private fun freedomOutbound(tag: String): JSONObject {
         return JSONObject().apply {
             put("tag", tag)
             put("protocol", "freedom")
-            put("settings", JSONObject())
+            put("settings", JSONObject().put("domainStrategy", "UseIPv4"))
         }
+    }
+
+    private fun shouldUseFlow(node: ProxyNode): Boolean {
+        if (node.flow.isNullOrBlank()) return false
+        val transport = node.transport.lowercase()
+        return transport !in setOf("xhttp", "splithttp", "grpc", "ws", "httpupgrade")
     }
 
     private fun blackholeOutbound(tag: String): JSONObject {
