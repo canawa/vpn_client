@@ -95,7 +95,6 @@ fun AppShell(
                     )
                 } else if (selectedTab == AppTab.Home) {
                     HomeTopBar(
-                        onMenuClick = { selectedTab = AppTab.Settings },
                         onGlobeClick = onOpenSiteClick,
                     )
                 } else {

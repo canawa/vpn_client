@@ -44,7 +44,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -124,7 +123,6 @@ fun NuboSwitch(
 
 @Composable
 fun HomeTopBar(
-    onMenuClick: () -> Unit,
     onGlobeClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -136,20 +134,7 @@ fun HomeTopBar(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .clickable(onClick = onMenuClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = "Меню",
-                tint = colors.textMain,
-                modifier = Modifier.size(22.dp),
-            )
-        }
+        Spacer(modifier = Modifier.size(40.dp))
 
         Column(
             modifier = Modifier.weight(1f),
