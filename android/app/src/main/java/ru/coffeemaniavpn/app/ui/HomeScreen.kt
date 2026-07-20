@@ -1,6 +1,7 @@
 package ru.coffeemaniavpn.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,7 +55,10 @@ fun HomeScreen(
         }
         state.error?.let { ErrorBanner(text = it) }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             SectionLabel("Статус")
             Text(
                 text = if (subscriptionExpired) "Подписка истекла" else statusHeadline(state.vpnStatus),
@@ -66,6 +70,23 @@ fun HomeScreen(
                     coffemaniaColors().espresso
                 },
             )
+            if (!subscriptionExpired) {
+                if (selectedDisplay != null) {
+                    SelectedServerCard(
+                        display = selectedDisplay,
+                        onClick = onOpenServers,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        emphasized = true,
+                    )
+                } else if (hasSubscription) {
+                    EmptyServerHint(
+                        onClick = onOpenServers,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+            }
         }
 
         Column(
@@ -87,20 +108,6 @@ fun HomeScreen(
                     onRenewWebsiteClick = onBuyOnWebsiteClick,
                     modifier = Modifier.fillMaxWidth(),
                 )
-            }
-        }
-
-        if (!subscriptionExpired) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                SectionLabel("Текущий сервер")
-                if (selectedDisplay != null) {
-                    SelectedServerCard(
-                        display = selectedDisplay,
-                        onClick = onOpenServers,
-                    )
-                } else {
-                    EmptyServerHint()
-                }
             }
         }
 
@@ -127,12 +134,30 @@ fun HomeScreen(
 }
 
 @Composable
-private fun EmptyServerHint() {
+private fun EmptyServerHint(
+    onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
     Text(
-        text = "Добавьте подписку, чтобы выбрать сервер",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(16.dp),
+        text = if (onClick != null) {
+            "Нажмите, чтобы выбрать сервер"
+        } else {
+            "Добавьте подписку, чтобы выбрать сервер"
+        },
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = coffemaniaColors().espresso,
+        modifier = modifier
+            .then(
+                if (onClick != null) {
+                    Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onClick)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                } else {
+                    Modifier.padding(16.dp)
+                },
+            ),
     )
 }
 

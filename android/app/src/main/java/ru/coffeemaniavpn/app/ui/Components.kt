@@ -413,55 +413,93 @@ fun SelectedServerCard(
     display: ServerDisplay,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    emphasized: Boolean = false,
 ) {
+    val colors = coffemaniaColors()
+    val pingColor = when {
+        display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
+        display.pingText == "N/A" -> CoffemaniaColors.PingBad
+        else -> colors.mocha
+    }
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = coffemaniaColors().cappuccino,
-        border = androidx.compose.foundation.BorderStroke(1.dp, coffemaniaColors().latte),
+        shape = RoundedCornerShape(if (emphasized) 14.dp else 12.dp),
+        color = if (emphasized) colors.surfaceContainerHighest else colors.cappuccino,
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (emphasized) 2.dp else 1.dp,
+            color = if (emphasized) colors.espresso.copy(alpha = 0.55f) else colors.latte,
+        ),
+        shadowElevation = if (emphasized) 2.dp else 0.dp,
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(
+                horizontal = if (emphasized) 18.dp else 16.dp,
+                vertical = if (emphasized) 18.dp else 16.dp,
+            ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (emphasized) 14.dp else 16.dp),
                 modifier = Modifier.weight(1f),
             ) {
                 ServerFlag(
                     flag = display.flag,
-                    height = 48.dp,
+                    height = if (emphasized) 56.dp else 48.dp,
                     crossfade = true,
                     showShadow = true,
                 )
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = display.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = coffemaniaColors().espresso,
+                        style = if (emphasized) {
+                            MaterialTheme.typography.titleMedium
+                        } else {
+                            MaterialTheme.typography.bodyLarge
+                        },
+                        fontWeight = FontWeight.Bold,
+                        color = colors.espresso,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (display.subtitle.isNotBlank()) {
-                        Text(
-                            text = display.subtitle,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = coffemaniaColors().mocha,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (display.subtitle.isNotBlank()) {
+                            Text(
+                                text = display.subtitle,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (emphasized) FontWeight.Medium else FontWeight.Normal,
+                                color = if (emphasized) {
+                                    colors.espresso.copy(alpha = 0.72f)
+                                } else {
+                                    colors.mocha
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                        }
+                        if (emphasized && display.pingText.isNotBlank() && display.pingText != "—") {
+                            Text(
+                                text = display.pingText,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = pingColor,
+                            )
+                        }
                     }
                 }
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = coffemaniaColors().espresso,
+                contentDescription = "Выбрать сервер",
+                tint = colors.espresso,
+                modifier = if (emphasized) Modifier.size(28.dp) else Modifier,
             )
         }
     }
