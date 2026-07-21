@@ -42,6 +42,16 @@ object XrayConfigBuilder {
 
         return JSONObject().apply {
             put("servers", JSONArray().apply {
+                // Российские домены — через DNS напрямую (не через VPN).
+                put(JSONObject().apply {
+                    put("address", "77.88.8.8")
+                    put("domains", JSONArray().apply {
+                        put("geosite:CATEGORY-RU")
+                        put("geosite:TLD-RU")
+                        put("geosite:CATEGORY-GOV-RU")
+                    })
+                    put("skipFallback", true)
+                })
                 put(TUN_DNS)
                 put(JSONObject().apply {
                     put("address", TUN_DNS)
@@ -83,6 +93,7 @@ object XrayConfigBuilder {
             put("rules", JSONArray().apply {
                 put(fieldRule(
                     ip = JSONArray().apply {
+                        put("geoip:PRIVATE")
                         put("0.0.0.0/8")
                         put("10.0.0.0/8")
                         put("127.0.0.0/8")
@@ -92,6 +103,19 @@ object XrayConfigBuilder {
                         put("224.0.0.0/4")
                         put("240.0.0.0/4")
                     },
+                    outboundTag = "direct",
+                ))
+                // Российские сайты и IP — мимо VPN (geo-файлы из libv2ray).
+                put(fieldRule(
+                    domain = JSONArray().apply {
+                        put("geosite:CATEGORY-RU")
+                        put("geosite:TLD-RU")
+                        put("geosite:CATEGORY-GOV-RU")
+                    },
+                    outboundTag = "direct",
+                ))
+                put(fieldRule(
+                    ip = JSONArray().put("geoip:RU"),
                     outboundTag = "direct",
                 ))
             })
