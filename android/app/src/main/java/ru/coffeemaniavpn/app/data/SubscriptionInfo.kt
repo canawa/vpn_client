@@ -173,3 +173,19 @@ fun formatTrafficBytes(bytes: Long): String {
         else -> "$bytes B"
     }
 }
+
+/** Скорость: Б/с, КБ/с или МБ/с в зависимости от величины. */
+fun formatTrafficRate(bytesPerSec: Long): String {
+    val rate = bytesPerSec.coerceAtLeast(0).toDouble()
+    val kb = 1024.0
+    val mb = kb * 1024
+    return when {
+        rate >= mb -> String.format(Locale.US, "%.1f МБ/с", rate / mb)
+        rate >= kb -> String.format(Locale.US, "%.1f КБ/с", rate / kb)
+        else -> String.format(Locale.US, "%.0f Б/с", rate)
+    }
+}
+
+fun formatTrafficSpeedLine(downlinkBytesPerSec: Long, uplinkBytesPerSec: Long): String =
+    "↓ ${formatTrafficRate(downlinkBytesPerSec)}  ↑ ${formatTrafficRate(uplinkBytesPerSec)}"
+

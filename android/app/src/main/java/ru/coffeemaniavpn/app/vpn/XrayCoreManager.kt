@@ -34,6 +34,27 @@ object XrayCoreManager {
 
     fun isRunning(): Boolean = coreController?.isRunning == true
 
+    /**
+     * Байты uplink/downlink с прошлого вызова (счётчики сбрасываются).
+     * Сумма по outbound `proxy` и `direct`.
+     */
+    fun queryTrafficDelta(): Pair<Long, Long> {
+        val controller = coreController ?: return 0L to 0L
+        if (!controller.isRunning) return 0L to 0L
+        return runCatching {
+            var uplink = 0L
+            var downlink = 0L
+            for (tag in listOf("proxy", "direct")) {
+                uplink += controller.queryStats(tag, "uplink").coerceAtLeast(0L)
+                downlink += controller.queryStats(tag, "downlink").coerceAtLeast(0L)
+            }
+            uplink to downlink
+        }.getOrElse {
+            AppLog.e("queryTrafficDelta failed", it)
+            0L to 0L
+        }
+    }
+
     fun startLoop(config: String, tunFd: Int) {
         ensureController(XrayCoreCallback).startLoop(config, tunFd)
     }

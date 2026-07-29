@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -24,7 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.size.Size
 
@@ -34,14 +37,50 @@ fun ServerListFlag(
     modifier: Modifier = Modifier,
     height: Dp = 34.dp,
 ) {
-    ServerFlag(
-        flag = flag,
-        modifier = modifier,
-        height = height,
-        cornerRadius = 6.dp,
-        showBorder = true,
-        showShadow = false,
-        crossfade = false,
+    val countryCode = remember(flag) { FlagUtils.resolveCountryCode(flag) }
+    val assetPath = remember(flag) { FlagUtils.flagAssetPath(flag) }
+    val width = height * 3 / 2
+    val shape = RoundedCornerShape(6.dp)
+    val colors = coffemaniaColors()
+    val density = LocalDensity.current
+    val pixelWidth = with(density) { width.roundToPx().coerceAtLeast(1) }
+    val pixelHeight = with(density) { height.roundToPx().coerceAtLeast(1) }
+    val context = LocalContext.current
+
+    val imageModifier = modifier
+        .width(width)
+        .height(height)
+        .clip(shape)
+        .border(1.dp, colors.latte, shape)
+        .background(colors.cappuccino)
+
+    if (assetPath == null) {
+        FlagFallback(
+            countryCode = null,
+            modifier = imageModifier,
+            height = height,
+        )
+        return
+    }
+
+    // Лёгкий AsyncImage без Subcompose — иначе список лагает при быстром скролле.
+    val request = remember(assetPath, pixelWidth, pixelHeight, countryCode) {
+        ImageRequest.Builder(context)
+            .data(assetPath)
+            .size(Size(pixelWidth, pixelHeight))
+            .memoryCacheKey("flag-list-$countryCode-${pixelWidth}x$pixelHeight")
+            .diskCachePolicy(CachePolicy.DISABLED)
+            .allowHardware(true)
+            .build()
+    }
+
+    AsyncImage(
+        model = request,
+        contentDescription = countryCode?.uppercase() ?: "Флаг",
+        modifier = imageModifier,
+        contentScale = ContentScale.Crop,
+        placeholder = ColorPainter(colors.latte),
+        error = ColorPainter(colors.latte),
     )
 }
 
@@ -63,6 +102,7 @@ fun ServerFlag(
     val density = LocalDensity.current
     val pixelWidth = with(density) { width.roundToPx().coerceAtLeast(1) }
     val pixelHeight = with(density) { height.roundToPx().coerceAtLeast(1) }
+    val context = LocalContext.current
 
     val imageModifier = modifier
         .width(width)
@@ -93,14 +133,19 @@ fun ServerFlag(
         return
     }
 
-    SubcomposeAsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
+    val request = remember(assetPath, pixelWidth, pixelHeight, countryCode, crossfade) {
+        ImageRequest.Builder(context)
             .data(assetPath)
             .size(Size(pixelWidth, pixelHeight))
             .crossfade(if (crossfade) 160 else 0)
-            .memoryCacheKey("flag-asset-$countryCode")
-            .diskCacheKey("flag-asset-$countryCode")
-            .build(),
+            .memoryCacheKey("flag-asset-$countryCode-${pixelWidth}x$pixelHeight")
+            .diskCachePolicy(CachePolicy.DISABLED)
+            .allowHardware(true)
+            .build()
+    }
+
+    SubcomposeAsyncImage(
+        model = request,
         contentDescription = countryCode?.uppercase() ?: "Флаг",
         modifier = imageModifier,
         contentScale = ContentScale.Crop,

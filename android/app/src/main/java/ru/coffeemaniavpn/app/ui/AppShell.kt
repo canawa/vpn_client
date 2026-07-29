@@ -189,6 +189,7 @@ fun AppShell(
                     selectedNodeId = state.selectedNodeId,
                     nodePings = state.nodePings,
                     subscriptionInfo = state.subscriptionInfo,
+                    lastUpdatedAtMs = state.subscriptionLastUpdatedAtMs,
                     isRefreshing = state.isLoading,
                     isPinging = state.isPinging,
                     canRefreshConfig = state.subscriptionUrl.isNotBlank(),

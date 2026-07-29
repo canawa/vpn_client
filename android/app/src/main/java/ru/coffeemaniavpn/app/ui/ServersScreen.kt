@@ -1,10 +1,14 @@
 package ru.coffeemaniavpn.app.ui
 
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +28,7 @@ fun ServersScreen(
     selectedNodeId: String?,
     nodePings: Map<String, PingState>,
     subscriptionInfo: SubscriptionInfo?,
+    lastUpdatedAtMs: Long = 0L,
     isRefreshing: Boolean,
     isPinging: Boolean,
     canRefreshConfig: Boolean,
@@ -37,6 +42,7 @@ fun ServersScreen(
     modifier: Modifier = Modifier,
 ) {
     val subscriptionExpired = subscriptionInfo?.isExpired() == true
+    val gentleFling = rememberGentleFlingBehavior()
 
     Column(
         modifier = modifier
@@ -48,6 +54,7 @@ fun ServersScreen(
         SubscriptionStatusBar(
             nodeCount = nodes.size,
             subscriptionInfo = subscriptionInfo,
+            lastUpdatedAtMs = lastUpdatedAtMs,
             isRefreshing = isRefreshing,
             isPinging = isPinging,
             canRefresh = canRefreshConfig && !subscriptionExpired,
@@ -74,6 +81,7 @@ fun ServersScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 8.dp),
+                flingBehavior = gentleFling,
             ) {
                 items(
                     items = nodes,
@@ -91,8 +99,19 @@ fun ServersScreen(
                 }
             }
         }
+    }
+}
 
-        TelegramChannelBanner(onClick = onRenewTelegramClick)
+/** Притормаживает инерцию, чтобы при быстром свайпе меньше кадров «проседает». */
+@Composable
+private fun rememberGentleFlingBehavior(velocityFactor: Float = 0.42f): FlingBehavior {
+    val base = ScrollableDefaults.flingBehavior()
+    return remember(base, velocityFactor) {
+        object : FlingBehavior {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+                return with(base) { performFling(initialVelocity * velocityFactor) }
+            }
+        }
     }
 }
 
@@ -105,7 +124,7 @@ private fun ServerListItem(
     onSelectNode: (String) -> Unit,
     onConnectToNode: (String) -> Unit,
 ) {
-    val display = remember(node.id, ping) {
+    val display = remember(node.id, node.name, node.protocol, node.transport, ping) {
         ServerDisplayMapper.map(node, ping)
     }
     val onClick = remember(node.id, enabled, onSelectNode) {
@@ -120,5 +139,6 @@ private fun ServerListItem(
         selected = selected,
         onClick = onClick,
         onDoubleClick = onDoubleClick,
+        modifier = Modifier.height(56.dp),
     )
 }

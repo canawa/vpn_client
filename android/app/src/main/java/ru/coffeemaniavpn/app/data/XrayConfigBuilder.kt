@@ -40,6 +40,16 @@ object XrayConfigBuilder {
 
         return JSONObject().apply {
             put("log", JSONObject().put("loglevel", "warning"))
+            put("stats", JSONObject())
+            put("policy", JSONObject().apply {
+                put(
+                    "system",
+                    JSONObject().apply {
+                        put("statsOutboundUplink", true)
+                        put("statsOutboundDownlink", true)
+                    },
+                )
+            })
             put("dns", buildDns(node))
             put("inbounds", JSONArray().apply {
                 put(buildTunInbound())

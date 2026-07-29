@@ -13,6 +13,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.coffeemaniavpn.app.App
+import ru.coffeemaniavpn.app.data.formatTrafficSpeedLine
 import ru.coffeemaniavpn.app.util.AppLog
 
 class BoxService(
@@ -38,6 +39,7 @@ class BoxService(
         if (status == VpnStatus.Started || status == VpnStatus.Starting) {
             stopService()
         } else {
+            activeNotification = null
             notification.close()
             service.stopSelf()
         }
@@ -120,6 +122,7 @@ class BoxService(
         VpnManager.setStatus(VpnStatus.Started)
         AppLog.i("BoxService started xray=${XrayCoreManager.isRunning()}")
         withContext(Dispatchers.Main) {
+            activeNotification = notification
             notification.show(service.getString(ru.coffeemaniavpn.app.R.string.vpn_connected))
         }
     }
@@ -137,6 +140,7 @@ class BoxService(
             service.unregisterReceiver(receiver)
             receiverRegistered = false
         }
+        activeNotification = null
         notification.close()
 
         GlobalScope.launch(Dispatchers.IO) {
@@ -160,6 +164,7 @@ class BoxService(
                 service.unregisterReceiver(receiver)
                 receiverRegistered = false
             }
+            activeNotification = null
             notification.close()
             VpnManager.setError(message)
             VpnManager.setStatus(VpnStatus.Stopped)
@@ -179,6 +184,9 @@ class BoxService(
     }
 
     companion object {
+        @Volatile
+        private var activeNotification: ServiceNotification? = null
+
         fun start() {
             AppLog.i("BoxService.start requested")
             val intent = Intent(App.instance, VPNService::class.java)
@@ -197,6 +205,16 @@ class BoxService(
                     Intent(VpnAction.SERVICE_CLOSE).setPackage(App.instance.packageName),
                 )
             }
+        }
+
+        fun updateTrafficNotification(rates: VpnTrafficRates) {
+            val notification = activeNotification ?: return
+            val connected = App.instance.getString(ru.coffeemaniavpn.app.R.string.vpn_connected)
+            val speed = formatTrafficSpeedLine(
+                downlinkBytesPerSec = rates.downlinkBytesPerSec,
+                uplinkBytesPerSec = rates.uplinkBytesPerSec,
+            )
+            notification.show("$connected · $speed")
         }
     }
 }

@@ -76,6 +76,7 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[KEY_SUBSCRIPTION_URL] = url.trim()
             prefs[KEY_NODES] = json.encodeToString(nodes)
+            prefs[KEY_SUB_LAST_AUTO_REFRESH_MS] = System.currentTimeMillis()
             if (info != null) {
                 prefs[KEY_SUBSCRIPTION_INFO] = json.encodeToString(info)
             } else {
@@ -101,6 +102,7 @@ class AppPreferences(private val context: Context) {
             prefs.remove(KEY_NODES)
             prefs.remove(KEY_SELECTED_NODE_ID)
             prefs.remove(KEY_SUBSCRIPTION_INFO)
+            prefs.remove(KEY_SUB_LAST_AUTO_REFRESH_MS)
         }
     }
 

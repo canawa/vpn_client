@@ -77,6 +77,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.SubscriptionInfo
+import ru.coffeemaniavpn.app.data.SubscriptionExpireFormatter
+import ru.coffeemaniavpn.app.data.formatTrafficSpeedLine
 import ru.coffeemaniavpn.app.vpn.VpnStatus
 
 enum class AppTab { Home, Servers }
@@ -249,6 +251,8 @@ private fun BottomNavItem(
 fun BrewConnectButton(
     vpnStatus: VpnStatus,
     connectionElapsedMs: Long,
+    downlinkBytesPerSec: Long = 0L,
+    uplinkBytesPerSec: Long = 0L,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -259,7 +263,7 @@ fun BrewConnectButton(
     val isBusy = isConnecting || isDisconnecting
     val isDimmed = !enabled && !isConnected && !isBusy
 
-    // 0 = бледно-красный (выкл), 1 = ярко-красный (вкл)
+    // 0 = ярко-красный (выкл), 1 = ярко-зелёный (вкл)
     val targetIntensity = when {
         isDimmed -> 0f
         isConnected -> 1f
@@ -301,7 +305,7 @@ fun BrewConnectButton(
 
     val palette = when {
         isDimmed -> NeonPowerPalette.Dimmed
-        else -> NeonPowerPalette.lerp(NeonPowerPalette.OffPaleRed, NeonPowerPalette.OnBrightRed, liveIntensity)
+        else -> NeonPowerPalette.lerp(NeonPowerPalette.OffBrightRed, NeonPowerPalette.OnBrightGreen, liveIntensity)
     }
 
     val connectedBloom by animateFloatAsState(
@@ -309,10 +313,16 @@ fun BrewConnectButton(
         animationSpec = spring(dampingRatio = 0.62f, stiffness = 280f),
         label = "connectedBloom",
     )
+    val offBloom by animateFloatAsState(
+        targetValue = if (!isConnected && !isBusy && !isDimmed) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.62f, stiffness = 280f),
+        label = "offBloom",
+    )
     val buttonScale by animateFloatAsState(
         targetValue = when {
             isConnecting -> 0.96f + connectingBreath * 0.04f
             isConnected -> 1f + connectedBloom * 0.04f
+            !isDimmed && !isBusy -> 1f + offBloom * 0.03f
             else -> 1f
         },
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 320f),
@@ -352,7 +362,12 @@ fun BrewConnectButton(
             }
             NeonPowerButtonFace(
                 palette = palette,
-                glowBoost = if (isConnected) 0.35f + connectedBloom * 0.65f else if (isConnecting) connectingBreath else 0.35f,
+                glowBoost = when {
+                    isConnected -> 0.35f + connectedBloom * 0.65f
+                    isConnecting -> connectingBreath
+                    isDimmed -> 0.35f
+                    else -> 0.35f + offBloom * 0.65f
+                },
                 isBusy = isBusy,
                 contentDescription = if (isConnected) "Отключить" else "Подключить",
             )
@@ -363,7 +378,14 @@ fun BrewConnectButton(
                 text = formatConnectionDuration(connectionElapsedMs),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = NeonPowerPalette.OnBrightRed.ring,
+                color = NeonPowerPalette.OnBrightGreen.ring,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = formatTrafficSpeedLine(downlinkBytesPerSec, uplinkBytesPerSec),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = coffemaniaColors().mocha,
             )
         }
     }
@@ -378,23 +400,23 @@ private data class NeonPowerPalette(
     val icon: Color,
 ) {
     companion object {
-        /** Выключено — бледно-красный */
-        val OffPaleRed = NeonPowerPalette(
-            glow = Color(0xFFB85A64),
-            ring = Color(0xFFC96B74),
-            faceCenter = Color(0xFF5A2A30),
-            faceEdge = Color(0xFF2A1418),
-            faceHighlight = Color(0xFF7A3A42),
-            icon = Color(0xFFFFE4E7),
-        )
-
-        /** Включено — ярко-красный */
-        val OnBrightRed = NeonPowerPalette(
+        /** Выключено — ярко-красный */
+        val OffBrightRed = NeonPowerPalette(
             glow = Color(0xFFFF2B3E),
             ring = Color(0xFFFF3B4D),
             faceCenter = Color(0xFF8A121E),
             faceEdge = Color(0xFF2A060A),
             faceHighlight = Color(0xFFC41C30),
+            icon = Color(0xFFFFFFFF),
+        )
+
+        /** Включено — ярко-зелёный */
+        val OnBrightGreen = NeonPowerPalette(
+            glow = Color(0xFF22C55E),
+            ring = Color(0xFF34D399),
+            faceCenter = Color(0xFF146B38),
+            faceEdge = Color(0xFF062816),
+            faceHighlight = Color(0xFF1FA855),
             icon = Color(0xFFFFFFFF),
         )
 
@@ -722,7 +744,6 @@ fun ServerListCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer { clip = true }
             .clip(RoundedCornerShape(10.dp))
             .background(bg)
             .border(1.dp, borderColor, RoundedCornerShape(10.dp))
@@ -1017,6 +1038,7 @@ private fun SubscriptionActionButton(
 fun SubscriptionStatusBar(
     nodeCount: Int,
     subscriptionInfo: SubscriptionInfo?,
+    lastUpdatedAtMs: Long = 0L,
     isRefreshing: Boolean,
     isPinging: Boolean,
     canRefresh: Boolean,
@@ -1055,6 +1077,13 @@ fun SubscriptionStatusBar(
                             } else {
                                 coffemaniaColors().mocha
                             },
+                        )
+                    }
+                    SubscriptionExpireFormatter.formatUpdatedAt(lastUpdatedAtMs)?.let { updatedText ->
+                        Text(
+                            text = updatedText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = coffemaniaColors().mocha,
                         )
                     }
                 }

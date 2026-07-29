@@ -1,15 +1,22 @@
 package ru.coffeemaniavpn.app.vpn
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.data.ConnectionSettingsStore
 import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.data.XrayConfigBuilder
 import ru.coffeemaniavpn.app.util.AppLog
+
+data class VpnTrafficRates(
+    val downlinkBytesPerSec: Long = 0L,
+    val uplinkBytesPerSec: Long = 0L,
+)
 
 object VpnManager {
     @Volatile
@@ -23,6 +30,9 @@ object VpnManager {
 
     private val _connectionElapsedMs = MutableStateFlow(0L)
     val connectionElapsedMs = _connectionElapsedMs.asStateFlow()
+
+    private val _trafficRates = MutableStateFlow(VpnTrafficRates())
+    val trafficRates = _trafficRates.asStateFlow()
 
     private var connectedSinceMs: Long? = null
     private var elapsedTickerJob: Job? = null
@@ -43,6 +53,7 @@ object VpnManager {
             VpnStatus.Stopped -> {
                 connectedSinceMs = null
                 _connectionElapsedMs.value = 0L
+                _trafficRates.value = VpnTrafficRates()
                 stopElapsedTicker()
             }
             else -> Unit
@@ -53,9 +64,24 @@ object VpnManager {
     private fun startElapsedTicker() {
         stopElapsedTicker()
         elapsedTickerJob = App.applicationScope.launch {
+            var primed = false
             while (connectedSinceMs != null) {
                 val since = connectedSinceMs ?: break
                 _connectionElapsedMs.value = System.currentTimeMillis() - since
+
+                val (uplink, downlink) = withContext(Dispatchers.IO) {
+                    XrayCoreManager.queryTrafficDelta()
+                }
+                if (primed) {
+                    val rates = VpnTrafficRates(
+                        downlinkBytesPerSec = downlink,
+                        uplinkBytesPerSec = uplink,
+                    )
+                    _trafficRates.value = rates
+                    BoxService.updateTrafficNotification(rates)
+                } else {
+                    primed = true
+                }
                 delay(1_000)
             }
         }

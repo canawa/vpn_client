@@ -1,5 +1,9 @@
 package ru.coffeemaniavpn.app.data
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 /**
  * Человекочитаемый остаток срока подписки: месяцы, недели, дни;
  * при малом остатке — часы (и минуты, если меньше часа).
@@ -11,11 +15,18 @@ object SubscriptionExpireFormatter {
     private const val SEC_WEEK = 7 * SEC_DAY
     private const val SEC_MONTH = 30 * SEC_DAY
 
+    private val updatedAtFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.forLanguageTag("ru"))
+
     fun formatRemaining(remainingSec: Long): String {
         if (remainingSec <= 0) return "Подписка истекла"
 
         val parts = buildParts(remainingSec)
         return "Истекает через ${joinParts(parts)}"
+    }
+
+    fun formatUpdatedAt(epochMs: Long): String? {
+        if (epochMs <= 0L) return null
+        return "Обновлено: ${updatedAtFormat.format(Date(epochMs))}"
     }
 
     private fun buildParts(remainingSec: Long): List<String> {

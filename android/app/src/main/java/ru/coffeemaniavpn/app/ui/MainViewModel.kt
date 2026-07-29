@@ -46,10 +46,13 @@ data class MainUiState(
     val selectedNodeId: String? = null,
     val vpnStatus: VpnStatus = VpnStatus.Stopped,
     val connectionElapsedMs: Long = 0L,
+    val downlinkBytesPerSec: Long = 0L,
+    val uplinkBytesPerSec: Long = 0L,
     val isLoading: Boolean = false,
     val isPinging: Boolean = false,
     val nodePings: Map<String, PingState> = emptyMap(),
     val subscriptionInfo: SubscriptionInfo? = null,
+    val subscriptionLastUpdatedAtMs: Long = 0L,
     val message: String? = null,
     val error: String? = null,
     val startupCrash: String? = null,
@@ -98,9 +101,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             VpnManager.status,
             VpnManager.lastError,
             VpnManager.connectionElapsedMs,
+            VpnManager.trafficRates,
             subscriptionUrlInput,
-        ) { vpnStatus, vpnError, elapsedMs, inputUrl ->
-            VpnUiState(vpnStatus, vpnError, elapsedMs, inputUrl)
+        ) { vpnStatus, vpnError, elapsedMs, traffic, inputUrl ->
+            VpnUiState(vpnStatus, vpnError, elapsedMs, traffic.downlinkBytesPerSec, traffic.uplinkBytesPerSec, inputUrl)
         },
         combine(isLoading, isPinging, nodePings, message, error) { loading, pinging, pings, info, localError ->
             LocalUiState(loading, pinging, pings, info, localError)
@@ -108,14 +112,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         combine(
             preferences.connectionSettings,
             preferences.subscriptionAutoUpdateInterval,
-        ) { connectionSettings, autoUpdateInterval ->
-            SettingsUiState(connectionSettings, autoUpdateInterval)
+            preferences.subscriptionLastAutoRefreshAt,
+        ) { connectionSettings, autoUpdateInterval, lastUpdatedAt ->
+            SettingsUiState(connectionSettings, autoUpdateInterval, lastUpdatedAt)
         },
         startupCrash,
     ) { savedData, vpnData, localData, settingsData, crash ->
-        val (connectionSettings, autoUpdateInterval) = settingsData
+        val (connectionSettings, autoUpdateInterval, lastUpdatedAt) = settingsData
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
-        val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
+        val (vpnStatus, vpnError, connectionElapsedMs, downlinkBps, uplinkBps, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
 
         MainUiState(
@@ -124,10 +129,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
             vpnStatus = vpnStatus,
             connectionElapsedMs = connectionElapsedMs,
+            downlinkBytesPerSec = downlinkBps,
+            uplinkBytesPerSec = uplinkBps,
             isLoading = loading,
             isPinging = pinging,
             nodePings = pings,
             subscriptionInfo = subscriptionInfo,
+            subscriptionLastUpdatedAtMs = lastUpdatedAt,
             message = info,
             error = localError ?: vpnError,
             startupCrash = crash,
@@ -444,7 +452,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             result.nodes.any { it.id == id }
         } ?: result.nodes.first().id
         preferences.saveSubscription(url, result.nodes, selected, result.info)
-        preferences.setSubscriptionLastAutoRefreshAt(System.currentTimeMillis())
         return result.nodes.size
     }
 
@@ -556,6 +563,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val vpnStatus: VpnStatus,
         val vpnError: String?,
         val connectionElapsedMs: Long,
+        val downlinkBytesPerSec: Long,
+        val uplinkBytesPerSec: Long,
         val inputUrl: String,
     )
 
@@ -577,5 +586,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private data class SettingsUiState(
         val connectionSettings: ConnectionSettingsState,
         val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
+        val subscriptionLastUpdatedAtMs: Long,
     )
 }
