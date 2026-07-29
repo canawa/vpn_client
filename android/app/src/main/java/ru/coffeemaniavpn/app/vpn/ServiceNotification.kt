@@ -17,11 +17,12 @@ class ServiceNotification(private val service: Service) {
     private val channelId = "coffemania_vpn"
 
     private val flags =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_IMMUTABLE
-        } else {
-            0
-        }
+        PendingIntent.FLAG_UPDATE_CURRENT or
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_IMMUTABLE
+            } else {
+                0
+            }
 
     private val builder by lazy {
         NotificationCompat.Builder(service, channelId)
@@ -32,6 +33,7 @@ class ServiceNotification(private val service: Service) {
             .setSmallIcon(R.drawable.ic_logo_notif)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(
                 PendingIntent.getActivity(
                     service,
@@ -42,12 +44,12 @@ class ServiceNotification(private val service: Service) {
             )
             .addAction(
                 NotificationCompat.Action.Builder(
-                    0,
+                    android.R.drawable.ic_menu_close_clear_cancel,
                     service.getString(R.string.vpn_stop),
-                    PendingIntent.getBroadcast(
+                    PendingIntent.getService(
                         service,
-                        0,
-                        Intent(VpnAction.SERVICE_CLOSE).setPackage(service.packageName),
+                        1,
+                        Intent(service, VPNService::class.java).setAction(VpnAction.SERVICE_CLOSE),
                         flags,
                     ),
                 ).build(),

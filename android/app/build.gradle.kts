@@ -19,8 +19,8 @@ android {
         versionName = "1.0.5"
         buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://porozoffvpn.ru\"")
         buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://porozoffvpn.ru\"")
-        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/coffemaniavpn\"")
-        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/coffemaniavpnbot\"")
+        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/porozoffvpn_bot\"")
+        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/porozoffvpn_bot\"")
     }
 
     signingConfigs {

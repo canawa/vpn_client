@@ -97,7 +97,6 @@ class MainActivity : ComponentActivity() {
                         onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
                         onBuyOnWebsiteClick = ::openSubscriptionRegister,
                         onDeleteSubscriptionClick = viewModel::deleteSubscription,
-                        onTelegramChannelClick = ::openTelegramChannel,
                         onRenewTelegramClick = ::openTelegramBot,
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
@@ -168,14 +167,6 @@ class MainActivity : ComponentActivity() {
 
     private fun toast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-    }
-
-    private fun openTelegramChannel() {
-        runCatching {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TELEGRAM_CHANNEL_URL)))
-        }.onFailure {
-            AppLog.e("openTelegramChannel failed", it)
-        }
     }
 
     private fun openTelegramBot() {

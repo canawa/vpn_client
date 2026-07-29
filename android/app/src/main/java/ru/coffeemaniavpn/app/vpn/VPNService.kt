@@ -57,7 +57,11 @@ class VPNService : VpnService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        AppLog.i("VPNService.onStartCommand")
+        AppLog.i("VPNService.onStartCommand action=${intent?.action}")
+        if (intent?.action == VpnAction.SERVICE_CLOSE) {
+            service.requestStop()
+            return START_NOT_STICKY
+        }
         return service.onStartCommand()
     }
 

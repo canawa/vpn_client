@@ -26,14 +26,12 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsInputAntenna
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -65,7 +63,6 @@ fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     SettingsPage.Connection,
     SettingsPage.Subscription,
     SettingsPage.Logs,
-    SettingsPage.About,
     -> SettingsPage.Main
     SettingsPage.Main -> null
 }
@@ -87,14 +84,12 @@ enum class SettingsPage(
     KillSwitch("Kill switch"),
     Subscription("Подписка"),
     Logs("Логи"),
-    About("О приложении"),
 }
 
 @Composable
 fun SettingsScreen(
     page: SettingsPage,
     onPageChange: (SettingsPage) -> Unit,
-    appVersion: String,
     hasSubscription: Boolean,
     connectionSettings: ConnectionSettingsState,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
@@ -107,7 +102,6 @@ fun SettingsScreen(
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     onShowLogs: () -> Unit,
     onDownloadLogs: () -> Unit,
-    onTelegramChannel: () -> Unit,
     onCloseApp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -160,13 +154,6 @@ fun SettingsScreen(
                     icon = Icons.Default.Download,
                     onClick = onDownloadLogs,
                 ),
-            ),
-        )
-        SettingsPage.About -> SettingsDetailScreen(
-            modifier = modifier,
-            items = aboutItems(
-                appVersion = appVersion,
-                onTelegramChannel = onTelegramChannel,
             ),
         )
     }
@@ -245,12 +232,6 @@ private fun SettingsMainScreen(
             title = "Логи",
             icon = Icons.Default.BugReport,
             onClick = { onPageChange(SettingsPage.Logs) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = "О POROZOFF VPN",
-            icon = Icons.Default.Info,
-            onClick = { onPageChange(SettingsPage.About) },
         )
         SettingsDivider()
         SettingsActionRow(
@@ -477,24 +458,6 @@ private fun subscriptionItems(
         )
     }
 }
-
-private fun aboutItems(
-    appVersion: String,
-    onTelegramChannel: () -> Unit,
-): List<SettingsAction> = listOf(
-    SettingsAction(
-        title = "Версия $appVersion",
-        icon = Icons.Default.Info,
-        onClick = {},
-        enabled = false,
-        showChevron = false,
-    ),
-    SettingsAction(
-        title = "Канал в Telegram",
-        icon = Icons.AutoMirrored.Filled.Send,
-        onClick = onTelegramChannel,
-    ),
-)
 
 @Composable
 private fun SettingsNavRow(

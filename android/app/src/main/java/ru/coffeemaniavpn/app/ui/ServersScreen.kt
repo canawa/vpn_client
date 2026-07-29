@@ -32,7 +32,6 @@ fun ServersScreen(
     onConnectToNode: (String) -> Unit,
     onRefreshConfig: () -> Unit,
     onRefreshPing: () -> Unit,
-    onTelegramChannelClick: () -> Unit,
     onRenewTelegramClick: () -> Unit,
     onBuyOnWebsiteClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -93,7 +92,7 @@ fun ServersScreen(
             }
         }
 
-        TelegramChannelBanner(onClick = onTelegramChannelClick)
+        TelegramChannelBanner(onClick = onRenewTelegramClick)
     }
 }
 

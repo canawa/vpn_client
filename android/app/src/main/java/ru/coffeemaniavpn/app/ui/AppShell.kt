@@ -1,5 +1,7 @@
 package ru.coffeemaniavpn.app.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,10 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,11 +22,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import ru.coffeemaniavpn.app.BuildConfig
 import ru.coffeemaniavpn.app.R
 
 @Composable
@@ -44,7 +43,6 @@ fun AppShell(
     onPasteLinkClick: () -> Unit,
     onBuyOnWebsiteClick: () -> Unit,
     onDeleteSubscriptionClick: () -> Unit,
-    onTelegramChannelClick: () -> Unit,
     onRenewTelegramClick: () -> Unit,
     onCloseApp: () -> Unit,
     onSaveConnectionSettings: (ru.coffeemaniavpn.app.data.ConnectionSettingsState) -> Unit,
@@ -138,7 +136,6 @@ fun AppShell(
                 modifier = Modifier.padding(padding),
                 page = settingsPage,
                 onPageChange = { settingsPage = it },
-                appVersion = BuildConfig.VERSION_NAME,
                 hasSubscription = hasSubscription,
                 connectionSettings = state.connectionSettings,
                 onSaveConnectionSettings = onSaveConnectionSettings,
@@ -171,7 +168,6 @@ fun AppShell(
                     onShowLogs()
                 },
                 onDownloadLogs = onDownloadLogs,
-                onTelegramChannel = onTelegramChannelClick,
                 onCloseApp = onCloseApp,
             )
         } else {
@@ -205,7 +201,6 @@ fun AppShell(
                     },
                     onRefreshConfig = onRefreshConfig,
                     onRefreshPing = onRefreshPing,
-                    onTelegramChannelClick = onTelegramChannelClick,
                     onRenewTelegramClick = onRenewTelegramClick,
                     onBuyOnWebsiteClick = onBuyOnWebsiteClick,
                 )

@@ -26,9 +26,20 @@ class BoxService(
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == VpnAction.SERVICE_CLOSE) {
-                VpnManager.markUserDisconnectRequested()
-                stopService()
+                requestStop()
             }
+        }
+    }
+
+    /** Остановка из уведомления / VpnManager.disconnect / broadcast. */
+    fun requestStop() {
+        VpnManager.markUserDisconnectRequested()
+        val status = VpnManager.status.value
+        if (status == VpnStatus.Started || status == VpnStatus.Starting) {
+            stopService()
+        } else {
+            notification.close()
+            service.stopSelf()
         }
     }
 
@@ -175,9 +186,17 @@ class BoxService(
         }
 
         fun stop() {
-            App.instance.sendBroadcast(
-                Intent(VpnAction.SERVICE_CLOSE).setPackage(App.instance.packageName),
-            )
+            val intent = Intent(App.instance, VPNService::class.java).apply {
+                action = VpnAction.SERVICE_CLOSE
+            }
+            runCatching {
+                App.instance.startService(intent)
+            }.onFailure {
+                AppLog.w("BoxService.stop startService failed, fallback broadcast", it)
+                App.instance.sendBroadcast(
+                    Intent(VpnAction.SERVICE_CLOSE).setPackage(App.instance.packageName),
+                )
+            }
         }
     }
 }

@@ -15,6 +15,23 @@ object XrayConfigBuilder {
         return config.toString(2)
     }
 
+    /** Минимальный конфиг для URL-теста (HTTP GET через outbound), без TUN и geo-правил. */
+    fun buildForDelayTest(node: ProxyNode): String {
+        val proxyOutbound = when {
+            node.isHysteria2 -> buildHysteria2Outbound(node)
+            else -> buildVlessOutbound(node)
+        }
+        return JSONObject().apply {
+            put("log", JSONObject().put("loglevel", "warning"))
+            put("inbounds", JSONArray())
+            put("outbounds", JSONArray().apply {
+                put(proxyOutbound)
+                put(freedomOutbound("direct"))
+                put(blackholeOutbound("block"))
+            })
+        }.toString()
+    }
+
     private fun buildBaseConfig(node: ProxyNode): JSONObject {
         val proxyOutbound = when {
             node.isHysteria2 -> buildHysteria2Outbound(node)

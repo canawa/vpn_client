@@ -7,5 +7,5 @@
     <string name="vpn_notification_title">POROZOFF VPN</string>
     <string name="vpn_starting">Подключение…</string>
     <string name="vpn_connected">Подключено</string>
-    <string name="vpn_stop">Отключить</string>
+    <string name="vpn_stop">Отключить VPN</string>
 </resources>

@@ -3,9 +3,12 @@ package ru.coffeemaniavpn.app.ui
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -13,12 +16,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -51,13 +56,15 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
@@ -252,12 +259,67 @@ fun BrewConnectButton(
     val isBusy = isConnecting || isDisconnecting
     val isDimmed = !enabled && !isConnected && !isBusy
 
-    // Выключено (off) — зелёный; включено (on) — красный, как на референсе.
+    // 0 = бледно-красный (выкл), 1 = ярко-красный (вкл)
+    val targetIntensity = when {
+        isDimmed -> 0f
+        isConnected -> 1f
+        isDisconnecting -> 0.55f
+        isConnecting -> 0.45f
+        else -> 0f
+    }
+    val intensity by animateFloatAsState(
+        targetValue = targetIntensity,
+        animationSpec = tween(durationMillis = 520),
+        label = "powerIntensity",
+    )
+
+    val connectPulse = rememberInfiniteTransition(label = "connectGlowPulse")
+    val connectingWave by connectPulse.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_100, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "connectingWave",
+    )
+    val connectingBreath by connectPulse.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "connectingBreath",
+    )
+
+    val liveIntensity = when {
+        isConnecting -> (intensity * 0.55f + connectingBreath * 0.45f).coerceIn(0f, 1f)
+        isDisconnecting -> (intensity * 0.7f + (1f - connectingBreath) * 0.3f).coerceIn(0f, 1f)
+        else -> intensity
+    }
+
     val palette = when {
         isDimmed -> NeonPowerPalette.Dimmed
-        isConnected || isDisconnecting -> NeonPowerPalette.OnRed
-        else -> NeonPowerPalette.OffGreen
+        else -> NeonPowerPalette.lerp(NeonPowerPalette.OffPaleRed, NeonPowerPalette.OnBrightRed, liveIntensity)
     }
+
+    val connectedBloom by animateFloatAsState(
+        targetValue = if (isConnected) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.62f, stiffness = 280f),
+        label = "connectedBloom",
+    )
+    val buttonScale by animateFloatAsState(
+        targetValue = when {
+            isConnecting -> 0.96f + connectingBreath * 0.04f
+            isConnected -> 1f + connectedBloom * 0.04f
+            else -> 1f
+        },
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 320f),
+        label = "buttonScale",
+    )
+
+    val interactionSource = remember { MutableInteractionSource() }
 
     Column(
         modifier = modifier,
@@ -266,14 +328,31 @@ fun BrewConnectButton(
         Box(
             modifier = Modifier
                 .size(236.dp)
-                .clickable(enabled = enabled && !isBusy, onClick = onClick),
+                .graphicsLayer {
+                    scaleX = buttonScale
+                    scaleY = buttonScale
+                }
+                .clip(CircleShape)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    enabled = enabled && !isBusy,
+                    onClick = onClick,
+                ),
             contentAlignment = Alignment.Center,
         ) {
-            if (isBusy) {
+            if (isConnecting) {
+                ConnectPulseRings(
+                    color = palette.ring,
+                    progressOverride = connectingWave,
+                )
+            }
+            if (isDisconnecting) {
                 ConnectPulseRings(color = palette.ring)
             }
             NeonPowerButtonFace(
                 palette = palette,
+                glowBoost = if (isConnected) 0.35f + connectedBloom * 0.65f else if (isConnecting) connectingBreath else 0.35f,
                 isBusy = isBusy,
                 contentDescription = if (isConnected) "Отключить" else "Подключить",
             )
@@ -284,7 +363,7 @@ fun BrewConnectButton(
                 text = formatConnectionDuration(connectionElapsedMs),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = NeonPowerPalette.OnRed.ring,
+                color = NeonPowerPalette.OnBrightRed.ring,
             )
         }
     }
@@ -299,22 +378,26 @@ private data class NeonPowerPalette(
     val icon: Color,
 ) {
     companion object {
-        val OnRed = NeonPowerPalette(
+        /** Выключено — бледно-красный */
+        val OffPaleRed = NeonPowerPalette(
+            glow = Color(0xFFB85A64),
+            ring = Color(0xFFC96B74),
+            faceCenter = Color(0xFF5A2A30),
+            faceEdge = Color(0xFF2A1418),
+            faceHighlight = Color(0xFF7A3A42),
+            icon = Color(0xFFFFE4E7),
+        )
+
+        /** Включено — ярко-красный */
+        val OnBrightRed = NeonPowerPalette(
             glow = Color(0xFFFF2B3E),
             ring = Color(0xFFFF3B4D),
-            faceCenter = Color(0xFF7A121C),
+            faceCenter = Color(0xFF8A121E),
             faceEdge = Color(0xFF2A060A),
-            faceHighlight = Color(0xFFA51C2A),
+            faceHighlight = Color(0xFFC41C30),
             icon = Color(0xFFFFFFFF),
         )
-        val OffGreen = NeonPowerPalette(
-            glow = Color(0xFF22C55E),
-            ring = Color(0xFF4ADE80),
-            faceCenter = Color(0xFF0F5A32),
-            faceEdge = Color(0xFF062014),
-            faceHighlight = Color(0xFF168A4A),
-            icon = Color(0xFFFFFFFF),
-        )
+
         val Dimmed = NeonPowerPalette(
             glow = Color(0xFF5A5A5A),
             ring = Color(0xFF6E6E6E),
@@ -323,16 +406,31 @@ private data class NeonPowerPalette(
             faceHighlight = Color(0xFF3A3A3A),
             icon = Color(0xFFB0B0B0),
         )
+
+        fun lerp(a: NeonPowerPalette, b: NeonPowerPalette, t: Float): NeonPowerPalette {
+            val p = t.coerceIn(0f, 1f)
+            return NeonPowerPalette(
+                glow = lerp(a.glow, b.glow, p),
+                ring = lerp(a.ring, b.ring, p),
+                faceCenter = lerp(a.faceCenter, b.faceCenter, p),
+                faceEdge = lerp(a.faceEdge, b.faceEdge, p),
+                faceHighlight = lerp(a.faceHighlight, b.faceHighlight, p),
+                icon = lerp(a.icon, b.icon, p),
+            )
+        }
     }
 }
 
 @Composable
 private fun NeonPowerButtonFace(
     palette: NeonPowerPalette,
+    glowBoost: Float,
     isBusy: Boolean,
     contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
+    val glowMul = (0.55f + glowBoost * 0.9f).coerceIn(0.4f, 1.45f)
+
     Box(
         modifier = modifier.size(200.dp),
         contentAlignment = Alignment.Center,
@@ -341,21 +439,19 @@ private fun NeonPowerButtonFace(
             val c = center
             val outerR = size.minDimension / 2f
 
-            // Soft outer neon halo (несколько слоёв вместо blur)
             listOf(
-                1.00f to 0.06f,
-                0.92f to 0.10f,
-                0.84f to 0.16f,
-                0.78f to 0.22f,
+                1.00f to 0.06f * glowMul,
+                0.92f to 0.10f * glowMul,
+                0.84f to 0.16f * glowMul,
+                0.78f to 0.22f * glowMul,
             ).forEach { (scale, alpha) ->
                 drawCircle(
-                    color = palette.glow.copy(alpha = alpha),
+                    color = palette.glow.copy(alpha = alpha.coerceIn(0f, 0.45f)),
                     radius = outerR * scale,
                     center = c,
                 )
             }
 
-            // Dark recessed body
             val faceR = outerR * 0.72f
             drawCircle(
                 brush = Brush.radialGradient(
@@ -371,7 +467,6 @@ private fun NeonPowerButtonFace(
                 center = c,
             )
 
-            // Inner bevel ring
             drawCircle(
                 color = Color.Black.copy(alpha = 0.45f),
                 radius = faceR * 0.97f,
@@ -385,10 +480,9 @@ private fun NeonPowerButtonFace(
                 style = Stroke(width = faceR * 0.02f),
             )
 
-            // Bright neon outer ring
             val ringR = outerR * 0.78f
             drawCircle(
-                color = palette.ring.copy(alpha = 0.35f),
+                color = palette.ring.copy(alpha = (0.22f * glowMul).coerceIn(0.12f, 0.5f)),
                 radius = ringR,
                 center = c,
                 style = Stroke(width = 10.dp.toPx()),
@@ -400,40 +494,50 @@ private fun NeonPowerButtonFace(
                 style = Stroke(width = 3.5.dp.toPx()),
             )
             drawCircle(
-                color = Color.White.copy(alpha = 0.35f),
+                color = Color.White.copy(alpha = 0.22f + 0.18f * glowBoost),
                 radius = ringR,
                 center = c,
                 style = Stroke(width = 1.2.dp.toPx()),
             )
         }
 
-        if (isBusy) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(52.dp),
-                color = palette.icon,
-                trackColor = palette.icon.copy(alpha = 0.15f),
-                strokeWidth = 3.dp,
-            )
-        } else {
-            // Soft glow behind power glyph
-            Canvas(modifier = Modifier.size(110.dp)) {
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.28f),
-                            Color.White.copy(alpha = 0.08f),
-                            Color.Transparent,
-                        ),
-                    ),
-                    radius = size.minDimension / 2f,
-                )
+        Crossfade(
+            targetState = isBusy,
+            animationSpec = tween(280),
+            label = "powerContent",
+        ) { busy ->
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (busy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(52.dp),
+                        color = palette.icon,
+                        trackColor = palette.icon.copy(alpha = 0.15f),
+                        strokeWidth = 3.dp,
+                    )
+                } else {
+                    Canvas(modifier = Modifier.size(110.dp)) {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.28f),
+                                    Color.White.copy(alpha = 0.08f),
+                                    Color.Transparent,
+                                ),
+                            ),
+                            radius = size.minDimension / 2f,
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.PowerSettingsNew,
+                        contentDescription = contentDescription,
+                        tint = palette.icon,
+                        modifier = Modifier.size(78.dp),
+                    )
+                }
             }
-            Icon(
-                imageVector = Icons.Default.PowerSettingsNew,
-                contentDescription = contentDescription,
-                tint = palette.icon,
-                modifier = Modifier.size(78.dp),
-            )
         }
     }
 }
@@ -442,9 +546,10 @@ private fun NeonPowerButtonFace(
 private fun ConnectPulseRings(
     color: Color,
     modifier: Modifier = Modifier,
+    progressOverride: Float? = null,
 ) {
     val transition = rememberInfiniteTransition(label = "connectPulse")
-    val pulse1 by transition.animateFloat(
+    val pulse1Auto by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -453,7 +558,7 @@ private fun ConnectPulseRings(
         ),
         label = "pulse1",
     )
-    val pulse2 by transition.animateFloat(
+    val pulse2Auto by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -462,6 +567,9 @@ private fun ConnectPulseRings(
         ),
         label = "pulse2",
     )
+
+    val pulse1 = progressOverride ?: pulse1Auto
+    val pulse2 = progressOverride?.let { ((it + 0.5f) % 1f) } ?: pulse2Auto
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = center
@@ -509,14 +617,18 @@ fun SelectedServerCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
         shape = RoundedCornerShape(if (emphasized) 14.dp else 12.dp),
         color = if (emphasized) colors.surfaceContainerHighest else colors.cappuccino,
         border = androidx.compose.foundation.BorderStroke(
-            width = if (emphasized) 2.dp else 1.dp,
-            color = if (emphasized) colors.espresso.copy(alpha = 0.55f) else colors.latte,
+            width = 1.dp,
+            color = if (emphasized) Color(0xFF6B6568) else colors.latte,
         ),
-        shadowElevation = if (emphasized) 2.dp else 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier.padding(
@@ -600,7 +712,7 @@ fun ServerListCard(
     modifier: Modifier = Modifier,
 ) {
     val bg = coffemaniaColors().cappuccino
-    val borderColor = if (selected) coffemaniaColors().espresso else coffemaniaColors().latte
+    val borderColor = if (selected) Color(0xFF6B6568) else coffemaniaColors().latte
     val pingColor = when {
         display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
         display.pingText == "N/A" -> CoffemaniaColors.PingBad
@@ -615,6 +727,8 @@ fun ServerListCard(
             .background(bg)
             .border(1.dp, borderColor, RoundedCornerShape(10.dp))
             .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
                 onClick = onClick,
                 onDoubleClick = onDoubleClick,
             )
@@ -787,20 +901,44 @@ fun PromoBanner(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        shadowElevation = 8.dp,
-        color = Color.Transparent,
+    val shape = RoundedCornerShape(12.dp)
+    val interactionSource = remember { MutableInteractionSource() }
+    val painter = painterResource(imageRes)
+    val intrinsic = painter.intrinsicSize
+    val aspectRatio = if (
+        intrinsic.width.isFinite() &&
+        intrinsic.height.isFinite() &&
+        intrinsic.width > 0f &&
+        intrinsic.height > 0f
+    ) {
+        intrinsic.width / intrinsic.height
+    } else {
+        1024f / 283f
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(aspectRatio)
+            .shadow(elevation = 6.dp, shape = shape, clip = false)
+            .clip(shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
     ) {
         Image(
-            painter = painterResource(imageRes),
+            painter = painter,
             contentDescription = contentDescription,
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp)),
-            contentScale = ContentScale.FillWidth,
+                .fillMaxSize()
+                .graphicsLayer {
+                    // Чуть крупнее контейнера, чтобы после скругления не было пустых краёв
+                    scaleX = 1.06f
+                    scaleY = 1.06f
+                },
+            contentScale = ContentScale.Crop,
         )
     }
 }
@@ -812,7 +950,7 @@ fun WebsiteBanner(
 ) {
     PromoBanner(
         imageRes = R.drawable.banner_go_web,
-        contentDescription = "Управляйте ключами на сайте porozoffvpn.ru",
+        contentDescription = "POROZOFF VPN — porozoffvpn.ru",
         onClick = onClick,
         modifier = modifier,
     )
@@ -825,7 +963,7 @@ fun TelegramChannelBanner(
 ) {
     PromoBanner(
         imageRes = R.drawable.banner_got_tg,
-        contentDescription = "Перейти в Telegram-канал",
+        contentDescription = "VPN в Telegram — @porozoffvpn_bot",
         onClick = onClick,
         modifier = modifier,
     )
