@@ -29,7 +29,7 @@ class ServiceNotification(private val service: Service) {
             .setOngoing(true)
             .setContentTitle(service.getString(R.string.vpn_notification_title))
             .setOnlyAlertOnce(true)
-            .setSmallIcon(R.drawable.ic_coffee_bean)
+            .setSmallIcon(R.drawable.ic_logo_notif)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentIntent(

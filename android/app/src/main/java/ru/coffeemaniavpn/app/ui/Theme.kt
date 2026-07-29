@@ -1,6 +1,5 @@
 package ru.coffeemaniavpn.app.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -8,23 +7,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import ru.coffeemaniavpn.app.data.AppThemeMode
 
+/**
+ * Палитра porozoffvpn.ru (figma-colors.json):
+ * #EDE0E2 фон, #0E0810 / #060408 текст и тёмный фон,
+ * #7A5F65 / #A07880 приглушённый розовый, #E8213A акцент,
+ * #22C55E / #F59E0B / #FFFFFF служебные.
+ */
 object CoffemaniaColors {
-    /** Молочная пена — основной фон */
-    val MilkFoam = Color(0xFFEDE0D8)
+    /** Светлый розово-молочный фон сайта */
+    val MilkFoam = Color(0xFFEDE0E2)
 
-    /** Эспрессо — заголовки, иконки, акцентный текст */
-    val Espresso = Color(0xFF3D1C1C)
+    /** Почти чёрный — заголовки, иконки, акцентный текст */
+    val Espresso = Color(0xFF0E0810)
 
-    /** Мокко — подписи, неактивные элементы */
-    val Mocha = Color(0xFFB09080)
+    /** Приглушённый розово-коричневый — подписи, неактивные элементы */
+    val Mocha = Color(0xFF7A5F65)
 
-    /** Капучино — карточки, tab bar, внешний круг кнопки */
-    val Cappuccino = Color(0xFFDDD0C8)
+    /** Карточки, tab bar (белый на светлом фоне) */
+    val Cappuccino = Color(0xFFFFFFFF)
 
-    /** Латте — обводки, кнопки в карточках, фон активной вкладки */
-    val Latte = Color(0xFFC8B8A8)
+    /** Обводки, кнопки в карточках, фон активной вкладки */
+    val Latte = Color(0xFFDCC8CC)
 
     val Background = MilkFoam
     val OnBackground = Espresso
@@ -60,25 +64,28 @@ object CoffemaniaColors {
     val TertiaryContainer = Latte
     val OnTertiaryContainer = Espresso
 
-    val Error = Color(0xFFBA1A1A)
-    val OnError = MilkFoam
-    val ErrorContainer = Color(0xFFFFDAD6)
-    val OnErrorContainer = Color(0xFF93000A)
+    /** Брендовый красный porozoff */
+    val BrandRed = Color(0xFFE8213A)
+
+    val Error = BrandRed
+    val OnError = Color(0xFFFFFFFF)
+    val ErrorContainer = Color(0xFFFFD6DC)
+    val OnErrorContainer = Color(0xFF7A0014)
 
     /** Пинг ≤ 200 ms */
-    val PingGood = Color(0xFF2E7D32)
+    val PingGood = Color(0xFF22C55E)
 
     /** Пинг 201–400 ms */
-    val PingMedium = Color(0xFFD4A017)
+    val PingMedium = Color(0xFFF59E0B)
 
     /** Пинг > 400 ms или недоступен */
-    val PingBad = Color(0xFFC62828)
+    val PingBad = BrandRed
 
     /** Неактивная кнопка подключения (нет подписки) */
-    val ConnectDisabledOuter = Color(0xFFD8D0CA)
-    val ConnectDisabledInner = Color(0xFFE8E2DC)
-    val ConnectDisabledBorder = Color(0xFFC4BAB2)
-    val ConnectDisabledIcon = Color(0xFF9E9088)
+    val ConnectDisabledOuter = Color(0xFFE0D4D6)
+    val ConnectDisabledInner = Color(0xFFEDE0E2)
+    val ConnectDisabledBorder = Color(0xFFC9B0B4)
+    val ConnectDisabledIcon = Color(0xFFA07880)
 
     fun pingColor(latencyMs: Int): Color = when {
         latencyMs <= 200 -> PingGood
@@ -155,34 +162,34 @@ fun lightCoffemaniaExtraColors(): CoffemaniaExtraColors = CoffemaniaExtraColors(
 )
 
 fun darkCoffemaniaExtraColors(): CoffemaniaExtraColors = CoffemaniaExtraColors(
-    milkFoam = Color(0xFF1A1210),
-    espresso = Color(0xFFE8DED6),
-    mocha = Color(0xFF9A8578),
-    cappuccino = Color(0xFF2C221F),
-    latte = Color(0xFF423530),
-    background = Color(0xFF1A1210),
-    onBackground = Color(0xFFE8DED6),
-    surface = Color(0xFF1A1210),
-    onSurface = Color(0xFFE8DED6),
-    onSurfaceVariant = Color(0xFF9A8578),
-    surfaceVariant = Color(0xFF2C221F),
-    surfaceContainer = Color(0xFF2C221F),
-    surfaceContainerHigh = Color(0xFF1A1210),
-    surfaceContainerHighest = Color(0xFF423530),
-    surfaceDim = Color(0xFF2C221F),
-    outline = Color(0xFF423530),
-    primary = Color(0xFFE8DED6),
-    onPrimary = Color(0xFF1A1210),
-    primaryContainer = Color(0xFF423530),
-    onPrimaryContainer = Color(0xFFE8DED6),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005),
-    errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6),
-    connectDisabledOuter = Color(0xFF322824),
-    connectDisabledInner = Color(0xFF2A201E),
-    connectDisabledBorder = Color(0xFF4A3C36),
-    connectDisabledIcon = Color(0xFF7A6A62),
+    milkFoam = Color(0xFF060408),
+    espresso = Color(0xFFEDE0E2),
+    mocha = Color(0xFFA07880),
+    cappuccino = Color(0xFF0E0810),
+    latte = Color(0xFF2A1820),
+    background = Color(0xFF060408),
+    onBackground = Color(0xFFEDE0E2),
+    surface = Color(0xFF060408),
+    onSurface = Color(0xFFEDE0E2),
+    onSurfaceVariant = Color(0xFFA07880),
+    surfaceVariant = Color(0xFF0E0810),
+    surfaceContainer = Color(0xFF0E0810),
+    surfaceContainerHigh = Color(0xFF060408),
+    surfaceContainerHighest = Color(0xFF2A1820),
+    surfaceDim = Color(0xFF0E0810),
+    outline = Color(0xFF2A1820),
+    primary = Color(0xFFEDE0E2),
+    onPrimary = Color(0xFF060408),
+    primaryContainer = Color(0xFF2A1820),
+    onPrimaryContainer = Color(0xFFEDE0E2),
+    error = Color(0xFFFF6B6B),
+    onError = Color(0xFF060408),
+    errorContainer = Color(0xFF7A0014),
+    onErrorContainer = Color(0xFFFFD6DC),
+    connectDisabledOuter = Color(0xFF1A1216),
+    connectDisabledInner = Color(0xFF120E10),
+    connectDisabledBorder = Color(0xFF3D2A30),
+    connectDisabledIcon = Color(0xFF7A5F65),
 )
 
 private fun colorSchemeFrom(extra: CoffemaniaExtraColors, dark: Boolean) = if (!dark) {
@@ -257,16 +264,10 @@ private fun colorSchemeFrom(extra: CoffemaniaExtraColors, dark: Boolean) = if (!
 
 @Composable
 fun CoffemaniaTheme(
-    themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     content: @Composable () -> Unit,
 ) {
-    val useDarkTheme = when (themeMode) {
-        AppThemeMode.DARK -> true
-        AppThemeMode.LIGHT -> false
-        AppThemeMode.SYSTEM -> isSystemInDarkTheme()
-    }
-    val extra = if (useDarkTheme) darkCoffemaniaExtraColors() else lightCoffemaniaExtraColors()
-    val scheme = colorSchemeFrom(extra, useDarkTheme)
+    val extra = darkCoffemaniaExtraColors()
+    val scheme = colorSchemeFrom(extra, dark = true)
 
     CompositionLocalProvider(LocalCoffemaniaExtraColors provides extra) {
         MaterialTheme(

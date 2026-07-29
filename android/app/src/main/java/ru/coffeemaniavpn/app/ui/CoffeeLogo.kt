@@ -1,14 +1,9 @@
 package ru.coffeemaniavpn.app.ui
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
@@ -20,15 +15,15 @@ import ru.coffeemaniavpn.app.R
 @Composable
 fun CoffeeLogo(
     modifier: Modifier = Modifier,
-    tint: Color = coffemaniaColors().espresso,
-    contentDescription: String? = "КОФЕМАНИЯ ВПН",
+    tint: Color? = null,
+    contentDescription: String? = "POROZOFF VPN",
 ) {
     Image(
-        painter = painterResource(R.drawable.ic_coffee_bean),
+        painter = painterResource(R.drawable.ic_logo),
         contentDescription = contentDescription,
         modifier = modifier,
         contentScale = ContentScale.Fit,
-        colorFilter = ColorFilter.tint(tint),
+        colorFilter = tint?.let { ColorFilter.tint(it) },
     )
 }
 
@@ -36,15 +31,9 @@ fun CoffeeLogo(
 fun CoffeeLogoAvatar(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
-    logoScale: Float = 0.62f,
 ) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(coffemaniaColors().cappuccino),
-        contentAlignment = Alignment.Center,
-    ) {
-        CoffeeLogo(modifier = Modifier.size(size * logoScale))
-    }
+    CoffeeLogo(
+        modifier = modifier.size(size),
+        contentDescription = "POROZOFF VPN",
+    )
 }

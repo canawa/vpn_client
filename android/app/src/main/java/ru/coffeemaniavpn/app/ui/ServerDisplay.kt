@@ -15,8 +15,6 @@ data class ServerDisplay(
 )
 
 object ServerDisplayMapper {
-    /** Первый emoji-флаг в названии (нулевая позиция / первый токен до пробела). */
-    private val firstFlagRegex = Regex("^(\\p{Regional_Indicator}{2}|\\p{Extended_Pictographic})")
     private val ipv4Regex = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
 
     private fun isAutoSelect(name: String, title: String): Boolean =
@@ -41,20 +39,82 @@ object ServerDisplayMapper {
         return false
     }
 
+    /**
+     * Снимает ведущие flag emoji / regional indicators с имени,
+     * чтобы в title не оставались эмодзи.
+     */
+    private fun splitFlag(name: String): Pair<String, String> {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return "🌐" to ""
+
+        val cps = trimmed.codePoints().toArray().toMutableList()
+        // Drop variation selectors / ZWJ at start noise
+        while (cps.isNotEmpty() && (cps[0] == 0xFE0F || cps[0] == 0x200D)) {
+            cps.removeAt(0)
+        }
+
+        if (cps.size >= 2) {
+            val base = 0x1F1E6
+            val a = cps[0] - base
+            val b = cps[1] - base
+            if (a in 0..25 && b in 0..25) {
+                val flag = String(intArrayOf(cps[0], cps[1]), 0, 2)
+                var restIdx = 2
+                // skip VS16 after flag
+                if (restIdx < cps.size && cps[restIdx] == 0xFE0F) restIdx++
+                val rest = if (restIdx < cps.size) {
+                    String(cps.subList(restIdx, cps.size).toIntArray(), 0, cps.size - restIdx).trim()
+                } else {
+                    ""
+                }
+                return flag to rest
+            }
+        }
+
+        // Globe / generic pictograph at start
+        if (cps.isNotEmpty()) {
+            val first = cps[0]
+            val isGlobe = first == 0x1F310 || first == 0x1F30D || first == 0x1F30E ||
+                first == 0x1F30F || first == 0x1F5FA
+            if (isGlobe) {
+                var restIdx = 1
+                if (restIdx < cps.size && cps[restIdx] == 0xFE0F) restIdx++
+                val flag = String(intArrayOf(first), 0, 1)
+                val rest = if (restIdx < cps.size) {
+                    String(cps.subList(restIdx, cps.size).toIntArray(), 0, cps.size - restIdx).trim()
+                } else {
+                    ""
+                }
+                return flag to rest
+            }
+        }
+
+        // ISO code as first token: "NL Server" / "nl-ams-1"
+        val firstToken = trimmed.substringBefore(' ').trim()
+        if (firstToken.length == 2 && firstToken.all { it.isLetter() }) {
+            val rest = trimmed.removePrefix(firstToken).trimStart(' ', '-', '_', '|')
+            return firstToken.lowercase() to rest
+        }
+
+        return "🌐" to trimmed
+    }
+
     fun map(node: ProxyNode, ping: PingState? = null): ServerDisplay {
         val trimmed = node.name.trim()
-        val flag = firstFlagRegex.find(trimmed)?.value
-            ?: trimmed.substringBefore(' ').trim().takeIf { it.isNotEmpty() }
-            ?: "🌐"
-        val withoutFlag = trimmed.removePrefix(flag).trim()
+        val (flag, withoutFlag) = splitFlag(trimmed)
         val autoSelect = isAutoSelect(trimmed, withoutFlag.substringBefore("|").trim())
 
         val title = withoutFlag.substringBefore("|").trim().let { candidate ->
+            // На всякий случай убираем оставшиеся regional indicators в начале
+            val cleaned = candidate.dropWhile { ch ->
+                val cp = ch.code
+                cp in 0x1F1E6..0x1F1FF || cp == 0xFE0F
+            }.trim()
             when {
                 autoSelect -> "Автовыбор"
-                candidate.isNotBlank() &&
-                    !isIpv4Address(candidate) &&
-                    candidate != "${node.host}:${node.port}" -> candidate
+                cleaned.isNotBlank() &&
+                    !isIpv4Address(cleaned) &&
+                    cleaned != "${node.host}:${node.port}" -> cleaned
                 isIpv4Address(node.host) -> "Сервер"
                 node.host.isNotBlank() -> node.host
                 else -> "Сервер"

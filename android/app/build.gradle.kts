@@ -9,16 +9,16 @@ import java.util.Properties
 
 android {
     namespace = "ru.coffeemaniavpn.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "ru.coffeemaniavpn.app"
+        applicationId = "ru.porozoffvpn.app"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.3"
-        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://coffemaniavpn.online\"")
-        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://coffeemaniavpn.ru/register\"")
+        targetSdk = 36
+        versionCode = 7
+        versionName = "1.0.5"
+        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://porozoffvpn.ru\"")
+        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://porozoffvpn.ru\"")
         buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/coffemaniavpn\"")
         buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/coffemaniavpnbot\"")
     }

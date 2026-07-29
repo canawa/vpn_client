@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsInputAntenna
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -55,7 +54,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import ru.coffeemaniavpn.app.data.AppThemeMode
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 
@@ -66,7 +64,6 @@ fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     -> SettingsPage.Connection
     SettingsPage.Connection,
     SettingsPage.Subscription,
-    SettingsPage.Theme,
     SettingsPage.Logs,
     SettingsPage.About,
     -> SettingsPage.Main
@@ -89,7 +86,6 @@ enum class SettingsPage(
     ),
     KillSwitch("Kill switch"),
     Subscription("Подписка"),
-    Theme("Тема"),
     Logs("Логи"),
     About("О приложении"),
 }
@@ -109,8 +105,6 @@ fun SettingsScreen(
     onBuyOnWebsite: () -> Unit,
     subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
-    appThemeMode: AppThemeMode,
-    onAppThemeModeChange: (AppThemeMode) -> Unit,
     onShowLogs: () -> Unit,
     onDownloadLogs: () -> Unit,
     onTelegramChannel: () -> Unit,
@@ -142,11 +136,6 @@ fun SettingsScreen(
             modifier = modifier,
             settings = connectionSettings,
             onSave = onSaveConnectionSettings,
-        )
-        SettingsPage.Theme -> ThemeSettingsScreen(
-            modifier = modifier,
-            selectedTheme = appThemeMode,
-            onThemeChange = onAppThemeModeChange,
         )
         SettingsPage.Subscription -> SubscriptionSettingsScreen(
             modifier = modifier,
@@ -253,19 +242,13 @@ private fun SettingsMainScreen(
         )
         SettingsDivider()
         SettingsNavRow(
-            title = "Тема",
-            icon = Icons.Default.Palette,
-            onClick = { onPageChange(SettingsPage.Theme) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
             title = "Логи",
             icon = Icons.Default.BugReport,
             onClick = { onPageChange(SettingsPage.Logs) },
         )
         SettingsDivider()
         SettingsNavRow(
-            title = "О КОФЕМАНИЯ ВПН",
+            title = "О POROZOFF VPN",
             icon = Icons.Default.Info,
             onClick = { onPageChange(SettingsPage.About) },
         )

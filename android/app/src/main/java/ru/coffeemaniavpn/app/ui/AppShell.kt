@@ -49,7 +49,6 @@ fun AppShell(
     onCloseApp: () -> Unit,
     onSaveConnectionSettings: (ru.coffeemaniavpn.app.data.ConnectionSettingsState) -> Unit,
     onSubscriptionAutoUpdateIntervalChange: (ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval) -> Unit,
-    onAppThemeModeChange: (ru.coffeemaniavpn.app.data.AppThemeMode) -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
     var showSettings by remember { mutableStateOf(false) }
@@ -145,8 +144,6 @@ fun AppShell(
                 onSaveConnectionSettings = onSaveConnectionSettings,
                 subscriptionAutoUpdateInterval = state.subscriptionAutoUpdateInterval,
                 onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
-                appThemeMode = state.appThemeMode,
-                onAppThemeModeChange = onAppThemeModeChange,
                 onOpenServers = {
                     showSettings = false
                     settingsPage = SettingsPage.Main

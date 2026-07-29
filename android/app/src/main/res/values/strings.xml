@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">КОФЕМАНИЯ ВПН</string>
-    <string name="application_label" translatable="false">COFFEEMANIA VPN</string>
-    <string name="vpn_session_name">КОФЕМАНИЯ ВПН</string>
+    <string name="app_name">POROZOFF VPN</string>
+    <string name="application_label" translatable="false">POROZOFF VPN</string>
+    <string name="vpn_session_name">POROZOFF VPN</string>
     <string name="vpn_notification_channel">VPN</string>
-    <string name="vpn_notification_title">КОФЕМАНИЯ ВПН</string>
+    <string name="vpn_notification_title">POROZOFF VPN</string>
     <string name="vpn_starting">Подключение…</string>
     <string name="vpn_connected">Подключено</string>
     <string name="vpn_stop">Отключить</string>

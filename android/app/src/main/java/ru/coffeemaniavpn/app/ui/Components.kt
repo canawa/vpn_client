@@ -36,10 +36,11 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -54,9 +55,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -139,7 +143,7 @@ fun CoffemaniaTopBar(
                         )
                     }
                 } else {
-                    CoffeeLogo(modifier = Modifier.size(28.dp), tint = coffemaniaColors().espresso)
+                    CoffeeLogo(modifier = Modifier.size(28.dp))
                 }
                 Text(
                     text = title,
@@ -187,9 +191,9 @@ fun CoffemaniaBottomBar(
         ) {
             BottomNavItem(
                 label = "Главная",
+                icon = Icons.Default.Home,
                 selected = selectedTab == AppTab.Home,
                 onClick = { onTabSelected(AppTab.Home) },
-                useCoffeeLogo = true,
             )
             BottomNavItem(
                 label = "Серверы",
@@ -206,8 +210,7 @@ private fun BottomNavItem(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    useCoffeeLogo: Boolean = false,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Home,
 ) {
     val bg = if (selected) coffemaniaColors().latte else Color.Transparent
     val fg = if (selected) coffemaniaColors().espresso else coffemaniaColors().mocha
@@ -220,19 +223,12 @@ private fun BottomNavItem(
             .padding(horizontal = 24.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (useCoffeeLogo) {
-            CoffeeLogo(
-                modifier = Modifier.size(24.dp),
-                tint = fg,
-            )
-        } else {
-            Icon(
-                imageVector = icon ?: Icons.Default.Home,
-                contentDescription = label,
-                tint = fg,
-                modifier = Modifier.size(24.dp),
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = fg,
+            modifier = Modifier.size(24.dp),
+        )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
@@ -255,42 +251,12 @@ fun BrewConnectButton(
     val isDisconnecting = vpnStatus == VpnStatus.Stopping
     val isBusy = isConnecting || isDisconnecting
     val isDimmed = !enabled && !isConnected && !isBusy
-    val isDisconnected = vpnStatus == VpnStatus.Stopped && !isDimmed
 
-    val connectedGreen = CoffemaniaColors.PingGood
-    val disconnectRed = CoffemaniaColors.PingBad
-
-    val outerBg = when {
-        isDimmed -> coffemaniaColors().connectDisabledOuter
-        isConnected -> connectedGreen.copy(alpha = 0.18f)
-        isConnecting -> connectedGreen.copy(alpha = 0.12f)
-        isDisconnecting -> disconnectRed.copy(alpha = 0.12f)
-        isDisconnected -> disconnectRed.copy(alpha = 0.12f)
-        else -> coffemaniaColors().cappuccino
-    }
-    val outerBorder = when {
-        isDimmed -> coffemaniaColors().connectDisabledBorder
-        isConnected -> connectedGreen
-        isConnecting -> connectedGreen.copy(alpha = 0.75f)
-        isDisconnecting -> disconnectRed
-        isDisconnected -> disconnectRed
-        else -> coffemaniaColors().latte
-    }
-    val outerBorderWidth = if (isConnected || isDisconnected) 3.dp else 2.dp
-    val innerBg = if (isDimmed) coffemaniaColors().connectDisabledInner else coffemaniaColors().milkFoam
-    val innerBorder = when {
-        isDimmed -> coffemaniaColors().connectDisabledBorder
-        isConnected -> connectedGreen.copy(alpha = 0.45f)
-        isConnecting -> connectedGreen.copy(alpha = 0.35f)
-        isDisconnecting -> disconnectRed.copy(alpha = 0.35f)
-        isDisconnected -> disconnectRed.copy(alpha = 0.35f)
-        else -> coffemaniaColors().latte
-    }
-    val logoTint = if (isDimmed) coffemaniaColors().connectDisabledIcon else coffemaniaColors().espresso
-    val progressColor = when {
-        isConnecting -> connectedGreen
-        isDisconnecting -> disconnectRed
-        else -> coffemaniaColors().espresso
+    // Выключено (off) — зелёный; включено (on) — красный, как на референсе.
+    val palette = when {
+        isDimmed -> NeonPowerPalette.Dimmed
+        isConnected || isDisconnecting -> NeonPowerPalette.OnRed
+        else -> NeonPowerPalette.OffGreen
     }
 
     Column(
@@ -298,56 +264,175 @@ fun BrewConnectButton(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier.size(220.dp),
+            modifier = Modifier
+                .size(236.dp)
+                .clickable(enabled = enabled && !isBusy, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
-            if (isConnecting) {
-                ConnectPulseRings(color = connectedGreen)
+            if (isBusy) {
+                ConnectPulseRings(color = palette.ring)
             }
-            if (isDisconnecting) {
-                ConnectPulseRings(color = disconnectRed)
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(192.dp)
-                    .clip(CircleShape)
-                    .background(outerBg)
-                    .border(outerBorderWidth, outerBorder, CircleShape)
-                    .clickable(enabled = enabled && !isBusy, onClick = onClick)
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(CircleShape)
-                        .background(innerBg)
-                        .border(1.5.dp, innerBorder, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (isBusy) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp),
-                            color = progressColor,
-                            strokeWidth = 3.dp,
-                        )
-                    } else {
-                        CoffeeLogo(
-                            modifier = Modifier.size(88.dp),
-                            tint = logoTint,
-                        )
-                    }
-                }
-            }
+            NeonPowerButtonFace(
+                palette = palette,
+                isBusy = isBusy,
+                contentDescription = if (isConnected) "Отключить" else "Подключить",
+            )
         }
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         if (isConnected) {
             Text(
                 text = formatConnectionDuration(connectionElapsedMs),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = connectedGreen,
+                color = NeonPowerPalette.OnRed.ring,
+            )
+        }
+    }
+}
+
+private data class NeonPowerPalette(
+    val glow: Color,
+    val ring: Color,
+    val faceCenter: Color,
+    val faceEdge: Color,
+    val faceHighlight: Color,
+    val icon: Color,
+) {
+    companion object {
+        val OnRed = NeonPowerPalette(
+            glow = Color(0xFFFF2B3E),
+            ring = Color(0xFFFF3B4D),
+            faceCenter = Color(0xFF7A121C),
+            faceEdge = Color(0xFF2A060A),
+            faceHighlight = Color(0xFFA51C2A),
+            icon = Color(0xFFFFFFFF),
+        )
+        val OffGreen = NeonPowerPalette(
+            glow = Color(0xFF22C55E),
+            ring = Color(0xFF4ADE80),
+            faceCenter = Color(0xFF0F5A32),
+            faceEdge = Color(0xFF062014),
+            faceHighlight = Color(0xFF168A4A),
+            icon = Color(0xFFFFFFFF),
+        )
+        val Dimmed = NeonPowerPalette(
+            glow = Color(0xFF5A5A5A),
+            ring = Color(0xFF6E6E6E),
+            faceCenter = Color(0xFF2A2A2A),
+            faceEdge = Color(0xFF121212),
+            faceHighlight = Color(0xFF3A3A3A),
+            icon = Color(0xFFB0B0B0),
+        )
+    }
+}
+
+@Composable
+private fun NeonPowerButtonFace(
+    palette: NeonPowerPalette,
+    isBusy: Boolean,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.size(200.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val c = center
+            val outerR = size.minDimension / 2f
+
+            // Soft outer neon halo (несколько слоёв вместо blur)
+            listOf(
+                1.00f to 0.06f,
+                0.92f to 0.10f,
+                0.84f to 0.16f,
+                0.78f to 0.22f,
+            ).forEach { (scale, alpha) ->
+                drawCircle(
+                    color = palette.glow.copy(alpha = alpha),
+                    radius = outerR * scale,
+                    center = c,
+                )
+            }
+
+            // Dark recessed body
+            val faceR = outerR * 0.72f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colorStops = arrayOf(
+                        0.0f to palette.faceHighlight,
+                        0.45f to palette.faceCenter,
+                        1.0f to palette.faceEdge,
+                    ),
+                    center = c - Offset(0f, faceR * 0.12f),
+                    radius = faceR * 1.15f,
+                ),
+                radius = faceR,
+                center = c,
+            )
+
+            // Inner bevel ring
+            drawCircle(
+                color = Color.Black.copy(alpha = 0.45f),
+                radius = faceR * 0.97f,
+                center = c,
+                style = Stroke(width = faceR * 0.045f),
+            )
+            drawCircle(
+                color = palette.faceHighlight.copy(alpha = 0.35f),
+                radius = faceR * 0.93f,
+                center = c,
+                style = Stroke(width = faceR * 0.02f),
+            )
+
+            // Bright neon outer ring
+            val ringR = outerR * 0.78f
+            drawCircle(
+                color = palette.ring.copy(alpha = 0.35f),
+                radius = ringR,
+                center = c,
+                style = Stroke(width = 10.dp.toPx()),
+            )
+            drawCircle(
+                color = palette.ring,
+                radius = ringR,
+                center = c,
+                style = Stroke(width = 3.5.dp.toPx()),
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.35f),
+                radius = ringR,
+                center = c,
+                style = Stroke(width = 1.2.dp.toPx()),
+            )
+        }
+
+        if (isBusy) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(52.dp),
+                color = palette.icon,
+                trackColor = palette.icon.copy(alpha = 0.15f),
+                strokeWidth = 3.dp,
+            )
+        } else {
+            // Soft glow behind power glyph
+            Canvas(modifier = Modifier.size(110.dp)) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.28f),
+                            Color.White.copy(alpha = 0.08f),
+                            Color.Transparent,
+                        ),
+                    ),
+                    radius = size.minDimension / 2f,
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.PowerSettingsNew,
+                contentDescription = contentDescription,
+                tint = palette.icon,
+                modifier = Modifier.size(78.dp),
             )
         }
     }
@@ -380,11 +465,11 @@ private fun ConnectPulseRings(
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val center = center
-        val baseRadius = size.minDimension / 2f
+        val baseRadius = size.minDimension / 2f * 0.78f
         val strokeWidth = 3.dp.toPx()
 
         listOf(pulse1, pulse2).forEach { progress ->
-            val radius = baseRadius * (0.82f + progress * 0.38f)
+            val radius = baseRadius * (1f + progress * 0.28f)
             val alpha = (1f - progress) * 0.55f
             drawCircle(
                 color = color.copy(alpha = alpha),
@@ -727,7 +812,7 @@ fun WebsiteBanner(
 ) {
     PromoBanner(
         imageRes = R.drawable.banner_go_web,
-        contentDescription = "Управляйте ключами на сайте coffeemaniavpn.ru",
+        contentDescription = "Управляйте ключами на сайте porozoffvpn.ru",
         onClick = onClick,
         modifier = modifier,
     )
@@ -922,7 +1007,7 @@ private fun TrafficProgressBar(
     subscriptionInfo: SubscriptionInfo?,
     modifier: Modifier = Modifier,
 ) {
-    val trackColor = coffemaniaColors().milkFoam
+    val trackColor = coffemaniaColors().latte
     val progressColor = coffemaniaColors().espresso
 
     if (subscriptionInfo == null) {

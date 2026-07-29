@@ -1,6 +1,6 @@
 # Changelog
 
-Все заметные изменения в проекте **КОФЕМАНИЯ ВПН** (Android-клиент).
+Все заметные изменения в проекте **POROZOFF VPN** (Android-клиент).
 
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
 

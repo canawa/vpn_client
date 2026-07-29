@@ -25,7 +25,6 @@ import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.PingState
 import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.data.ServerPinger
-import ru.coffeemaniavpn.app.data.AppThemeMode
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 import ru.coffeemaniavpn.app.data.SubscriptionInfo
 import ru.coffeemaniavpn.app.data.SubscriptionParser
@@ -58,7 +57,6 @@ data class MainUiState(
     val connectionSettings: ConnectionSettingsState = ConnectionSettingsState(),
     val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval =
         SubscriptionAutoUpdateInterval.DEFAULT,
-    val appThemeMode: AppThemeMode = AppThemeMode.DEFAULT,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -110,13 +108,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         combine(
             preferences.connectionSettings,
             preferences.subscriptionAutoUpdateInterval,
-            preferences.appThemeMode,
-        ) { connectionSettings, autoUpdateInterval, appThemeMode ->
-            SettingsUiState(connectionSettings, autoUpdateInterval, appThemeMode)
+        ) { connectionSettings, autoUpdateInterval ->
+            SettingsUiState(connectionSettings, autoUpdateInterval)
         },
         startupCrash,
     ) { savedData, vpnData, localData, settingsData, crash ->
-        val (connectionSettings, autoUpdateInterval, appThemeMode) = settingsData
+        val (connectionSettings, autoUpdateInterval) = settingsData
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
@@ -136,7 +133,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             startupCrash = crash,
             connectionSettings = connectionSettings,
             subscriptionAutoUpdateInterval = autoUpdateInterval,
-            appThemeMode = appThemeMode,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -196,12 +192,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setSubscriptionAutoUpdateInterval(interval: SubscriptionAutoUpdateInterval) {
         viewModelScope.launch(Dispatchers.IO) {
             preferences.setSubscriptionAutoUpdateInterval(interval)
-        }
-    }
-
-    fun setAppThemeMode(mode: AppThemeMode) {
-        viewModelScope.launch(Dispatchers.IO) {
-            preferences.setAppThemeMode(mode)
         }
     }
 
@@ -270,7 +260,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         AppLog.i("processDeepLink action=$action")
         when (action) {
             DeepLinkAction.Open -> {
-                message.value = "КОФЕМАНИЯ ВПН"
+                message.value = "POROZOFF VPN"
             }
             DeepLinkAction.Connect -> {
                 if (prepareConnect(showErrors = true)) {
@@ -587,6 +577,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private data class SettingsUiState(
         val connectionSettings: ConnectionSettingsState,
         val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
-        val appThemeMode: AppThemeMode,
     )
 }
