@@ -63,7 +63,6 @@ fun ServerListFlag(
         return
     }
 
-    // Лёгкий AsyncImage без Subcompose — иначе список лагает при быстром скролле.
     val request = remember(assetPath, pixelWidth, pixelHeight, countryCode) {
         ImageRequest.Builder(context)
             .data(assetPath)

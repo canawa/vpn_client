@@ -102,9 +102,8 @@ fun ServersScreen(
     }
 }
 
-/** Притормаживает инерцию, чтобы при быстром свайпе меньше кадров «проседает». */
 @Composable
-private fun rememberGentleFlingBehavior(velocityFactor: Float = 0.42f): FlingBehavior {
+private fun rememberGentleFlingBehavior(velocityFactor: Float = 0.55f): FlingBehavior {
     val base = ScrollableDefaults.flingBehavior()
     return remember(base, velocityFactor) {
         object : FlingBehavior {

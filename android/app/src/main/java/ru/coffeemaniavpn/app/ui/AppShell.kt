@@ -162,6 +162,7 @@ fun AppShell(
                     settingsPage = SettingsPage.Main
                     onBuyOnWebsiteClick()
                 },
+                onRenewTelegramClick = onRenewTelegramClick,
                 onShowLogs = {
                     showSettings = false
                     settingsPage = SettingsPage.Main

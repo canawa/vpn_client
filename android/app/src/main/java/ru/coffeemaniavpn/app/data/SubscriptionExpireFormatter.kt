@@ -5,15 +5,14 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Человекочитаемый остаток срока подписки: месяцы, недели, дни;
- * при малом остатке — часы (и минуты, если меньше часа).
+ * Остаток срока подписки:
+ * — от суток и больше: только дни;
+ * — меньше суток: часы и/или минуты.
  */
 object SubscriptionExpireFormatter {
     private const val SEC_MINUTE = 60L
     private const val SEC_HOUR = 3_600L
     private const val SEC_DAY = 86_400L
-    private const val SEC_WEEK = 7 * SEC_DAY
-    private const val SEC_MONTH = 30 * SEC_DAY
 
     private val updatedAtFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.forLanguageTag("ru"))
 
@@ -30,51 +29,26 @@ object SubscriptionExpireFormatter {
     }
 
     private fun buildParts(remainingSec: Long): List<String> {
-        var sec = remainingSec
-        val months = sec / SEC_MONTH
-        sec %= SEC_MONTH
-        val weeks = sec / SEC_WEEK
-        sec %= SEC_WEEK
-        val days = sec / SEC_DAY
-        sec %= SEC_DAY
-        val hours = sec / SEC_HOUR
-        sec %= SEC_HOUR
-        val minutes = (sec + SEC_MINUTE - 1) / SEC_MINUTE
-
-        val parts = mutableListOf<String>()
-
-        when {
-            remainingSec < SEC_HOUR ->
-                parts += formatUnit(minutes.coerceAtLeast(1), "минута", "минуты", "минут")
-
-            remainingSec < SEC_DAY ->
-                parts += formatUnit(hours.coerceAtLeast(1), "час", "часа", "часов")
-
-            remainingSec < 2 * SEC_DAY -> {
-                val dayCount = (remainingSec / SEC_DAY).coerceAtLeast(1)
-                parts += formatUnit(dayCount, "день", "дня", "дней")
-                if (hours > 0) {
-                    parts += formatUnit(hours, "час", "часа", "часов")
-                }
-            }
-
-            else -> {
-                if (months > 0) {
-                    parts += formatUnit(months, "месяц", "месяца", "месяцев")
-                }
-                if (weeks > 0) {
-                    parts += formatUnit(weeks, "неделя", "недели", "недель")
-                }
-                if (days > 0) {
-                    parts += formatUnit(days, "день", "дня", "дней")
-                }
-                if (parts.isEmpty()) {
-                    parts += formatUnit(1, "день", "дня", "дней")
-                }
-            }
+        if (remainingSec >= SEC_DAY) {
+            val days = remainingSec / SEC_DAY
+            return listOf(formatUnit(days, "день", "дня", "дней"))
         }
 
-        return parts
+        val hours = remainingSec / SEC_HOUR
+        val minutes = ((remainingSec % SEC_HOUR) + SEC_MINUTE - 1) / SEC_MINUTE
+
+        return when {
+            hours <= 0L -> listOf(
+                formatUnit(minutes.coerceAtLeast(1), "минута", "минуты", "минут"),
+            )
+            minutes <= 0L -> listOf(
+                formatUnit(hours, "час", "часа", "часов"),
+            )
+            else -> listOf(
+                formatUnit(hours, "час", "часа", "часов"),
+                formatUnit(minutes, "минута", "минуты", "минут"),
+            )
+        }
     }
 
     private fun formatUnit(

@@ -98,6 +98,7 @@ fun SettingsScreen(
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
     onBuyOnWebsite: () -> Unit,
+    onRenewTelegramClick: () -> Unit,
     subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     onShowLogs: () -> Unit,
@@ -111,6 +112,7 @@ fun SettingsScreen(
             onOpenServers = onOpenServers,
             onPageChange = onPageChange,
             onCloseApp = onCloseApp,
+            onRenewTelegramClick = onRenewTelegramClick,
         )
         SettingsPage.Connection -> ConnectionMenuScreen(
             modifier = modifier,
@@ -203,6 +205,7 @@ private fun SettingsMainScreen(
     onOpenServers: () -> Unit,
     onPageChange: (SettingsPage) -> Unit,
     onCloseApp: () -> Unit,
+    onRenewTelegramClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -239,6 +242,12 @@ private fun SettingsMainScreen(
             icon = Icons.Default.Cancel,
             onClick = onCloseApp,
             showChevron = false,
+        )
+        TelegramChannelBanner(
+            onClick = onRenewTelegramClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 20.dp),
         )
     }
 }
