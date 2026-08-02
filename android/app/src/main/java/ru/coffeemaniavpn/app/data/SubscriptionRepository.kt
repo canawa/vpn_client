@@ -14,7 +14,18 @@ class SubscriptionRepository(
         .build(),
 ) {
     fun fetchSubscription(url: String): SubscriptionFetchResult {
-        val requestBuilder = Request.Builder().url(url.trim())
+        val trimmed = url.trim()
+        if (!trimmed.startsWith("http://", ignoreCase = true) &&
+            !trimmed.startsWith("https://", ignoreCase = true)
+        ) {
+            error("Вставьте верную ссылку подписки")
+        }
+
+        val requestBuilder = runCatching {
+            Request.Builder().url(trimmed)
+        }.getOrElse {
+            error("Вставьте верную ссылку подписки")
+        }
         DeviceIdentity.subscriptionHeaders(context).forEach { (name, value) ->
             requestBuilder.header(name, value)
         }
@@ -26,7 +37,7 @@ class SubscriptionRepository(
             if (!response.isSuccessful) {
                 error(formatHttpError(response.code, body))
             }
-            if (body.isBlank()) error("Пустой ответ подписки")
+            if (body.isBlank()) error("Вставьте верную ссылку подписки")
 
             val nodes = runCatching {
                 SubscriptionParser.parse(body)
@@ -34,18 +45,40 @@ class SubscriptionRepository(
                 if (looksLikePlainTextError(body)) {
                     error(body.lineSequence().first { it.isNotBlank() }.trim())
                 }
-                throw parseError
+                error("Вставьте верную ссылку подписки")
             }
 
-            if (nodes.isEmpty()) error("В подписке нет поддерживаемых серверов")
+            if (nodes.isEmpty()) error("Вставьте верную ссылку подписки")
+
+            val announceCandidates = buildList {
+                response.header("announce")?.let(::add)
+                response.header("Announce")?.let(::add)
+                for (name in response.headers.names()) {
+                    if (name.equals("announce", ignoreCase = true)) {
+                        response.headers.values(name).forEach(::add)
+                    } else {
+                        // Иногда панель кладёт base64-announce в другой header.
+                        response.headers.values(name).forEach { value ->
+                            if (value.startsWith("base64:", ignoreCase = true)) add(value)
+                        }
+                    }
+                }
+            }.distinct()
 
             val info = SubscriptionInfoParser.parseFromResponse(
                 userInfoHeader = response.header("subscription-userinfo"),
                 profileTitleHeader = response.header("profile-title"),
+                announceHeader = announceCandidates.firstOrNull(),
+                announceHeaders = announceCandidates,
                 body = body,
             )
-
-            AppLog.i("fetchSubscription ok nodes=${nodes.size} hwid=${DeviceIdentity.hwid(context).take(8)}…")
+            AppLog.i(
+                "fetchSubscription ok nodes=${nodes.size} " +
+                    "announceCandidates=${announceCandidates.size} " +
+                    "deviceLimit=${info?.deviceLimit} " +
+                    "announceLen=${info?.announce?.length ?: 0} " +
+                    "hwid=${DeviceIdentity.hwid(context).take(8)}…",
+            )
             return SubscriptionFetchResult(nodes = nodes, info = info)
         }
     }
@@ -71,7 +104,7 @@ class SubscriptionRepository(
         if (looksLikePlainTextError(body)) {
             return body.lineSequence().first { it.isNotBlank() }.trim()
         }
-        return "HTTP $code"
+        return "Вставьте верную ссылку подписки"
     }
 
     private fun looksLikePlainTextError(body: String): Boolean {

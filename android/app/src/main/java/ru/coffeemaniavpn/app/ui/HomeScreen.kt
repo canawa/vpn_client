@@ -129,6 +129,15 @@ fun HomeScreen(
                     )
                 }
             }
+        } else {
+            state.subscriptionInfo
+                ?.takeIf { it.hasAnnounce }
+                ?.let { info ->
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        SectionLabel("Подписка")
+                        SubscriptionAnnounceCard(text = info.announce)
+                    }
+                }
         }
 
         WebsiteBanner(onClick = onBuyOnWebsiteClick)

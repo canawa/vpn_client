@@ -20,11 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
@@ -62,7 +60,6 @@ fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     -> SettingsPage.Connection
     SettingsPage.Connection,
     SettingsPage.Subscription,
-    SettingsPage.Logs,
     -> SettingsPage.Main
     SettingsPage.Main -> null
 }
@@ -83,7 +80,6 @@ enum class SettingsPage(
     ),
     KillSwitch("Kill switch"),
     Subscription("Подписка"),
-    Logs("Логи"),
 }
 
 @Composable
@@ -101,8 +97,6 @@ fun SettingsScreen(
     onRenewTelegramClick: () -> Unit,
     subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
-    onShowLogs: () -> Unit,
-    onDownloadLogs: () -> Unit,
     onCloseApp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -142,21 +136,6 @@ fun SettingsScreen(
             onRefreshSubscription = onRefreshSubscription,
             onDeleteSubscription = onDeleteSubscription,
             onBuyOnWebsite = onBuyOnWebsite,
-        )
-        SettingsPage.Logs -> SettingsDetailScreen(
-            modifier = modifier,
-            items = listOf(
-                SettingsAction(
-                    title = "Просмотр логов",
-                    icon = Icons.Default.BugReport,
-                    onClick = onShowLogs,
-                ),
-                SettingsAction(
-                    title = "Скачать логи",
-                    icon = Icons.Default.Download,
-                    onClick = onDownloadLogs,
-                ),
-            ),
         )
     }
 }
@@ -231,12 +210,6 @@ private fun SettingsMainScreen(
             onClick = { onPageChange(SettingsPage.Subscription) },
         )
         SettingsDivider()
-        SettingsNavRow(
-            title = "Логи",
-            icon = Icons.Default.BugReport,
-            onClick = { onPageChange(SettingsPage.Logs) },
-        )
-        SettingsDivider()
         SettingsActionRow(
             title = "Закрыть приложение",
             icon = Icons.Default.Cancel,
@@ -249,32 +222,6 @@ private fun SettingsMainScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 20.dp),
         )
-    }
-}
-
-@Composable
-private fun SettingsDetailScreen(
-    items: List<SettingsAction>,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-    ) {
-        items.forEachIndexed { index, action ->
-            SettingsActionRow(
-                title = action.title,
-                icon = action.icon,
-                onClick = action.onClick,
-                enabled = action.enabled,
-                destructive = action.destructive,
-                showChevron = action.showChevron,
-            )
-            if (index < items.lastIndex) {
-                SettingsDivider()
-            }
-        }
     }
 }
 

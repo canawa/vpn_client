@@ -1,7 +1,6 @@
 package ru.coffeemaniavpn.app.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,8 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -24,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import ru.coffeemaniavpn.app.R
 
@@ -36,8 +32,6 @@ fun AppShell(
     onConnectToNode: (String) -> Unit,
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
-    onShowLogs: () -> Unit,
-    onDownloadLogs: () -> Unit,
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
@@ -163,12 +157,6 @@ fun AppShell(
                     onBuyOnWebsiteClick()
                 },
                 onRenewTelegramClick = onRenewTelegramClick,
-                onShowLogs = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    onShowLogs()
-                },
-                onDownloadLogs = onDownloadLogs,
                 onCloseApp = onCloseApp,
             )
         } else {
@@ -233,36 +221,4 @@ fun AppShell(
             },
         )
     }
-}
-
-@Composable
-fun LogsDialog(
-    text: String,
-    onDismiss: () -> Unit,
-    onDownloadLogs: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Логи приложения") },
-        text = {
-            Text(
-                text = text,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .horizontalScroll(rememberScrollState()),
-                fontFamily = FontFamily.Monospace,
-            )
-        },
-        dismissButton = {
-            TextButton(onClick = onDownloadLogs) {
-                Text("Скачать логи")
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Закрыть")
-            }
-        },
-    )
 }

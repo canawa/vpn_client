@@ -875,6 +875,36 @@ fun SubscriptionExpiredCard(
 }
 
 @Composable
+fun SubscriptionAnnounceCard(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = coffemaniaColors().cappuccino,
+        border = androidx.compose.foundation.BorderStroke(1.dp, coffemaniaColors().latte),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Описание",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = coffemaniaColors().mocha,
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = coffemaniaColors().espresso,
+            )
+        }
+    }
+}
+
+@Composable
 fun SubscriptionCard(
     onPasteLinkClick: () -> Unit,
     onBuyOnWebsiteClick: () -> Unit,
@@ -1086,6 +1116,11 @@ fun SubscriptionStatusBar(
                             color = coffemaniaColors().mocha,
                         )
                     }
+                    Text(
+                        text = info.devicesLabel(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = coffemaniaColors().mocha,
+                    )
                 }
             }
 

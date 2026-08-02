@@ -65,6 +65,8 @@ data class MainUiState(
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val LOCAL_IMPORT_URL = "deeplink://imported"
+        private const val INVALID_SUBSCRIPTION_LINK =
+            "Вставьте верную ссылку подписки"
     }
 
     private val preferences = AppPreferences(application)
@@ -221,7 +223,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 false
             }
             state.subscriptionUrl.isBlank() -> {
-                if (showErrors) error.value = "Вставьте ссылку подписки"
+                if (showErrors) error.value = INVALID_SUBSCRIPTION_LINK
                 false
             }
             state.subscriptionInfo?.isExpired() == true -> {
@@ -262,7 +264,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun processDeepLink(uri: Uri, onEffect: (DeepLinkEffect) -> Unit) {
         val action = DeepLinkParser.parse(uri) ?: run {
             AppLog.w("processDeepLink unsupported uri=$uri")
-            error.value = "Неподдерживаемая ссылка"
+            error.value = INVALID_SUBSCRIPTION_LINK
             return
         }
         AppLog.i("processDeepLink action=$action")
@@ -335,7 +337,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val nodes = withContext(Dispatchers.IO) {
                     SubscriptionParser.parse(trimmed)
                 }
-                if (nodes.isEmpty()) error("Подписка пуста")
+                if (nodes.isEmpty()) error(INVALID_SUBSCRIPTION_LINK)
                 preferences.saveSubscription(
                     LOCAL_IMPORT_URL,
                     nodes,
@@ -350,7 +352,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 AppLog.e("importSubscriptionPayload failed", e)
-                error.value = e.message ?: "Не удалось импортировать конфиг"
+                error.value = INVALID_SUBSCRIPTION_LINK
             } finally {
                 isLoading.value = false
             }
@@ -377,7 +379,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun pasteSubscriptionFromClipboard() {
         val text = getApplication<Application>().readClipboardText()
         if (text.isNullOrBlank()) {
-            error.value = "Буфер обмена пуст"
+            error.value = INVALID_SUBSCRIPTION_LINK
             return
         }
         subscriptionUrlInput.value = text
@@ -416,8 +418,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 return
             }
             if (showUrlRequiredError) {
-                error.value = "Вставьте ссылку подписки"
+                error.value = INVALID_SUBSCRIPTION_LINK
             }
+            onComplete?.invoke(false)
+            return
+        }
+        if (!isHttpSubscriptionUrl(url)) {
+            error.value = INVALID_SUBSCRIPTION_LINK
             onComplete?.invoke(false)
             return
         }
@@ -436,7 +443,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 AppLog.i("refreshConfig ok, nodes=$nodeCount")
             }.onFailure { e ->
                 AppLog.e("refreshConfig failed", e)
-                error.value = (e as? Exception)?.message ?: "Не удалось обновить конфиг"
+                error.value = subscriptionErrorMessage(e)
             }.isSuccess
             isLoading.value = false
             onComplete?.invoke(success)
@@ -530,11 +537,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         VpnManager.setError(null)
     }
 
-    fun readLogs(): String = buildString {
-        append("Файл: ")
-        append(AppLog.logPath())
-        append("\n\n")
-        append(AppLog.readTail())
+    private fun isHttpSubscriptionUrl(url: String): Boolean =
+        url.startsWith("http://", ignoreCase = true) ||
+            url.startsWith("https://", ignoreCase = true)
+
+    private fun subscriptionErrorMessage(error: Throwable): String {
+        val message = error.message.orEmpty()
+        val lower = message.lowercase()
+        if (error is IllegalArgumentException ||
+            "expected url" in lower ||
+            "invalid url" in lower ||
+            "no scheme" in lower ||
+            "malformed" in lower ||
+            "must be http" in lower ||
+            "неверный" in lower && "ссылк" in lower
+        ) {
+            return INVALID_SUBSCRIPTION_LINK
+        }
+        return message.ifBlank { "Не удалось обновить конфиг" }
     }
 
     fun saveConnectionSettings(settings: ConnectionSettingsState) {
