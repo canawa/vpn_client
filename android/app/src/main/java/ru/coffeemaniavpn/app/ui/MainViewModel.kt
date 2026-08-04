@@ -80,7 +80,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val subscriptionUrlInput = MutableStateFlow("")
     private val isLoading = MutableStateFlow(false)
-    private val isPinging = MutableStateFlow(false)
     private val nodePings = MutableStateFlow<Map<String, PingState>>(emptyMap())
     private val message = MutableStateFlow<String?>(null)
     private val error = MutableStateFlow<String?>(null)
@@ -116,8 +115,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         ) { vpnStatus, vpnError, elapsedMs, traffic, inputUrl ->
             VpnUiState(vpnStatus, vpnError, elapsedMs, traffic.downlinkBytesPerSec, traffic.uplinkBytesPerSec, inputUrl)
         },
-        combine(isLoading, isPinging, nodePings, message, error) { loading, pinging, pings, info, localError ->
-            LocalUiState(loading, pinging, pings, info, localError)
+        combine(isLoading, nodePings, message, error) { loading, pings, info, localError ->
+            LocalUiState(
+                isLoading = loading,
+                isPinging = pings.values.any { it is PingState.Loading },
+                nodePings = pings,
+                message = info,
+                error = localError,
+            )
         },
         combine(
             preferences.connectionSettings,
@@ -281,20 +286,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private var pingJob: Job? = null
+    private var pingGeneration = 0
 
     private fun pingAllNodes(nodes: List<ProxyNode>) {
         if (nodes.isEmpty()) return
 
         pingJob?.cancel()
+        val generation = ++pingGeneration
         pingJob = viewModelScope.launch(Dispatchers.IO) {
-            isPinging.value = true
             nodePings.value = nodes.associate { it.id to PingState.Loading }
-            try {
-                ServerPinger.pingAll(nodes) { nodeId, state ->
-                    nodePings.value = nodePings.value + (nodeId to state)
-                }
-            } finally {
-                isPinging.value = false
+            ServerPinger.pingAll(nodes) { nodeId, state ->
+                if (generation != pingGeneration) return@pingAll
+                nodePings.value = nodePings.value + (nodeId to state)
             }
         }
     }
@@ -434,7 +437,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             VpnManager.disconnect()
             pingJob?.cancel()
-            isPinging.value = false
+            pingGeneration++
             preferences.clearSubscription()
             subscriptionUrlInput.value = ""
             nodePings.value = emptyMap()

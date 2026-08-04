@@ -53,7 +53,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -186,7 +189,6 @@ fun StatusGlow(
 fun ClevConnectButton(
     vpnStatus: VpnStatus,
     connectionElapsedMs: Long,
-    isPinging: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -197,7 +199,6 @@ fun ClevConnectButton(
         !enabled && vpnStatus == VpnStatus.Stopped -> ConnectUiStatus.Off
         vpnStatus == VpnStatus.Started -> ConnectUiStatus.On
         vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping -> ConnectUiStatus.Busy
-        isPinging -> ConnectUiStatus.Busy
         else -> ConnectUiStatus.Off
     }
     val interaction = remember { MutableInteractionSource() }
@@ -207,7 +208,7 @@ fun ClevConnectButton(
     val spin by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(if (isPinging) 900 else 500, easing = LinearEasing), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(tween(500, easing = LinearEasing), RepeatMode.Restart),
         label = "spinAngle",
     )
     val ringSize = size + 36.dp
@@ -307,7 +308,7 @@ fun ClevConnectButton(
                         contentDescription = null,
                         tint = when {
                             uiStatus == ConnectUiStatus.On -> Color.Black.copy(alpha = 0.75f)
-                            uiStatus == ConnectUiStatus.Busy || (isPinging && vpnStatus == VpnStatus.Stopped) ->
+                            uiStatus == ConnectUiStatus.Busy ->
                                 colors.logoYellow
                             else -> colors.mocha
                         },
@@ -331,10 +332,8 @@ fun ClevConnectButton(
                         )
                     } else {
                         Text(
-                            text = when {
-                                isPinging && vpnStatus == VpnStatus.Stopped ->
-                                    stringResource(R.string.clev_checking_ping)
-                                uiStatus == ConnectUiStatus.Busy ->
+                            text = when (uiStatus) {
+                                ConnectUiStatus.Busy ->
                                     stringResource(R.string.clev_connecting)
                                 else -> stringResource(R.string.clev_start)
                             },
@@ -418,6 +417,63 @@ fun ProtocolLabelBadge(
             .background(colors.surfaceVariant, shape)
             .padding(horizontal = 5.dp, vertical = 1.dp),
     )
+}
+
+/** Название + бейдж протокола вплотную слева (как QuickServerRow в macOS). */
+@Composable
+fun ServerTitleWithProtocolBadge(
+    title: String,
+    protocolLabel: String,
+    favorite: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+
+    SubcomposeLayout(modifier = modifier) { constraints ->
+        val gap = 6.dp.roundToPx()
+        val starSize = 12.dp.roundToPx()
+        val badge = subcompose("badge") {
+            ProtocolLabelBadge(label = protocolLabel)
+        }.first().measure(Constraints())
+
+        val starPlaceable = if (favorite) {
+            subcompose("star") {
+                Icon(
+                    Icons.Default.Star,
+                    contentDescription = null,
+                    tint = colors.yellow,
+                    modifier = Modifier.size(12.dp),
+                )
+            }.first().measure(Constraints.fixed(starSize, starSize))
+        } else {
+            null
+        }
+
+        val starSpace = if (starPlaceable != null) starSize + gap else 0
+        val textMaxWidth = (constraints.maxWidth - starSpace - badge.width - gap).coerceAtLeast(0)
+        val text = subcompose("text") {
+            Text(
+                text = title,
+                color = colors.espresso,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }.first().measure(Constraints(maxWidth = textMaxWidth))
+
+        val height = maxOf(text.height, badge.height, starPlaceable?.height ?: 0)
+        layout(constraints.maxWidth, height) {
+            var x = 0
+            starPlaceable?.let {
+                it.place(x, (height - it.height) / 2)
+                x += starSpace
+            }
+            text.place(x, (height - text.height) / 2)
+            x += text.width + gap
+            badge.place(x, (height - badge.height) / 2)
+        }
+    }
 }
 
 /** Пинг с цветовой точкой — как PingLabel в Components.swift. */

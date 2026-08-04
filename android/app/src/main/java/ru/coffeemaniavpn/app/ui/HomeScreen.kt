@@ -114,7 +114,7 @@ fun HomeScreen(
     }
     val glow = when {
         isConnected -> ConnectUiStatus.On
-        state.vpnStatus == VpnStatus.Starting || state.vpnStatus == VpnStatus.Stopping || state.isPinging ->
+        state.vpnStatus == VpnStatus.Starting || state.vpnStatus == VpnStatus.Stopping ->
             ConnectUiStatus.Busy
         else -> ConnectUiStatus.Off
     }
@@ -173,14 +173,9 @@ fun HomeScreen(
                 ClevConnectButton(
                     vpnStatus = state.vpnStatus,
                     connectionElapsedMs = state.connectionElapsedMs,
-                    isPinging = state.isPinging,
                     enabled = connectEnabled,
                     onClick = {
-                        when {
-                            state.isPinging && state.vpnStatus == VpnStatus.Stopped -> onRefreshPing()
-                            isConnected -> onDisconnectClick()
-                            else -> onConnectClick()
-                        }
+                        if (isConnected) onDisconnectClick() else onConnectClick()
                     },
                     size = 196.dp,
                     modifier = Modifier.padding(top = 6.dp),
@@ -406,7 +401,6 @@ private fun HomeInfoBar(
     ) {
         InfoBarIconButton(
             onClick = onRefreshPing,
-            enabled = !state.isPinging,
             loading = state.isPinging,
         ) {
             Icon(
@@ -529,6 +523,11 @@ private fun AutoServerRow(
                     strokeWidth = 2.dp,
                     color = colors.yellow,
                 )
+                PingState.Timeout -> Text(
+                    text = "N/A",
+                    color = colors.mocha,
+                    fontSize = 11.sp,
+                )
                 else -> Unit
             }
             SelectionIndicator(selected = selected)
@@ -569,29 +568,12 @@ private fun QuickServerRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             ServerListFlag(flag = display.flag, height = 20.dp)
-            Row(
+            ServerTitleWithProtocolBadge(
+                title = display.title,
+                protocolLabel = display.protocolLabel,
+                favorite = favorite,
                 modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                if (favorite) {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        tint = colors.yellow,
-                        modifier = Modifier.size(12.dp),
-                    )
-                }
-                Text(
-                    text = display.title,
-                    color = colors.espresso,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            ProtocolLabelBadge(label = display.protocolLabel)
+            )
             when {
                 isPinging -> CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
@@ -599,6 +581,11 @@ private fun QuickServerRow(
                     color = colors.yellow,
                 )
                 display.pingMs != null -> PingLabel(ms = display.pingMs)
+                display.pingText == "N/A" -> Text(
+                    text = "N/A",
+                    color = colors.mocha,
+                    fontSize = 11.sp,
+                )
                 display.pingText == "нет" -> Text(
                     text = "—",
                     color = colors.error,

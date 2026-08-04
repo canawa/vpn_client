@@ -634,6 +634,7 @@ fun SelectedServerCard(
     val pingColor = when {
         display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
         display.pingText == "нет" -> CoffemaniaColors.PingBad
+        display.pingText == "N/A" -> colors.mocha
         else -> colors.mocha
     }
     Surface(
@@ -719,6 +720,7 @@ fun ServerListCard(
     val pingColor = when {
         display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
         display.pingText == "нет" -> CoffemaniaColors.PingBad
+        display.pingText == "N/A" -> coffemaniaColors().mocha
         else -> coffemaniaColors().mocha
     }
 
@@ -1250,7 +1252,7 @@ fun PingTestButton(
 ) {
     IconButton(
         onClick = onClick,
-        enabled = enabled && !isPinging,
+        enabled = enabled,
         modifier = modifier.size(48.dp),
     ) {
         if (isPinging) {
