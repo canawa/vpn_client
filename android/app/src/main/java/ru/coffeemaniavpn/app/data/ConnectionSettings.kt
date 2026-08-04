@@ -20,6 +20,7 @@ data class ConnectionSettingsState(
     val sitesEnabled: Boolean = false,
     val sitesMode: SplitTunnelSitesMode = SplitTunnelSitesMode.ProxyOnly,
     val siteDomains: List<String> = emptyList(),
+    val customRules: List<RoutingRule> = emptyList(),
     val appsEnabled: Boolean = false,
     val appsMode: SplitTunnelAppsMode = SplitTunnelAppsMode.IncludeOnly,
     val appPackages: Set<String> = emptySet(),

@@ -1,8 +1,11 @@
 package ru.coffeemaniavpn.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
@@ -44,18 +49,13 @@ fun AppShell(
     onLanguageChange: (AppLanguage) -> Unit,
 ) {
     var showSettings by remember { mutableStateOf(false) }
-    var showAppsEditor by remember { mutableStateOf(false) }
-    var showSitesEditor by remember { mutableStateOf(false) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
 
-    val canNavigateBack =
-        showDeleteSubscriptionConfirm || showAppsEditor || showSitesEditor || showSettings
+    val canNavigateBack = showDeleteSubscriptionConfirm || showSettings
 
     fun navigateBack() {
         when {
             showDeleteSubscriptionConfirm -> showDeleteSubscriptionConfirm = false
-            showAppsEditor -> showAppsEditor = false
-            showSitesEditor -> showSitesEditor = false
             showSettings -> showSettings = false
         }
     }
@@ -76,77 +76,46 @@ fun AppShell(
             )
         },
     ) { padding ->
-        when {
-            showAppsEditor -> {
-                Column(
-                    Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                ) {
-                    TextButton(onClick = { showAppsEditor = false }) {
-                        Text(text = "← Назад", color = coffemaniaColors().yellow)
-                    }
-                    SplitTunnelAppsScreen(
-                        settings = state.connectionSettings,
-                        onSave = onSaveConnectionSettings,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+        AnimatedContent(
+            targetState = showSettings,
+            transitionSpec = {
+                fadeIn(ClevMotion.settingsEnterSpec) togetherWith fadeOut(ClevMotion.settingsExitSpec)
+            },
+            label = "settingsScreen",
+            modifier = Modifier.padding(padding),
+        ) { settingsVisible ->
+            if (settingsVisible) {
+                ClevSettingsHost(
+                    state = state,
+                    onClose = { showSettings = false },
+                    onSaveConnectionSettings = onSaveConnectionSettings,
+                    onRefreshSubscription = onRefreshSubscription,
+                    onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
+                    onTrafficRoutingModeChange = onTrafficRoutingModeChange,
+                    onLanguageChange = onLanguageChange,
+                )
+            } else {
+                HomeScreen(
+                    state = state,
+                    onConnectClick = onConnectClick,
+                    onDisconnectClick = onDisconnectClick,
+                    onPasteLinkClick = onPasteLinkClick,
+                    onOpenSettings = { showSettings = true },
+                    onSelectNode = onSelectNode,
+                    onSelectAuto = onSelectAuto,
+                    onToggleFavorite = onToggleFavorite,
+                    onRefreshPing = onRefreshPing,
+                    onRefreshConfig = onRefreshConfig,
+                )
             }
-            showSitesEditor -> {
-                Column(
-                    Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                ) {
-                    TextButton(onClick = { showSitesEditor = false }) {
-                        Text(text = "← Назад", color = coffemaniaColors().yellow)
-                    }
-                    SplitTunnelSitesScreen(
-                        settings = state.connectionSettings,
-                        onSave = onSaveConnectionSettings,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            showSettings -> ClevSettingsHost(
-                modifier = Modifier.padding(padding),
-                state = state,
-                onClose = { showSettings = false },
-                onSaveConnectionSettings = onSaveConnectionSettings,
-                onPasteLink = {
-                    showSettings = false
-                    onPasteLinkClick()
-                },
-                onRefreshSubscription = onRefreshSubscription,
-                onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
-                onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
-                onTrafficRoutingModeChange = onTrafficRoutingModeChange,
-                onLanguageChange = onLanguageChange,
-                onOpenAppsEditor = { showAppsEditor = true },
-                onOpenSitesEditor = { showSitesEditor = true },
-            )
-            else -> HomeScreen(
-                modifier = Modifier.padding(padding),
-                state = state,
-                onConnectClick = onConnectClick,
-                onDisconnectClick = onDisconnectClick,
-                onPasteLinkClick = onPasteLinkClick,
-                onOpenSettings = { showSettings = true },
-                onSelectNode = onSelectNode,
-                onSelectAuto = onSelectAuto,
-                onToggleFavorite = onToggleFavorite,
-                onRefreshPing = onRefreshPing,
-                onRefreshConfig = onRefreshConfig,
-            )
         }
     }
 
     if (showDeleteSubscriptionConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteSubscriptionConfirm = false },
-            title = { Text("Удалить подписку?") },
-            text = { Text("Ссылка и список серверов будут удалены с устройства.") },
+            title = { Text(stringResource(R.string.clev_delete_subscription_title)) },
+            text = { Text(stringResource(R.string.clev_delete_subscription_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -155,12 +124,12 @@ fun AppShell(
                         onDeleteSubscriptionClick()
                     },
                 ) {
-                    Text("Удалить")
+                    Text(stringResource(R.string.clev_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteSubscriptionConfirm = false }) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.clev_cancel))
                 }
             },
         )

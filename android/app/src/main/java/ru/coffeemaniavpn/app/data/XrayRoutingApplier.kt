@@ -38,67 +38,57 @@ object XrayRoutingApplier {
 
     fun applyConnectionSettings(config: JSONObject) {
         val settings = ConnectionSettingsStore.state
-        applySiteRules(config, settings)
-        applySiteDns(config, settings)
+        applyCustomRules(config, settings.customRules.filter { it.isEnabled })
     }
 
-    private fun applySiteRules(config: JSONObject, settings: ConnectionSettingsState) {
-        if (!settings.sitesEnabled || settings.siteDomains.isEmpty()) return
-
+    private fun applyCustomRules(config: JSONObject, rules: List<RoutingRule>) {
         val routing = config.optJSONObject("routing") ?: return
-        val rules = routing.optJSONArray("rules") ?: JSONArray().also { routing.put("rules", it) }
+        val existing = routing.optJSONArray("rules") ?: JSONArray().also { routing.put("rules", it) }
 
-        val outbound = when (settings.sitesMode) {
-            SplitTunnelSitesMode.ProxyOnly -> "proxy"
-            SplitTunnelSitesMode.DirectBypass -> "direct"
-        }
-        val siteRules = JSONArray()
-        settings.siteDomains.forEach { raw ->
-            val domain = normalizeDomain(raw)
-            if (domain.isBlank()) return@forEach
-            siteRules.put(
-                XrayConfigBuilder.fieldRule(
-                    domain = JSONArray().apply {
-                        put("domain:$domain")
-                        put("domain:.$domain")
-                    },
-                    outboundTag = outbound,
-                ),
-            )
+        val custom = JSONArray()
+        rules.forEach { rule ->
+            val outbound = when (rule.target) {
+                RoutingRuleTarget.Proxy -> "proxy"
+                RoutingRuleTarget.Direct -> "direct"
+            }
+            when (rule.matcher) {
+                RoutingRuleMatcher.DomainSuffix -> {
+                    val domain = normalizeDomain(rule.value)
+                    if (domain.isBlank()) return@forEach
+                    custom.put(
+                        XrayConfigBuilder.fieldRule(
+                            domain = JSONArray().apply {
+                                put("domain:$domain")
+                                put("domain:.$domain")
+                            },
+                            outboundTag = outbound,
+                        ),
+                    )
+                }
+                RoutingRuleMatcher.IpCidr -> {
+                    val cidr = rule.value.trim()
+                    if (cidr.isBlank()) return@forEach
+                    custom.put(
+                        XrayConfigBuilder.fieldRule(
+                            ip = JSONArray().put(cidr),
+                            outboundTag = outbound,
+                        ),
+                    )
+                }
+            }
         }
 
         val merged = JSONArray()
-        for (i in 0 until rules.length()) merged.put(rules.get(i))
-        for (i in 0 until siteRules.length()) merged.put(siteRules.get(i))
+        for (i in 0 until existing.length()) merged.put(existing.get(i))
+        for (i in 0 until custom.length()) merged.put(custom.get(i))
         routing.put("rules", merged)
 
-        val finalOutbound = when (settings.sitesMode) {
-            SplitTunnelSitesMode.ProxyOnly -> "direct"
-            SplitTunnelSitesMode.DirectBypass -> "proxy"
+        val finalOutbound = when (TrafficRoutingStore.mode) {
+            TrafficRoutingMode.GLOBAL -> "proxy"
+            TrafficRoutingMode.SMART -> "proxy"
+            TrafficRoutingMode.CUSTOM -> if (rules.isEmpty()) "proxy" else "direct"
         }
         putFinalRule(routing, finalOutbound)
-    }
-
-    private fun applySiteDns(config: JSONObject, settings: ConnectionSettingsState) {
-        if (!settings.sitesEnabled || settings.siteDomains.isEmpty()) return
-        val dns = config.optJSONObject("dns") ?: return
-        val servers = dns.optJSONArray("servers") ?: JSONArray().also { dns.put("servers", it) }
-
-        val merged = JSONArray()
-        settings.siteDomains.forEach { raw ->
-            val domain = normalizeDomain(raw)
-            if (domain.isBlank()) return@forEach
-            merged.put(JSONObject().apply {
-                put("address", "8.8.8.8")
-                put("domains", JSONArray().apply {
-                    put("domain:$domain")
-                    put("domain:.$domain")
-                })
-                put("skipFallback", true)
-            })
-        }
-        for (i in 0 until servers.length()) merged.put(servers.get(i))
-        dns.put("servers", merged)
     }
 
     private fun putFinalRule(routing: JSONObject, outboundTag: String) {

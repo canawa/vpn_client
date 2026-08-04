@@ -87,10 +87,17 @@ class KillSwitchVpnService : VpnService() {
         }
 
         fun release(context: android.content.Context) {
+            releaseImmediate()
             val intent = Intent(context, KillSwitchVpnService::class.java).apply {
                 action = ACTION_RELEASE
             }
             context.startService(intent)
+        }
+
+        /** Закрывает TUN до запуска основного VPN (Android — один VPN-слот). */
+        fun releaseImmediate() {
+            runCatching { blockingInterface?.close() }
+            blockingInterface = null
         }
     }
 }

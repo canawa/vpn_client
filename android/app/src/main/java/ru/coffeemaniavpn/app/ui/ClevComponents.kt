@@ -3,10 +3,19 @@ package ru.coffeemaniavpn.app.ui
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.lerp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -53,6 +62,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.text.style.TextOverflow
@@ -168,17 +178,22 @@ fun StatusGlow(
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
-    val glow = when (status) {
+    val target = when (status) {
         ConnectUiStatus.Off -> colors.mocha.copy(alpha = 0.05f)
         ConnectUiStatus.Busy -> CoffemaniaColors.LogoAmber.copy(alpha = 0.16f)
         ConnectUiStatus.On -> colors.logoYellow.copy(alpha = 0.20f)
     }
+    val glowColor by animateColorAsState(
+        targetValue = target,
+        animationSpec = ClevMotion.statusGlowColorSpec,
+        label = "statusGlow",
+    )
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(
                 Brush.radialGradient(
-                    colors = listOf(glow, Color.Transparent),
+                    colors = listOf(glowColor, Color.Transparent),
                     radius = 900f,
                 ),
             ),
@@ -193,6 +208,7 @@ fun ClevConnectButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 150.dp,
+    isPinging: Boolean = false,
 ) {
     val colors = coffemaniaColors()
     val uiStatus = when {
@@ -201,16 +217,80 @@ fun ClevConnectButton(
         vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping -> ConnectUiStatus.Busy
         else -> ConnectUiStatus.Off
     }
+    val showPing = isPinging && uiStatus == ConnectUiStatus.Off
+    val showRingSpinner = uiStatus == ConnectUiStatus.Busy || showPing
+
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.94f else 1f, label = "press")
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) ClevMotion.pressScale else 1f,
+        animationSpec = ClevMotion.pressSpring,
+        label = "press",
+    )
+
+    val ringFill = remember { Animatable(if (uiStatus == ConnectUiStatus.On) 1f else 0f) }
+    val cometAngle = remember { Animatable(-90f) }
+    var showComet by remember { mutableStateOf(false) }
+    var showBurst by remember { mutableStateOf(false) }
+
+    var skipInitialConnectAnimation by remember { mutableStateOf(uiStatus == ConnectUiStatus.On) }
+
+    LaunchedEffect(uiStatus) {
+        when (uiStatus) {
+            ConnectUiStatus.On -> {
+                if (skipInitialConnectAnimation) {
+                    ringFill.snapTo(1f)
+                    skipInitialConnectAnimation = false
+                    return@LaunchedEffect
+                }
+                ringFill.snapTo(0f)
+                cometAngle.snapTo(-90f)
+                showComet = true
+                launch {
+                    cometAngle.animateTo(810f, ClevMotion.connectCometSpec)
+                }
+                launch {
+                    delay(ClevMotion.connectRingFillDelayMs)
+                    ringFill.animateTo(1f, ClevMotion.connectRingFillSpec)
+                    showComet = false
+                }
+                showBurst = true
+                delay(ClevMotion.connectBurstDurationMs)
+                showBurst = false
+            }
+            ConnectUiStatus.Off -> {
+                skipInitialConnectAnimation = false
+                ringFill.animateTo(0f, ClevMotion.disconnectRingSpec)
+                cometAngle.snapTo(-90f)
+                showComet = false
+                showBurst = false
+            }
+            ConnectUiStatus.Busy -> {
+                ringFill.animateTo(0f, ClevMotion.disconnectRingSpec)
+                showComet = false
+                showBurst = false
+            }
+        }
+    }
+
+    val spinDuration = if (showPing) ClevMotion.busySpinPingMs else ClevMotion.busySpinConnectMs
     val infinite = rememberInfiniteTransition(label = "spin")
     val spin by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(500, easing = LinearEasing), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(
+            tween(spinDuration, easing = LinearEasing),
+            RepeatMode.Restart,
+        ),
         label = "spinAngle",
     )
+
+    val plateOnProgress by animateFloatAsState(
+        targetValue = if (uiStatus == ConnectUiStatus.On) 1f else 0f,
+        animationSpec = ClevMotion.plateOnSpec,
+        label = "plateOn",
+    )
+
     val ringSize = size + 36.dp
 
     Box(
@@ -225,10 +305,18 @@ fun ClevConnectButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
+        if (showBurst) {
+            ConnectBurst(
+                diameter = ringSize,
+                active = true,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
         Canvas(modifier = Modifier.size(ringSize + 20.dp)) {
             val rings = listOf(0.98f, 0.88f, 0.78f)
-            rings.forEachIndexed { index, scale ->
-                val r = this.size.minDimension / 2f * scale
+            rings.forEachIndexed { index, ringScale ->
+                val r = this.size.minDimension / 2f * ringScale
                 drawCircle(
                     color = Color(0xFF2A2A31).copy(alpha = 0.35f - index * 0.08f),
                     radius = r,
@@ -237,36 +325,56 @@ fun ClevConnectButton(
                 )
             }
         }
+
         Canvas(modifier = Modifier.size(ringSize)) {
             val stroke = 3.dp.toPx()
             drawCircle(
                 color = Color(0xFF2A2A31).copy(alpha = 0.55f),
                 style = Stroke(width = stroke),
             )
-            when (uiStatus) {
-                ConnectUiStatus.On -> {
+
+            if (uiStatus == ConnectUiStatus.On && ringFill.value > 0f) {
+                drawArc(
+                    brush = Brush.sweepGradient(
+                        listOf(Color(0xFFFAC300), Color(0xFFE39A00), Color(0xFFFAC300)),
+                    ),
+                    startAngle = -90f,
+                    sweepAngle = 360f * ringFill.value,
+                    useCenter = false,
+                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+                )
+            }
+
+            if (showComet && ringFill.value < 1f) {
+                rotate(cometAngle.value) {
                     drawArc(
-                        brush = Brush.sweepGradient(listOf(Color(0xFFFAC300), Color(0xFFE39A00), Color(0xFFFAC300))),
+                        brush = Brush.sweepGradient(
+                            listOf(Color.Transparent, Color(0xFFFAC300).copy(alpha = 0.7f), Color.White),
+                        ),
                         startAngle = -90f,
-                        sweepAngle = 360f,
+                        sweepAngle = 360f * 0.18f,
                         useCenter = false,
-                        style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+                        topLeft = Offset.Zero,
+                        size = Size(this.size.width, this.size.height),
+                        style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round),
                     )
                 }
-                ConnectUiStatus.Busy -> {
-                    rotate(spin) {
-                        drawArc(
-                            brush = Brush.sweepGradient(listOf(Color.Transparent, Color(0xFFE39A00), Color.White)),
-                            startAngle = -90f,
-                            sweepAngle = 72f,
-                            useCenter = false,
-                            topLeft = Offset.Zero,
-                            size = Size(this.size.width, this.size.height),
-                            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round),
-                        )
-                    }
+            }
+
+            if (showRingSpinner) {
+                rotate(spin) {
+                    drawArc(
+                        brush = Brush.sweepGradient(
+                            listOf(Color.Transparent, Color(0xFFE39A00).copy(alpha = 0.5f), Color.White),
+                        ),
+                        startAngle = -90f,
+                        sweepAngle = 72f,
+                        useCenter = false,
+                        topLeft = Offset.Zero,
+                        size = Size(this.size.width, this.size.height),
+                        style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round),
+                    )
                 }
-                ConnectUiStatus.Off -> Unit
             }
         }
 
@@ -281,23 +389,22 @@ fun ClevConnectButton(
                 .border(1.dp, Color.White.copy(alpha = 0.06f), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            val plateOn = uiStatus == ConnectUiStatus.On
+            val plateYellow = Color(0xFFFAC300)
+            val plateAmber = Color(0xFFE39A00)
+            val plateDark1 = Color(0xFF24242E)
+            val plateDark2 = Color(0xFF0C0C11)
+            val plateCenter = lerp(plateDark1, plateYellow, plateOnProgress)
+            val plateEdge = lerp(plateDark2, plateAmber, plateOnProgress)
+
             Box(
                 modifier = Modifier
                     .size(size * 0.74f)
                     .clip(CircleShape)
                     .background(
-                        if (plateOn) {
-                            Brush.radialGradient(
-                                colors = listOf(Color(0xFFFAC300), Color(0xFFE39A00)),
-                                center = Offset(0.5f, 0.42f),
-                            )
-                        } else {
-                            Brush.radialGradient(
-                                colors = listOf(Color(0xFF24242E), Color(0xFF0C0C11)),
-                                center = Offset(0.5f, 0.42f),
-                            )
-                        },
+                        Brush.radialGradient(
+                            colors = listOf(plateCenter, plateEdge),
+                            center = Offset(0.5f, 0.42f),
+                        ),
                     )
                     .border(1.5.dp, Color.Black.copy(alpha = 0.45f), CircleShape),
                 contentAlignment = Alignment.Center,
@@ -308,8 +415,7 @@ fun ClevConnectButton(
                         contentDescription = null,
                         tint = when {
                             uiStatus == ConnectUiStatus.On -> Color.Black.copy(alpha = 0.75f)
-                            uiStatus == ConnectUiStatus.Busy ->
-                                colors.logoYellow
+                            showPing || uiStatus == ConnectUiStatus.Busy -> colors.logoYellow
                             else -> colors.mocha
                         },
                         modifier = Modifier.size(size * 0.22f),
@@ -332,15 +438,18 @@ fun ClevConnectButton(
                         )
                     } else {
                         Text(
-                            text = when (uiStatus) {
-                                ConnectUiStatus.Busy ->
-                                    stringResource(R.string.clev_connecting)
+                            text = when {
+                                showPing -> stringResource(R.string.clev_checking_ping)
+                                uiStatus == ConnectUiStatus.Busy -> stringResource(R.string.clev_connecting)
                                 else -> stringResource(R.string.clev_start)
                             },
+                            modifier = Modifier.fillMaxWidth(),
                             color = colors.mocha,
                             fontSize = (size.value * 0.075f).sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
                         )
                     }
                 }
@@ -495,7 +604,7 @@ fun PingLabel(
                 .background(CoffemaniaColors.pingColor(ms)),
         )
         Text(
-            text = "$ms мс",
+            text = stringResource(R.string.clev_ping_ms, ms),
             color = colors.mocha,
             fontSize = 11.sp,
         )
@@ -538,3 +647,43 @@ fun formatTrafficInfoLine(used: Long, total: Long): String {
         usedText
     }
 }
+
+private val RuLocale = Locale("ru", "RU")
+
+fun formatSubscriptionTraffic(used: Long, total: Long): String {
+    val usedText = formatTrafficBytesLocalized(used.coerceAtLeast(0))
+    return if (total > 0) {
+        "$usedText / ${formatTrafficBytesLocalized(total)}"
+    } else {
+        usedText
+    }
+}
+
+private fun formatTrafficBytesLocalized(bytes: Long): String {
+    if (bytes <= 0) return if (Locale.getDefault().language == "ru") "0 Б" else "0 B"
+    val kb = 1024.0
+    val mb = kb * 1024
+    val gb = mb * 1024
+    val ru = Locale.getDefault().language == "ru"
+    return when {
+        bytes >= gb -> if (ru) {
+            String.format(RuLocale, "%.2f ГБ", bytes / gb)
+        } else {
+            String.format(Locale.US, "%.2f GB", bytes / gb)
+        }
+        bytes >= mb -> if (ru) {
+            String.format(RuLocale, "%.1f МБ", bytes / mb)
+        } else {
+            String.format(Locale.US, "%.1f MB", bytes / mb)
+        }
+        bytes >= kb -> if (ru) {
+            String.format(RuLocale, "%.1f КБ", bytes / kb)
+        } else {
+            String.format(Locale.US, "%.1f KB", bytes / kb)
+        }
+        else -> if (ru) "$bytes Б" else "$bytes B"
+    }
+}
+
+@Deprecated("Use formatSubscriptionTraffic", ReplaceWith("formatSubscriptionTraffic(used, total)"))
+fun formatSubscriptionTrafficRu(used: Long, total: Long): String = formatSubscriptionTraffic(used, total)

@@ -48,9 +48,20 @@ class BoxService(
     @OptIn(DelicateCoroutinesApi::class)
     @Suppress("SameReturnValue")
     internal fun onStartCommand(): Int {
-        if (VpnManager.status.value != VpnStatus.Stopped) {
-            return android.app.Service.START_NOT_STICKY
+        when (val status = VpnManager.status.value) {
+            VpnStatus.Started -> {
+                if (XrayCoreManager.isRunning()) {
+                    AppLog.i("BoxService: already connected")
+                    return android.app.Service.START_NOT_STICKY
+                }
+                AppLog.w("BoxService: status Started but core dead, restarting")
+            }
+            VpnStatus.Starting, VpnStatus.Stopping -> {
+                AppLog.w("BoxService: stale status=$status, restarting")
+            }
+            VpnStatus.Stopped -> Unit
         }
+        val needsReset = VpnManager.status.value != VpnStatus.Stopped
         VpnManager.setStatus(VpnStatus.Starting)
 
         if (!receiverRegistered) {
@@ -65,6 +76,7 @@ class BoxService(
 
         GlobalScope.launch(Dispatchers.IO) {
             try {
+                if (needsReset) resetForRestart()
                 waitForXray()
                 startService()
             } catch (t: Throwable) {
@@ -79,6 +91,14 @@ class BoxService(
 
     internal fun onDestroy() {
         notification.close()
+        val status = VpnManager.status.value
+        if (status == VpnStatus.Starting || status == VpnStatus.Started) {
+            AppLog.w("BoxService.onDestroy with status=$status, resetting")
+            XrayCoreManager.stopLoop()
+            fileDescriptor?.close()
+            fileDescriptor = null
+            VpnManager.setStatus(VpnStatus.Stopped)
+        }
     }
 
     internal fun onRevoke() {
@@ -111,20 +131,32 @@ class BoxService(
         val pfd = VpnTunBuilder.establish(vpnService)
         fileDescriptor = pfd
 
+        AppLog.i("BoxService TUN ready fd=${pfd.fd}, starting xray loop")
         try {
             XrayCoreManager.startLoop(content, pfd.fd)
         } catch (t: Throwable) {
             AppLog.e("Xray startLoop failed", t)
-            stopServiceWithError(t.message ?: "Не удалось запустить Xray")
+            if (VpnManager.status.value != VpnStatus.Stopping) {
+                stopServiceWithError(t.message ?: "Не удалось запустить Xray")
+            }
             return
         }
 
         VpnManager.setStatus(VpnStatus.Started)
-        AppLog.i("BoxService started xray=${XrayCoreManager.isRunning()}")
+        AppLog.i("BoxService started xrayRunning=${XrayCoreManager.isRunning()}")
         withContext(Dispatchers.Main) {
             activeNotification = notification
             notification.show(connectedNotificationText(connected = true))
         }
+    }
+
+    private fun resetForRestart() {
+        XrayCoreManager.stopLoop()
+        KillSwitchVpnService.releaseImmediate()
+        runCatching { fileDescriptor?.close() }
+        fileDescriptor = null
+        VpnManager.setStatus(VpnStatus.Stopped)
+        Thread.sleep(200)
     }
 
     @OptIn(DelicateCoroutinesApi::class)

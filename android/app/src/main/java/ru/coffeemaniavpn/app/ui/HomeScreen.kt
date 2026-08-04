@@ -174,6 +174,7 @@ fun HomeScreen(
                     vpnStatus = state.vpnStatus,
                     connectionElapsedMs = state.connectionElapsedMs,
                     enabled = connectEnabled,
+                    isPinging = state.isPinging && !isConnected,
                     onClick = {
                         if (isConnected) onDisconnectClick() else onConnectClick()
                     },
@@ -193,7 +194,7 @@ fun HomeScreen(
 
                 if (subscriptionExpired) {
                     Text(
-                        text = "Подписка истекла",
+                        text = stringResource(R.string.clev_subscription_expired),
                         color = colors.error,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
@@ -523,10 +524,10 @@ private fun AutoServerRow(
                     strokeWidth = 2.dp,
                     color = colors.yellow,
                 )
-                PingState.Timeout -> Text(
-                    text = "N/A",
+                PingState.Unreachable, PingState.Timeout -> Text(
+                    text = "—",
                     color = colors.mocha,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
                 else -> Unit
             }
@@ -581,14 +582,9 @@ private fun QuickServerRow(
                     color = colors.yellow,
                 )
                 display.pingMs != null -> PingLabel(ms = display.pingMs)
-                display.pingText == "N/A" -> Text(
-                    text = "N/A",
-                    color = colors.mocha,
-                    fontSize = 11.sp,
-                )
-                display.pingText == "нет" -> Text(
+                display.pingText == "—" -> Text(
                     text = "—",
-                    color = colors.error,
+                    color = colors.mocha,
                     fontSize = 12.sp,
                 )
                 else -> Unit

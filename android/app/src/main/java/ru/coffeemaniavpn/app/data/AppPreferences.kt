@@ -196,6 +196,7 @@ class AppPreferences(private val context: Context) {
             prefs[KEY_SPLIT_SITES_ENABLED] = settings.sitesEnabled
             prefs[KEY_SPLIT_SITES_MODE] = settings.sitesMode.name
             prefs[KEY_SPLIT_SITES_DOMAINS] = settings.siteDomains.joinToString("\n")
+            prefs[KEY_CUSTOM_RULES] = json.encodeToString(settings.customRules)
             prefs[KEY_SPLIT_APPS_ENABLED] = settings.appsEnabled
             prefs[KEY_SPLIT_APPS_MODE] = settings.appsMode.name
             prefs[KEY_SPLIT_APP_PACKAGES] = json.encodeToString(settings.appPackages.toList())
@@ -245,9 +246,17 @@ class AppPreferences(private val context: Context) {
         .flowOn(Dispatchers.IO)
 
     suspend fun setTrafficRoutingMode(mode: TrafficRoutingMode) {
+        TrafficRoutingStore.update(mode)
         context.dataStore.edit { prefs ->
             prefs[KEY_TRAFFIC_ROUTING_MODE] = mode.name
         }
+    }
+
+    suspend fun loadTrafficRoutingModeIntoMemory() {
+        val mode = context.dataStore.data.first().let { prefs ->
+            TrafficRoutingMode.fromStored(prefs[KEY_TRAFFIC_ROUTING_MODE])
+        }
+        TrafficRoutingStore.update(mode)
     }
 
     private fun Preferences.toConnectionSettings(): ConnectionSettingsState {
@@ -265,10 +274,17 @@ class AppPreferences(private val context: Context) {
             SplitTunnelAppsMode.valueOf(this[KEY_SPLIT_APPS_MODE] ?: SplitTunnelAppsMode.IncludeOnly.name)
         }.getOrDefault(SplitTunnelAppsMode.IncludeOnly)
 
+        val customRules = runCatching {
+            json.decodeFromString<List<RoutingRule>>(this[KEY_CUSTOM_RULES].orEmpty().ifBlank { "[]" })
+        }.getOrDefault(emptyList()).ifEmpty {
+            RoutingRuleMigration.fromLegacyDomains(domains, sitesMode)
+        }
+
         return ConnectionSettingsState(
             sitesEnabled = this[KEY_SPLIT_SITES_ENABLED] ?: false,
             sitesMode = sitesMode,
             siteDomains = domains,
+            customRules = customRules,
             appsEnabled = this[KEY_SPLIT_APPS_ENABLED] ?: false,
             appsMode = appsMode,
             appPackages = packages,
@@ -286,6 +302,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_SPLIT_SITES_ENABLED = booleanPreferencesKey("split_sites_enabled")
         private val KEY_SPLIT_SITES_MODE = stringPreferencesKey("split_sites_mode")
         private val KEY_SPLIT_SITES_DOMAINS = stringPreferencesKey("split_sites_domains")
+        private val KEY_CUSTOM_RULES = stringPreferencesKey("custom_rules")
         private val KEY_SPLIT_APPS_ENABLED = booleanPreferencesKey("split_apps_enabled")
         private val KEY_SPLIT_APPS_MODE = stringPreferencesKey("split_apps_mode")
         private val KEY_SPLIT_APP_PACKAGES = stringPreferencesKey("split_app_packages")

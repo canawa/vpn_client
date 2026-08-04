@@ -70,6 +70,7 @@ class SubscriptionRepository(
                 profileTitleHeader = response.header("profile-title"),
                 announceHeader = announceCandidates.firstOrNull(),
                 announceHeaders = announceCandidates,
+                supportUrlHeader = response.header("support-url"),
                 body = body,
             )
             AppLog.i(

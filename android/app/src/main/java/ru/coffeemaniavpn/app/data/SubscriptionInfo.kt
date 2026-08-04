@@ -1,6 +1,8 @@
 package ru.coffeemaniavpn.app.data
 
 import androidx.core.text.HtmlCompat
+import ru.coffeemaniavpn.app.App
+import ru.coffeemaniavpn.app.R
 import kotlinx.serialization.Serializable
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -19,6 +21,8 @@ data class SubscriptionInfo(
     val deviceLimit: Int? = null,
     /** Текст из header Announce (описание подписки). */
     val announce: String = "",
+    /** Ссылка на поддержку из header support-url. */
+    val supportURL: String = "",
 ) {
     val used: Long get() = (upload + download).coerceAtLeast(0)
     val isUnlimitedTraffic: Boolean get() = total <= 0
@@ -38,17 +42,34 @@ data class SubscriptionInfo(
         return "$usedText / $totalText"
     }
 
-    fun devicesLabel(): String = when (val limit = resolvedDeviceLimit()) {
-        null -> "Устройств: —"
-        in Int.MIN_VALUE..0 -> "Устройств: ∞"
-        else -> "Устройств: $limit"
+    fun devicesLabel(): String {
+        val resources = runCatching { App.instance.resources }.getOrNull()
+        return if (resources != null) {
+            when (val limit = resolvedDeviceLimit()) {
+                null -> resources.getString(R.string.devices_count_unknown)
+                in Int.MIN_VALUE..0 -> resources.getString(R.string.devices_count_unlimited)
+                else -> resources.getString(R.string.devices_count, limit)
+            }
+        } else {
+            when (val limit = resolvedDeviceLimit()) {
+                null -> "Устройств: —"
+                in Int.MIN_VALUE..0 -> "Устройств: ∞"
+                else -> "Устройств: $limit"
+            }
+        }
     }
 
     fun expireLabel(nowMs: Long = System.currentTimeMillis()): String? {
-        if (expire <= 0) return "Бессрочная подписка"
+        if (expire <= 0) {
+            return runCatching { App.instance.getString(R.string.subscription_unlimited) }
+                .getOrDefault("Бессрочная подписка")
+        }
         val nowSec = TimeUnit.MILLISECONDS.toSeconds(nowMs)
         val remainingSec = expire - nowSec
-        if (remainingSec <= 0) return "Подписка истекла"
+        if (remainingSec <= 0) {
+            return runCatching { App.instance.getString(R.string.subscription_expired) }
+                .getOrDefault("Подписка истекла")
+        }
 
         return SubscriptionExpireFormatter.formatRemaining(remainingSec)
     }
@@ -76,6 +97,7 @@ object SubscriptionInfoParser {
         profileTitleHeader: String?,
         announceHeader: String? = null,
         announceHeaders: List<String> = emptyList(),
+        supportUrlHeader: String? = null,
         body: String,
     ): SubscriptionInfo? {
         val parsedUserInfo = userInfoHeader?.let(::parseUserInfoHeader)
@@ -86,6 +108,7 @@ object SubscriptionInfoParser {
             addAll(announceHeaders)
         }.distinct()
         val announce = parseAnnounce(mergedAnnounceHeaders, body)
+        val supportURL = supportUrlHeader?.trim().orEmpty()
         val deviceLimit = parseDeviceLimit(
             userInfoHeader = userInfoHeader,
             announceHeaders = mergedAnnounceHeaders,
@@ -97,11 +120,14 @@ object SubscriptionInfoParser {
                 title = title,
                 deviceLimit = deviceLimit,
                 announce = announce,
+                supportURL = supportURL,
             )
-            title.isNotBlank() || deviceLimit != null || announce.isNotBlank() -> SubscriptionInfo(
+            title.isNotBlank() || deviceLimit != null || announce.isNotBlank() || supportURL.isNotBlank() ->
+                SubscriptionInfo(
                 title = title,
                 deviceLimit = deviceLimit,
                 announce = announce,
+                supportURL = supportURL,
             )
             else -> null
         }

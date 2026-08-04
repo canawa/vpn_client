@@ -56,7 +56,15 @@ object XrayCoreManager {
     }
 
     fun startLoop(config: String, tunFd: Int) {
-        ensureController(XrayCoreCallback).startLoop(config, tunFd)
+        val controller = ensureController(XrayCoreCallback)
+        if (controller.isRunning) {
+            AppLog.w("XrayCoreManager: stopLoop before restart")
+            runCatching { controller.stopLoop() }
+        }
+        controller.startLoop(config, tunFd)
+        if (!controller.isRunning) {
+            error("Xray core failed to start")
+        }
     }
 
     fun stopLoop() {

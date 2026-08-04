@@ -110,7 +110,9 @@ object VpnManager {
 
     private fun performConnect(node: ProxyNode) {
         _lastError.value = null
+        KillSwitchVpnService.releaseImmediate()
         KillSwitchVpnService.release(App.instance)
+        XrayCoreManager.stopLoop()
         try {
             val config = XrayConfigBuilder.build(node)
             AppLog.i("VpnManager.connect node=${node.name} protocol=${node.protocol}")

@@ -6,16 +6,17 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.PowerManager
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.getSystemService
-import androidx.core.os.LocaleListCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.AppPreferences
+import ru.coffeemaniavpn.app.util.AppLocale
+import ru.coffeemaniavpn.app.data.PingNetworkBypass
 import ru.coffeemaniavpn.app.util.AppLog
 import ru.coffeemaniavpn.app.vpn.VpnManager
 import ru.coffeemaniavpn.app.vpn.XrayCoreManager
@@ -24,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class App : Application() {
     override fun attachBaseContext(base: Context?) {
-        super.attachBaseContext(base)
+        super.attachBaseContext(base?.let { AppLocale.wrap(it) } ?: base)
         instance = this
     }
 
@@ -35,8 +36,10 @@ class App : Application() {
         AppLog.i("Application.onCreate start, version=${BuildConfig.VERSION_NAME}")
         applyStoredLanguage()
         VpnManager.init()
+        PingNetworkBypass.ensureListening(this)
 
         applicationScope.launch(Dispatchers.IO) {
+            runCatching { AppPreferences(this@App).loadTrafficRoutingModeIntoMemory() }
             runCatching {
                 XrayCoreManager.init(this@App)
                 xrayReady.set(true)
@@ -48,21 +51,12 @@ class App : Application() {
     }
 
     private fun applyStoredLanguage() {
-        // Сразу RU, пока DataStore не ответит — иначе на EN-эмуляторе мелькают английские строки.
-        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("ru"))
-        applicationScope.launch(Dispatchers.IO) {
-            val language = runCatching {
+        val language = runBlocking(Dispatchers.IO) {
+            runCatching {
                 AppPreferences(this@App).appLanguage.first()
             }.getOrDefault(AppLanguage.DEFAULT)
-            val tags = when (language) {
-                AppLanguage.SYSTEM -> LocaleListCompat.getEmptyLocaleList()
-                AppLanguage.RU -> LocaleListCompat.forLanguageTags("ru")
-                AppLanguage.EN -> LocaleListCompat.forLanguageTags("en")
-            }
-            launch(Dispatchers.Main) {
-                AppCompatDelegate.setApplicationLocales(tags)
-            }
         }
+        AppLocale.apply(language)
     }
 
     companion object {

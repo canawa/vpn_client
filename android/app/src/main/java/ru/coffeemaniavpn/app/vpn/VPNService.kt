@@ -8,14 +8,38 @@ import android.net.NetworkRequest
 import android.net.VpnService
 import android.os.Build
 import android.os.IBinder
+import android.os.ParcelFileDescriptor
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import ru.coffeemaniavpn.app.util.AppLog
+import java.net.Socket
 
 class VPNService : VpnService() {
     private val service = BoxService(this)
+
+    companion object {
+        @Volatile
+        private var instance: VPNService? = null
+
+        /** Исключает сокет из VPN-туннеля (дополнительно к bindSocket на физической сети). */
+        fun tryProtect(socket: Socket): Boolean {
+            val vpn = instance ?: return false
+            return runCatching {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    vpn.protect(ParcelFileDescriptor.fromSocket(socket).fd)
+                } else {
+                    val getFd = Socket::class.java.getDeclaredMethod("getFileDescriptor\$")
+                    getFd.isAccessible = true
+                    val fd = getFd.invoke(socket) as java.io.FileDescriptor
+                    val getInt = java.io.FileDescriptor::class.java.getDeclaredMethod("getInt\$")
+                    getInt.isAccessible = true
+                    vpn.protect(getInt.invoke(fd) as Int)
+                }
+            }.getOrDefault(false)
+        }
+    }
 
     @delegate:RequiresApi(Build.VERSION_CODES.P)
     private val defaultNetworkRequest by lazy {
@@ -46,6 +70,7 @@ class VPNService : VpnService() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         AppLog.i("VPNService.onCreate")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             runCatching {
@@ -71,6 +96,7 @@ class VPNService : VpnService() {
     }
 
     override fun onDestroy() {
+        if (instance === this) instance = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             runCatching { connectivity.unregisterNetworkCallback(defaultNetworkCallback) }
         }

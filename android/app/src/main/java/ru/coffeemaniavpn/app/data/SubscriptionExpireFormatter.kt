@@ -1,5 +1,7 @@
 package ru.coffeemaniavpn.app.data
 
+import ru.coffeemaniavpn.app.App
+import ru.coffeemaniavpn.app.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -14,28 +16,45 @@ object SubscriptionExpireFormatter {
     private const val SEC_HOUR = 3_600L
     private const val SEC_DAY = 86_400L
 
-    private val updatedAtFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.forLanguageTag("ru"))
-    private val calendarDateFormat = SimpleDateFormat("d MMMM yyyy 'г.'", Locale.forLanguageTag("ru"))
+    private fun locale(): Locale = Locale.getDefault()
+
+    private fun updatedAtFormat(): SimpleDateFormat =
+        SimpleDateFormat("dd.MM.yyyy HH:mm", locale())
+
+    private fun calendarDateFormat(): SimpleDateFormat =
+        if (locale().language == "ru") {
+            SimpleDateFormat("d MMMM yyyy 'г.'", Locale.forLanguageTag("ru"))
+        } else {
+            SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+        }
 
     fun formatCalendarDate(expireEpochSec: Long): String =
-        calendarDateFormat.format(Date(expireEpochSec * 1_000L))
+        calendarDateFormat().format(Date(expireEpochSec * 1_000L))
 
     fun formatRemaining(remainingSec: Long): String {
-        if (remainingSec <= 0) return "Подписка истекла"
-
-        val parts = buildParts(remainingSec)
-        return "Истекает через ${joinParts(parts)}"
+        if (remainingSec <= 0) {
+            return App.instance.getString(R.string.subscription_expired)
+        }
+        val parts = if (locale().language == "ru") {
+            buildPartsRu(remainingSec)
+        } else {
+            buildPartsEn(remainingSec)
+        }
+        return App.instance.getString(R.string.subscription_expires_in, joinParts(parts))
     }
 
     fun formatUpdatedAt(epochMs: Long): String? {
         if (epochMs <= 0L) return null
-        return "Обновлено: ${updatedAtFormat.format(Date(epochMs))}"
+        return App.instance.getString(
+            R.string.subscription_updated_at,
+            updatedAtFormat().format(Date(epochMs)),
+        )
     }
 
-    private fun buildParts(remainingSec: Long): List<String> {
+    private fun buildPartsRu(remainingSec: Long): List<String> {
         if (remainingSec >= SEC_DAY) {
             val days = remainingSec / SEC_DAY
-            return listOf(formatUnit(days, "день", "дня", "дней"))
+            return listOf(formatUnitRu(days, "день", "дня", "дней"))
         }
 
         val hours = remainingSec / SEC_HOUR
@@ -43,26 +62,54 @@ object SubscriptionExpireFormatter {
 
         return when {
             hours <= 0L -> listOf(
-                formatUnit(minutes.coerceAtLeast(1), "минута", "минуты", "минут"),
+                formatUnitRu(minutes.coerceAtLeast(1), "минута", "минуты", "минут"),
             )
             minutes <= 0L -> listOf(
-                formatUnit(hours, "час", "часа", "часов"),
+                formatUnitRu(hours, "час", "часа", "часов"),
             )
             else -> listOf(
-                formatUnit(hours, "час", "часа", "часов"),
-                formatUnit(minutes, "минута", "минуты", "минут"),
+                formatUnitRu(hours, "час", "часа", "часов"),
+                formatUnitRu(minutes, "минута", "минуты", "минут"),
             )
         }
     }
 
-    private fun formatUnit(
+    private fun buildPartsEn(remainingSec: Long): List<String> {
+        if (remainingSec >= SEC_DAY) {
+            val days = remainingSec / SEC_DAY
+            return listOf(formatUnitEn(days, "day", "days"))
+        }
+
+        val hours = remainingSec / SEC_HOUR
+        val minutes = ((remainingSec % SEC_HOUR) + SEC_MINUTE - 1) / SEC_MINUTE
+
+        return when {
+            hours <= 0L -> listOf(
+                formatUnitEn(minutes.coerceAtLeast(1), "minute", "minutes"),
+            )
+            minutes <= 0L -> listOf(
+                formatUnitEn(hours, "hour", "hours"),
+            )
+            else -> listOf(
+                formatUnitEn(hours, "hour", "hours"),
+                formatUnitEn(minutes, "minute", "minutes"),
+            )
+        }
+    }
+
+    private fun formatUnitRu(
         count: Long,
         one: String,
         few: String,
         many: String,
-    ): String = "$count ${pluralForm(count, one, few, many)}"
+    ): String = "$count ${pluralFormRu(count, one, few, many)}"
 
-    private fun pluralForm(count: Long, one: String, few: String, many: String): String {
+    private fun formatUnitEn(count: Long, one: String, many: String): String {
+        val unit = if (count == 1L) one else many
+        return "$count $unit"
+    }
+
+    private fun pluralFormRu(count: Long, one: String, few: String, many: String): String {
         val mod10 = count % 10
         val mod100 = count % 100
         return when {
@@ -75,7 +122,15 @@ object SubscriptionExpireFormatter {
 
     private fun joinParts(parts: List<String>): String = when (parts.size) {
         1 -> parts[0]
-        2 -> "${parts[0]} и ${parts[1]}"
-        else -> parts.dropLast(1).joinToString(", ") + " и ${parts.last()}"
+        2 -> if (locale().language == "ru") {
+            "${parts[0]} и ${parts[1]}"
+        } else {
+            "${parts[0]} and ${parts[1]}"
+        }
+        else -> if (locale().language == "ru") {
+            parts.dropLast(1).joinToString(", ") + " и ${parts.last()}"
+        } else {
+            parts.dropLast(1).joinToString(", ") + " and ${parts.last()}"
+        }
     }
 }

@@ -17,12 +17,20 @@ object VpnTunBuilder {
     fun establish(service: VpnService): android.os.ParcelFileDescriptor {
         if (VpnService.prepare(service) != null) error("android: missing vpn permission")
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val cm = service.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
+                as android.net.ConnectivityManager
+            cm.activeNetwork?.let { service.setUnderlyingNetworks(arrayOf(it)) }
+        }
+
         val builder = service.Builder()
             .setSession(service.getString(R.string.vpn_session_name))
             .setMtu(VPN_MTU)
             .addAddress(VPN_ADDRESS, VPN_PREFIX)
             .addRoute("0.0.0.0", 0)
+            .addRoute("::", 0)
             .addDnsServer(VPN_DNS)
+            .addDnsServer("1.1.1.1")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             builder.setMetered(false)

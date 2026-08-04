@@ -145,8 +145,7 @@ object ServerDisplayMapper {
             null -> "—" to null
             PingState.Loading -> "…" to null
             is PingState.Result -> "${ping.latencyMs} мс" to ping.latencyMs
-            PingState.Unreachable -> "нет" to null
-            PingState.Timeout -> "N/A" to null
+            PingState.Unreachable, PingState.Timeout -> "—" to null
         }
 
         return ServerDisplay(

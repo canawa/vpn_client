@@ -1,25 +1,30 @@
 package ru.coffeemaniavpn.app.data
 
-enum class AppLanguage(val label: String) {
-    SYSTEM("Системный"),
-    RU("Русский"),
-    EN("English"),
+enum class AppLanguage {
+    RU,
+    EN,
     ;
 
     companion object {
         val DEFAULT = RU
 
+        val selectable: List<AppLanguage> = listOf(RU, EN)
+
         fun fromStored(value: String?): AppLanguage {
             if (value == null) return DEFAULT
-            return entries.find { it.name == value } ?: DEFAULT
+            return when (value) {
+                EN.name -> EN
+                "SYSTEM" -> RU
+                else -> entries.find { it.name == value } ?: DEFAULT
+            }
         }
     }
 }
 
-enum class TrafficRoutingMode(val label: String) {
-    GLOBAL("Весь трафик через VPN"),
-    SMART("Умный режим"),
-    CUSTOM("Только свои правила"),
+enum class TrafficRoutingMode {
+    GLOBAL,
+    SMART,
+    CUSTOM,
     ;
 
     companion object {

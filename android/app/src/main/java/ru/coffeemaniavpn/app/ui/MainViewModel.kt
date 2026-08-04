@@ -1,9 +1,11 @@
 package ru.coffeemaniavpn.app.ui
 
 import android.app.Application
+import androidx.annotation.StringRes
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.AppPreferences
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
@@ -71,9 +74,13 @@ data class MainUiState(
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val LOCAL_IMPORT_URL = "deeplink://imported"
-        private const val INVALID_SUBSCRIPTION_LINK =
-            "Вставьте верную ссылку подписки"
     }
+
+    private fun appStr(@StringRes resId: Int, vararg args: Any): String =
+        getApplication<Application>().getString(resId, *args)
+
+    private fun invalidSubscriptionLink(): String =
+        appStr(R.string.msg_invalid_subscription_link)
 
     private val preferences = AppPreferences(application)
     private val repository = SubscriptionRepository(application)
@@ -266,15 +273,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val state = uiState.value
         return when {
             state.nodes.isEmpty() -> {
-                if (showErrors) error.value = "Дождитесь загрузки серверов"
+                if (showErrors) error.value = appStr(R.string.msg_wait_servers_loading)
                 false
             }
             state.subscriptionUrl.isBlank() -> {
-                if (showErrors) error.value = INVALID_SUBSCRIPTION_LINK
+                if (showErrors) error.value = invalidSubscriptionLink()
                 false
             }
             state.subscriptionInfo?.isExpired() == true -> {
-                if (showErrors) error.value = "Подписка истекла"
+                if (showErrors) error.value = appStr(R.string.msg_subscription_expired)
                 false
             }
             else -> true
@@ -293,11 +300,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         pingJob?.cancel()
         val generation = ++pingGeneration
-        pingJob = viewModelScope.launch(Dispatchers.IO) {
+        pingJob = viewModelScope.launch {
             nodePings.value = nodes.associate { it.id to PingState.Loading }
-            ServerPinger.pingAll(nodes) { nodeId, state ->
-                if (generation != pingGeneration) return@pingAll
-                nodePings.value = nodePings.value + (nodeId to state)
+            val watchdogs = nodes.map { node ->
+                launch {
+                    delay(ServerPinger.PER_NODE_TIMEOUT_MS + 500L)
+                    if (generation != pingGeneration) return@launch
+                    if (nodePings.value[node.id] is PingState.Loading) {
+                        nodePings.value = nodePings.value + (node.id to PingState.Unreachable)
+                    }
+                }
+            }
+            try {
+                withContext(Dispatchers.IO) {
+                    ServerPinger.pingAll(nodes) { nodeId, state ->
+                        if (generation != pingGeneration) return@pingAll
+                        nodePings.value = nodePings.value + (nodeId to state)
+                    }
+                }
+            } catch (_: CancellationException) {
+                // cancelled by a newer ping run
+            } finally {
+                watchdogs.forEach { it.cancel() }
+                if (generation == pingGeneration) {
+                    val settled = nodePings.value.toMutableMap()
+                    var changed = false
+                    for (node in nodes) {
+                        if (settled[node.id] is PingState.Loading) {
+                            settled[node.id] = PingState.Unreachable
+                            changed = true
+                        }
+                    }
+                    if (changed) nodePings.value = settled
+                }
             }
         }
     }
@@ -309,7 +344,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun processDeepLink(uri: Uri, onEffect: (DeepLinkEffect) -> Unit) {
         val action = DeepLinkParser.parse(uri) ?: run {
             AppLog.w("processDeepLink unsupported uri=$uri")
-            error.value = INVALID_SUBSCRIPTION_LINK
+            error.value = invalidSubscriptionLink()
             return
         }
         AppLog.i("processDeepLink action=$action")
@@ -324,7 +359,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             DeepLinkAction.Disconnect -> {
                 VpnManager.disconnect()
-                message.value = "Отключено"
+                message.value = appStr(R.string.msg_disconnected)
             }
             DeepLinkAction.Close -> {
                 VpnManager.disconnect()
@@ -351,9 +386,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         subscriptionUrlInput.value = url.trim()
         message.value = if (connectAfter) {
-            "Подписка добавлена, подключаемся…"
+            appStr(R.string.msg_subscription_added_connecting)
         } else {
-            "Подписка добавлена"
+            appStr(R.string.msg_subscription_added)
         }
         refreshConfig(showUrlRequiredError = false) { success ->
             if (success && connectAfter && prepareConnect(showErrors = true)) {
@@ -382,7 +417,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val nodes = withContext(Dispatchers.IO) {
                     SubscriptionParser.parse(trimmed)
                 }
-                if (nodes.isEmpty()) error(INVALID_SUBSCRIPTION_LINK)
+                if (nodes.isEmpty()) error(invalidSubscriptionLink())
                 preferences.saveSubscription(
                     LOCAL_IMPORT_URL,
                     nodes,
@@ -390,14 +425,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     null,
                 )
                 subscriptionUrlInput.value = LOCAL_IMPORT_URL
-                message.value = "Импортировано серверов: ${nodes.size}"
+                message.value = appStr(R.string.msg_servers_imported, nodes.size)
                 AppLog.i("importSubscriptionPayload ok nodes=${nodes.size}")
                 if (connectAfter && prepareConnect(showErrors = true)) {
                     onEffect(DeepLinkEffect.RequestConnect)
                 }
             } catch (e: Exception) {
                 AppLog.e("importSubscriptionPayload failed", e)
-                error.value = INVALID_SUBSCRIPTION_LINK
+                error.value = invalidSubscriptionLink()
             } finally {
                 isLoading.value = false
             }
@@ -407,16 +442,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun saveRoutingFromDeepLink(profileJson: String, enable: Boolean) {
         viewModelScope.launch {
             try {
-                val name = JSONObject(profileJson).optString("Name").ifBlank { "Профиль" }
+                val name = JSONObject(profileJson).optString("Name")
+                    .ifBlank { appStr(R.string.msg_default_profile_name) }
                 preferences.saveRoutingProfile(profileJson, enable)
                 message.value = if (enable) {
-                    "Маршрутизация включена: $name"
+                    appStr(R.string.msg_routing_enabled, name)
                 } else {
-                    "Маршрутизация сохранена: $name"
+                    appStr(R.string.msg_routing_saved, name)
                 }
             } catch (e: Exception) {
                 AppLog.e("saveRoutingFromDeepLink failed", e)
-                error.value = "Неверный профиль маршрутизации"
+                error.value = appStr(R.string.msg_invalid_routing_profile)
             }
         }
     }
@@ -424,11 +460,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun pasteSubscriptionFromClipboard() {
         val text = getApplication<Application>().readClipboardText()
         if (text.isNullOrBlank()) {
-            error.value = INVALID_SUBSCRIPTION_LINK
+            error.value = invalidSubscriptionLink()
             return
         }
         subscriptionUrlInput.value = text
-        message.value = "Ссылка вставлена"
+        message.value = appStr(R.string.msg_link_pasted)
         AppLog.i("pasteSubscriptionFromClipboard urlLen=${text.length}")
         refreshConfig(showUrlRequiredError = false)
     }
@@ -442,7 +478,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             subscriptionUrlInput.value = ""
             nodePings.value = emptyMap()
             clearMessages()
-            message.value = "Подписка удалена"
+            message.value = appStr(R.string.msg_subscription_deleted)
             AppLog.i("deleteSubscription ok")
         }
     }
@@ -463,13 +499,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 return
             }
             if (showUrlRequiredError) {
-                error.value = INVALID_SUBSCRIPTION_LINK
+                error.value = invalidSubscriptionLink()
             }
             onComplete?.invoke(false)
             return
         }
         if (!isHttpSubscriptionUrl(url)) {
-            error.value = INVALID_SUBSCRIPTION_LINK
+            error.value = invalidSubscriptionLink()
             onComplete?.invoke(false)
             return
         }
@@ -484,7 +520,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val success = runCatching {
                 fetchAndSaveSubscription(url)
             }.onSuccess { nodeCount ->
-                message.value = "Конфиг обновлён: $nodeCount серверов"
+                message.value = appStr(R.string.msg_config_updated, nodeCount)
                 AppLog.i("refreshConfig ok, nodes=$nodeCount")
             }.onFailure { e ->
                 AppLog.e("refreshConfig failed", e)
@@ -575,21 +611,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setAppLanguage(language: AppLanguage) {
-        viewModelScope.launch {
+    fun persistAppLanguage(language: AppLanguage) {
+        viewModelScope.launch(Dispatchers.IO) {
             preferences.setAppLanguage(language)
-            val tags = when (language) {
-                AppLanguage.SYSTEM -> androidx.core.os.LocaleListCompat.getEmptyLocaleList()
-                AppLanguage.RU -> androidx.core.os.LocaleListCompat.forLanguageTags("ru")
-                AppLanguage.EN -> androidx.core.os.LocaleListCompat.forLanguageTags("en")
-            }
-            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(tags)
         }
     }
 
     fun setTrafficRoutingMode(mode: TrafficRoutingMode) {
         viewModelScope.launch {
             preferences.setTrafficRoutingMode(mode)
+            val node = selectedNode()
+            val wasConnected = uiState.value.vpnStatus == VpnStatus.Started
+            if (wasConnected && node != null) {
+                withContext(Dispatchers.Main) {
+                    VpnManager.disconnect(userInitiated = true)
+                    VpnManager.connect(node)
+                }
+            }
         }
     }
 
@@ -639,9 +677,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             "must be http" in lower ||
             "неверный" in lower && "ссылк" in lower
         ) {
-            return INVALID_SUBSCRIPTION_LINK
+            return invalidSubscriptionLink()
         }
-        return message.ifBlank { "Не удалось обновить конфиг" }
+        return message.ifBlank { appStr(R.string.msg_config_update_failed) }
     }
 
     fun saveConnectionSettings(settings: ConnectionSettingsState) {
