@@ -2,94 +2,85 @@ package ru.coffeemaniavpn.app.ui
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.LocalTextStyle
 
 /**
- * Палитра porozoffvpn.ru (figma-colors.json):
- * #EDE0E2 фон, #0E0810 / #060408 текст и тёмный фон,
- * #7A5F65 / #A07880 приглушённый розовый, #E8213A акцент,
- * #22C55E / #F59E0B / #FFFFFF служебные.
+ * Палитра ClevVPN: чёрный фон + жёлтый акцент (как Theme.swift).
+ * API coffemaniaColors() сохранён для совместимости вызовов.
  */
 object CoffemaniaColors {
-    /** Светлый розово-молочный фон сайта */
-    val MilkFoam = Color(0xFFEDE0E2)
+    val Background = Color(0xFF0B0B0D)
+    val Surface = Color(0xFF16161A)
+    val SurfaceLight = Color(0xFF1F1F25)
+    val Stroke = Color(0xFF2A2A31)
 
-    /** Почти чёрный — заголовки, иконки, акцентный текст */
-    val Espresso = Color(0xFF0E0810)
+    val Yellow = Color(0xFFFFC400)
+    val Amber = Color(0xFFD18700)
+    val LogoYellow = Color(0xFFFAC300)
+    val LogoAmber = Color(0xFFE39A00)
 
-    /** Приглушённый розово-коричневый — подписи, неактивные элементы */
-    val Mocha = Color(0xFF7A5F65)
+    val TextPrimary = Color(0xFFF2F2F5)
+    val TextSecondary = Color(0xFF9A9AA3)
 
-    /** Карточки, tab bar (белый на светлом фоне) */
-    val Cappuccino = Color(0xFFFFFFFF)
+    val Green = Color(0xFF30D158)
+    val Orange = Color(0xFFFF9F0A)
+    val Red = Color(0xFFFF453A)
 
-    /** Обводки, кнопки в карточках, фон активной вкладки */
-    val Latte = Color(0xFFDCC8CC)
+    val YellowGradient = Brush.linearGradient(listOf(Yellow, Amber))
 
-    val Background = MilkFoam
-    val OnBackground = Espresso
-    val Primary = Espresso
-    val OnPrimary = MilkFoam
-    val OnSurface = Espresso
-    val OnSurfaceVariant = Mocha
-
-    val Surface = MilkFoam
-    val SurfaceBright = MilkFoam
-    val SurfaceDim = Cappuccino
-    val SurfaceContainer = Cappuccino
-    val SurfaceContainerLow = Cappuccino
-    val SurfaceContainerLowest = Cappuccino
-    val SurfaceContainerHigh = MilkFoam
-    val SurfaceContainerHighest = Latte
-    val SurfaceVariant = Cappuccino
-
-    val Outline = Latte
-    val OutlineVariant = Latte
-
-    val PrimaryContainer = Latte
-    val OnPrimaryContainer = Espresso
-    val PrimaryFixedDim = Latte
-
-    val Secondary = Mocha
-    val OnSecondary = MilkFoam
-    val SecondaryContainer = Latte
-    val OnSecondaryContainer = Espresso
-
-    val Tertiary = Espresso
-    val OnTertiary = MilkFoam
-    val TertiaryContainer = Latte
-    val OnTertiaryContainer = Espresso
-
-    /** Брендовый красный porozoff */
-    val BrandRed = Color(0xFFE8213A)
-
-    val Error = BrandRed
+    // Aliases used across existing UI
+    val MilkFoam = Background
+    val Espresso = TextPrimary
+    val Mocha = TextSecondary
+    val Cappuccino = Surface
+    val Latte = Stroke
+    val OnBackground = TextPrimary
+    val Primary = Yellow
+    val OnPrimary = Color(0xFF0B0B0D)
+    val OnSurface = TextPrimary
+    val OnSurfaceVariant = TextSecondary
+    val SurfaceBright = SurfaceLight
+    val SurfaceDim = Surface
+    val SurfaceContainer = Surface
+    val SurfaceContainerLow = Surface
+    val SurfaceContainerLowest = Background
+    val SurfaceContainerHigh = SurfaceLight
+    val SurfaceContainerHighest = Stroke
+    val SurfaceVariant = SurfaceLight
+    val Outline = Stroke
+    val OutlineVariant = Stroke
+    val PrimaryContainer = SurfaceLight
+    val OnPrimaryContainer = TextPrimary
+    val PrimaryFixedDim = Amber
+    val Secondary = TextSecondary
+    val OnSecondary = Background
+    val SecondaryContainer = SurfaceLight
+    val OnSecondaryContainer = TextPrimary
+    val Tertiary = Yellow
+    val OnTertiary = Background
+    val TertiaryContainer = SurfaceLight
+    val OnTertiaryContainer = TextPrimary
+    val BrandRed = Red
+    val Error = Red
     val OnError = Color(0xFFFFFFFF)
-    val ErrorContainer = Color(0xFFFFD6DC)
-    val OnErrorContainer = Color(0xFF7A0014)
-
-    /** Пинг ≤ 200 ms */
-    val PingGood = Color(0xFF22C55E)
-
-    /** Пинг 201–400 ms */
-    val PingMedium = Color(0xFFF59E0B)
-
-    /** Пинг > 400 ms или недоступен */
-    val PingBad = BrandRed
-
-    /** Неактивная кнопка подключения (нет подписки) */
-    val ConnectDisabledOuter = Color(0xFFE0D4D6)
-    val ConnectDisabledInner = Color(0xFFEDE0E2)
-    val ConnectDisabledBorder = Color(0xFFC9B0B4)
-    val ConnectDisabledIcon = Color(0xFFA07880)
+    val ErrorContainer = Color(0xFF3A1010)
+    val OnErrorContainer = Color(0xFFFFD6DC)
+    val PingGood = Green
+    val PingMedium = Orange
+    val PingBad = Red
+    val ConnectDisabledOuter = SurfaceLight
+    val ConnectDisabledInner = Surface
+    val ConnectDisabledBorder = Stroke
+    val ConnectDisabledIcon = TextSecondary
 
     fun pingColor(latencyMs: Int): Color = when {
-        latencyMs <= 200 -> PingGood
-        latencyMs <= 400 -> PingMedium
+        latencyMs <= 100 -> PingGood
+        latencyMs <= 250 -> PingMedium
         else -> PingBad
     }
 }
@@ -123,34 +114,39 @@ data class CoffemaniaExtraColors(
     val connectDisabledInner: Color,
     val connectDisabledBorder: Color,
     val connectDisabledIcon: Color,
+    val yellow: Color = CoffemaniaColors.Yellow,
+    val amber: Color = CoffemaniaColors.Amber,
+    val logoYellow: Color = CoffemaniaColors.LogoYellow,
+    val green: Color = CoffemaniaColors.Green,
+    val orange: Color = CoffemaniaColors.Orange,
 )
 
-val LocalCoffemaniaExtraColors = staticCompositionLocalOf { lightCoffemaniaExtraColors() }
+val LocalCoffemaniaExtraColors = staticCompositionLocalOf { clevExtraColors() }
 
 @Composable
 fun coffemaniaColors(): CoffemaniaExtraColors = LocalCoffemaniaExtraColors.current
 
-fun lightCoffemaniaExtraColors(): CoffemaniaExtraColors = CoffemaniaExtraColors(
-    milkFoam = CoffemaniaColors.MilkFoam,
-    espresso = CoffemaniaColors.Espresso,
-    mocha = CoffemaniaColors.Mocha,
-    cappuccino = CoffemaniaColors.Cappuccino,
-    latte = CoffemaniaColors.Latte,
+fun clevExtraColors(): CoffemaniaExtraColors = CoffemaniaExtraColors(
+    milkFoam = CoffemaniaColors.Background,
+    espresso = CoffemaniaColors.TextPrimary,
+    mocha = CoffemaniaColors.TextSecondary,
+    cappuccino = CoffemaniaColors.Surface,
+    latte = CoffemaniaColors.Stroke,
     background = CoffemaniaColors.Background,
-    onBackground = CoffemaniaColors.OnBackground,
+    onBackground = CoffemaniaColors.TextPrimary,
     surface = CoffemaniaColors.Surface,
-    onSurface = CoffemaniaColors.OnSurface,
-    onSurfaceVariant = CoffemaniaColors.OnSurfaceVariant,
-    surfaceVariant = CoffemaniaColors.SurfaceVariant,
-    surfaceContainer = CoffemaniaColors.SurfaceContainer,
-    surfaceContainerHigh = CoffemaniaColors.SurfaceContainerHigh,
-    surfaceContainerHighest = CoffemaniaColors.SurfaceContainerHighest,
-    surfaceDim = CoffemaniaColors.SurfaceDim,
-    outline = CoffemaniaColors.Outline,
-    primary = CoffemaniaColors.Primary,
-    onPrimary = CoffemaniaColors.OnPrimary,
-    primaryContainer = CoffemaniaColors.PrimaryContainer,
-    onPrimaryContainer = CoffemaniaColors.OnPrimaryContainer,
+    onSurface = CoffemaniaColors.TextPrimary,
+    onSurfaceVariant = CoffemaniaColors.TextSecondary,
+    surfaceVariant = CoffemaniaColors.SurfaceLight,
+    surfaceContainer = CoffemaniaColors.Surface,
+    surfaceContainerHigh = CoffemaniaColors.SurfaceLight,
+    surfaceContainerHighest = CoffemaniaColors.Stroke,
+    surfaceDim = CoffemaniaColors.Surface,
+    outline = CoffemaniaColors.Stroke,
+    primary = CoffemaniaColors.Yellow,
+    onPrimary = CoffemaniaColors.Background,
+    primaryContainer = CoffemaniaColors.SurfaceLight,
+    onPrimaryContainer = CoffemaniaColors.TextPrimary,
     error = CoffemaniaColors.Error,
     onError = CoffemaniaColors.OnError,
     errorContainer = CoffemaniaColors.ErrorContainer,
@@ -161,117 +157,54 @@ fun lightCoffemaniaExtraColors(): CoffemaniaExtraColors = CoffemaniaExtraColors(
     connectDisabledIcon = CoffemaniaColors.ConnectDisabledIcon,
 )
 
-fun darkCoffemaniaExtraColors(): CoffemaniaExtraColors = CoffemaniaExtraColors(
-    milkFoam = Color(0xFF060408),
-    espresso = Color(0xFFEDE0E2),
-    mocha = Color(0xFFA07880),
-    cappuccino = Color(0xFF0E0810),
-    latte = Color(0xFF2A1820),
-    background = Color(0xFF060408),
-    onBackground = Color(0xFFEDE0E2),
-    surface = Color(0xFF060408),
-    onSurface = Color(0xFFEDE0E2),
-    onSurfaceVariant = Color(0xFFA07880),
-    surfaceVariant = Color(0xFF0E0810),
-    surfaceContainer = Color(0xFF0E0810),
-    surfaceContainerHigh = Color(0xFF060408),
-    surfaceContainerHighest = Color(0xFF2A1820),
-    surfaceDim = Color(0xFF0E0810),
-    outline = Color(0xFF2A1820),
-    primary = Color(0xFFEDE0E2),
-    onPrimary = Color(0xFF060408),
-    primaryContainer = Color(0xFF2A1820),
-    onPrimaryContainer = Color(0xFFEDE0E2),
-    error = Color(0xFFFF6B6B),
-    onError = Color(0xFF060408),
-    errorContainer = Color(0xFF7A0014),
-    onErrorContainer = Color(0xFFFFD6DC),
-    connectDisabledOuter = Color(0xFF1A1216),
-    connectDisabledInner = Color(0xFF120E10),
-    connectDisabledBorder = Color(0xFF3D2A30),
-    connectDisabledIcon = Color(0xFF7A5F65),
-)
+fun lightCoffemaniaExtraColors(): CoffemaniaExtraColors = clevExtraColors()
+fun darkCoffemaniaExtraColors(): CoffemaniaExtraColors = clevExtraColors()
 
-private fun colorSchemeFrom(extra: CoffemaniaExtraColors, dark: Boolean) = if (!dark) {
-    lightColorScheme(
-        primary = extra.primary,
-        onPrimary = extra.onPrimary,
-        primaryContainer = extra.primaryContainer,
-        onPrimaryContainer = extra.onPrimaryContainer,
-        secondary = CoffemaniaColors.Secondary,
-        onSecondary = extra.onPrimary,
-        secondaryContainer = extra.primaryContainer,
-        onSecondaryContainer = extra.onPrimaryContainer,
-        tertiary = extra.primary,
-        onTertiary = extra.onPrimary,
-        tertiaryContainer = extra.primaryContainer,
-        onTertiaryContainer = extra.onPrimaryContainer,
-        background = extra.background,
-        onBackground = extra.onBackground,
-        surface = extra.surface,
-        onSurface = extra.onSurface,
-        surfaceVariant = extra.surfaceVariant,
-        onSurfaceVariant = extra.onSurfaceVariant,
-        outline = extra.outline,
-        outlineVariant = extra.outline,
-        error = extra.error,
-        onError = extra.onError,
-        errorContainer = extra.errorContainer,
-        onErrorContainer = extra.onErrorContainer,
-        surfaceContainer = extra.surfaceContainer,
-        surfaceContainerLow = extra.surfaceContainer,
-        surfaceContainerHigh = extra.surfaceContainerHigh,
-        surfaceContainerHighest = extra.surfaceContainerHighest,
-        surfaceContainerLowest = extra.surfaceContainer,
-        surfaceDim = extra.surfaceDim,
-        surfaceBright = extra.surface,
-    )
-} else {
-    darkColorScheme(
-        primary = extra.primary,
-        onPrimary = extra.onPrimary,
-        primaryContainer = extra.primaryContainer,
-        onPrimaryContainer = extra.onPrimaryContainer,
-        secondary = extra.mocha,
-        onSecondary = extra.onPrimary,
-        secondaryContainer = extra.primaryContainer,
-        onSecondaryContainer = extra.onPrimaryContainer,
-        tertiary = extra.primary,
-        onTertiary = extra.onPrimary,
-        tertiaryContainer = extra.primaryContainer,
-        onTertiaryContainer = extra.onPrimaryContainer,
-        background = extra.background,
-        onBackground = extra.onBackground,
-        surface = extra.surface,
-        onSurface = extra.onSurface,
-        surfaceVariant = extra.surfaceVariant,
-        onSurfaceVariant = extra.onSurfaceVariant,
-        outline = extra.outline,
-        outlineVariant = extra.outline,
-        error = extra.error,
-        onError = extra.onError,
-        errorContainer = extra.errorContainer,
-        onErrorContainer = extra.onErrorContainer,
-        surfaceContainer = extra.surfaceContainer,
-        surfaceContainerLow = extra.surfaceContainer,
-        surfaceContainerHigh = extra.surfaceContainerHigh,
-        surfaceContainerHighest = extra.surfaceContainerHighest,
-        surfaceContainerLowest = extra.surfaceContainer,
-        surfaceDim = extra.surfaceDim,
-        surfaceBright = extra.surface,
-    )
-}
+private fun colorSchemeFrom(extra: CoffemaniaExtraColors) = darkColorScheme(
+    primary = extra.primary,
+    onPrimary = extra.onPrimary,
+    primaryContainer = extra.primaryContainer,
+    onPrimaryContainer = extra.onPrimaryContainer,
+    secondary = extra.mocha,
+    onSecondary = extra.onPrimary,
+    secondaryContainer = extra.primaryContainer,
+    onSecondaryContainer = extra.onPrimaryContainer,
+    tertiary = extra.primary,
+    onTertiary = extra.onPrimary,
+    tertiaryContainer = extra.primaryContainer,
+    onTertiaryContainer = extra.onPrimaryContainer,
+    background = extra.background,
+    onBackground = extra.onBackground,
+    surface = extra.surface,
+    onSurface = extra.onSurface,
+    surfaceVariant = extra.surfaceVariant,
+    onSurfaceVariant = extra.onSurfaceVariant,
+    outline = extra.outline,
+    outlineVariant = extra.outline,
+    error = extra.error,
+    onError = extra.onError,
+    errorContainer = extra.errorContainer,
+    onErrorContainer = extra.onErrorContainer,
+    surfaceContainer = extra.surfaceContainer,
+    surfaceContainerLow = extra.surfaceContainer,
+    surfaceContainerHigh = extra.surfaceContainerHigh,
+    surfaceContainerHighest = extra.surfaceContainerHighest,
+    surfaceContainerLowest = extra.background,
+    surfaceDim = extra.surfaceDim,
+    surfaceBright = extra.surfaceVariant,
+)
 
 @Composable
 fun CoffemaniaTheme(
     content: @Composable () -> Unit,
 ) {
-    val extra = darkCoffemaniaExtraColors()
-    val scheme = colorSchemeFrom(extra, dark = true)
-
-    CompositionLocalProvider(LocalCoffemaniaExtraColors provides extra) {
+    val extra = clevExtraColors()
+    CompositionLocalProvider(
+        LocalCoffemaniaExtraColors provides extra,
+        LocalTextStyle provides ClevTextStyle,
+    ) {
         MaterialTheme(
-            colorScheme = scheme,
+            colorScheme = colorSchemeFrom(extra),
             typography = CoffemaniaTypography,
             content = content,
         )

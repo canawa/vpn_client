@@ -3,13 +3,10 @@ package ru.coffeemaniavpn.app.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -37,7 +34,7 @@ fun ServerListFlag(
     modifier: Modifier = Modifier,
     height: Dp = 34.dp,
 ) {
-    val countryCode = remember(flag) { FlagUtils.resolveCountryCode(flag) }
+    val countryCode = remember(flag) { FlagUtils.resolveCountryCodeOrDefault(flag) }
     val assetPath = remember(flag) { FlagUtils.flagAssetPath(flag) }
     val width = height * 3 / 2
     val shape = RoundedCornerShape(6.dp)
@@ -54,15 +51,6 @@ fun ServerListFlag(
         .border(1.dp, colors.latte, shape)
         .background(colors.cappuccino)
 
-    if (assetPath == null) {
-        FlagFallback(
-            countryCode = null,
-            modifier = imageModifier,
-            height = height,
-        )
-        return
-    }
-
     val request = remember(assetPath, pixelWidth, pixelHeight, countryCode) {
         ImageRequest.Builder(context)
             .data(assetPath)
@@ -73,13 +61,30 @@ fun ServerListFlag(
             .build()
     }
 
-    AsyncImage(
+    SubcomposeAsyncImage(
         model = request,
-        contentDescription = countryCode?.uppercase() ?: "Флаг",
+        contentDescription = countryCode.uppercase(),
         modifier = imageModifier,
         contentScale = ContentScale.Crop,
-        placeholder = ColorPainter(colors.latte),
-        error = ColorPainter(colors.latte),
+        loading = {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(colors.latte),
+            )
+        },
+        error = {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(FlagUtils.flagAssetPath(FlagUtils.DEFAULT_FLAG_EMOJI))
+                    .size(Size(pixelWidth, pixelHeight))
+                    .build(),
+                contentDescription = "EU",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                error = ColorPainter(colors.latte),
+            )
+        },
     )
 }
 
@@ -93,7 +98,7 @@ fun ServerFlag(
     showBorder: Boolean = true,
     cornerRadius: Dp = 8.dp,
 ) {
-    val countryCode = remember(flag) { FlagUtils.resolveCountryCode(flag) }
+    val countryCode = remember(flag) { FlagUtils.resolveCountryCodeOrDefault(flag) }
     val assetPath = remember(flag) { FlagUtils.flagAssetPath(flag) }
     val width = height * 3 / 2
     val shape = RoundedCornerShape(cornerRadius)
@@ -123,15 +128,6 @@ fun ServerFlag(
         )
         .background(colors.cappuccino)
 
-    if (assetPath == null) {
-        FlagFallback(
-            countryCode = null,
-            modifier = imageModifier,
-            height = height,
-        )
-        return
-    }
-
     val request = remember(assetPath, pixelWidth, pixelHeight, countryCode, crossfade) {
         ImageRequest.Builder(context)
             .data(assetPath)
@@ -145,26 +141,27 @@ fun ServerFlag(
 
     SubcomposeAsyncImage(
         model = request,
-        contentDescription = countryCode?.uppercase() ?: "Флаг",
+        contentDescription = countryCode.uppercase(),
         modifier = imageModifier,
         contentScale = ContentScale.Crop,
         loading = {
             FlagFallback(
                 countryCode = countryCode,
-                modifier = Modifier
-                    .width(width)
-                    .height(height),
+                modifier = Modifier.fillMaxSize(),
                 height = height,
                 muted = true,
             )
         },
         error = {
-            FlagFallback(
-                countryCode = countryCode,
-                modifier = Modifier
-                    .width(width)
-                    .height(height),
-                height = height,
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(FlagUtils.flagAssetPath(FlagUtils.DEFAULT_FLAG_EMOJI))
+                    .size(Size(pixelWidth, pixelHeight))
+                    .build(),
+                contentDescription = "EU",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                error = ColorPainter(colors.latte),
             )
         },
     )
@@ -183,22 +180,13 @@ private fun FlagFallback(
             .background(if (muted) colors.latte.copy(alpha = 0.7f) else colors.latte),
         contentAlignment = Alignment.Center,
     ) {
-        if (!countryCode.isNullOrBlank()) {
-            Text(
-                text = countryCode.uppercase(),
-                color = colors.espresso.copy(alpha = if (muted) 0.45f else 0.85f),
-                fontWeight = FontWeight.Bold,
-                fontSize = (height.value * 0.34f).sp,
-                letterSpacing = 0.6.sp,
-                maxLines = 1,
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Public,
-                contentDescription = null,
-                tint = colors.mocha.copy(alpha = if (muted) 0.55f else 1f),
-                modifier = Modifier.size(height * 0.55f),
-            )
-        }
+        Text(
+            text = (countryCode ?: FlagUtils.DEFAULT_FLAG_CODE).uppercase(),
+            color = colors.espresso.copy(alpha = if (muted) 0.45f else 0.85f),
+            fontWeight = FontWeight.Bold,
+            fontSize = (height.value * 0.34f).sp,
+            letterSpacing = 0.6.sp,
+            maxLines = 1,
+        )
     }
 }

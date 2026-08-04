@@ -2,10 +2,10 @@ package ru.coffeemaniavpn.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBars
@@ -20,58 +20,43 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import ru.coffeemaniavpn.app.R
+import ru.coffeemaniavpn.app.data.AppLanguage
+import ru.coffeemaniavpn.app.data.ConnectionSettingsState
+import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
+import ru.coffeemaniavpn.app.data.TrafficRoutingMode
 
 @Composable
 fun AppShell(
     state: MainUiState,
     onRefreshSubscription: () -> Unit,
     onSelectNode: (String) -> Unit,
-    onConnectToNode: (String) -> Unit,
+    onSelectAuto: () -> Unit,
+    onToggleFavorite: (String) -> Unit,
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
-    onBuyOnWebsiteClick: () -> Unit,
     onDeleteSubscriptionClick: () -> Unit,
-    onRenewTelegramClick: () -> Unit,
-    onCloseApp: () -> Unit,
-    onSaveConnectionSettings: (ru.coffeemaniavpn.app.data.ConnectionSettingsState) -> Unit,
-    onSubscriptionAutoUpdateIntervalChange: (ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval) -> Unit,
+    onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
+    onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
+    onTrafficRoutingModeChange: (TrafficRoutingMode) -> Unit,
+    onLanguageChange: (AppLanguage) -> Unit,
 ) {
-    var selectedTab by remember { mutableStateOf(AppTab.Home) }
     var showSettings by remember { mutableStateOf(false) }
-    var settingsPage by remember { mutableStateOf(SettingsPage.Main) }
+    var showAppsEditor by remember { mutableStateOf(false) }
+    var showSitesEditor by remember { mutableStateOf(false) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
 
-    val hasSubscription = state.subscriptionUrl.isNotBlank() && state.nodes.isNotEmpty()
-
-    val selectedNode = state.nodes.find { it.id == state.selectedNodeId }
-    val selectedDisplay = selectedNode?.let {
-        ServerDisplayMapper.map(it, state.nodePings[it.id])
-    }
-
     val canNavigateBack =
-        showDeleteSubscriptionConfirm ||
-            showSettings ||
-            selectedTab != AppTab.Home
+        showDeleteSubscriptionConfirm || showAppsEditor || showSitesEditor || showSettings
 
     fun navigateBack() {
         when {
             showDeleteSubscriptionConfirm -> showDeleteSubscriptionConfirm = false
-            showSettings -> {
-                val parent = settingsPage.parentPage()
-                if (parent != null) {
-                    settingsPage = parent
-                } else {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                }
-            }
-            selectedTab != AppTab.Home -> selectedTab = AppTab.Home
+            showAppsEditor -> showAppsEditor = false
+            showSitesEditor -> showSitesEditor = false
+            showSettings -> showSettings = false
         }
     }
 
@@ -88,113 +73,72 @@ fun AppShell(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars),
-            ) {
-                when {
-                    showSettings -> CoffemaniaTopBar(
-                        title = settingsPage.headerTitle,
-                        showBackButton = true,
-                        onBackClick = { navigateBack() },
-                        showSettingsButton = false,
-                    )
-                    selectedTab == AppTab.Servers -> CoffemaniaTopBar(
-                        title = "Серверы",
-                        showBackButton = true,
-                        onBackClick = { navigateBack() },
-                        onSettingsClick = {
-                            settingsPage = SettingsPage.Main
-                            showSettings = true
-                        },
-                    )
-                    else -> CoffemaniaTopBar(
-                        title = stringResource(R.string.app_name),
-                        onSettingsClick = {
-                            settingsPage = SettingsPage.Main
-                            showSettings = true
-                        },
+            )
+        },
+    ) { padding ->
+        when {
+            showAppsEditor -> {
+                Column(
+                    Modifier
+                        .padding(padding)
+                        .fillMaxSize(),
+                ) {
+                    TextButton(onClick = { showAppsEditor = false }) {
+                        Text(text = "← Назад", color = coffemaniaColors().yellow)
+                    }
+                    SplitTunnelAppsScreen(
+                        settings = state.connectionSettings,
+                        onSave = onSaveConnectionSettings,
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
-        },
-        bottomBar = {
-            if (!showSettings) {
-                CoffemaniaBottomBar(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it },
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                )
+            showSitesEditor -> {
+                Column(
+                    Modifier
+                        .padding(padding)
+                        .fillMaxSize(),
+                ) {
+                    TextButton(onClick = { showSitesEditor = false }) {
+                        Text(text = "← Назад", color = coffemaniaColors().yellow)
+                    }
+                    SplitTunnelSitesScreen(
+                        settings = state.connectionSettings,
+                        onSave = onSaveConnectionSettings,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
-        },
-    ) { padding ->
-        if (showSettings) {
-            SettingsScreen(
+            showSettings -> ClevSettingsHost(
                 modifier = Modifier.padding(padding),
-                page = settingsPage,
-                onPageChange = { settingsPage = it },
-                hasSubscription = hasSubscription,
-                connectionSettings = state.connectionSettings,
+                state = state,
+                onClose = { showSettings = false },
                 onSaveConnectionSettings = onSaveConnectionSettings,
-                subscriptionAutoUpdateInterval = state.subscriptionAutoUpdateInterval,
-                onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
-                onOpenServers = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    selectedTab = AppTab.Servers
-                },
                 onPasteLink = {
                     showSettings = false
-                    settingsPage = SettingsPage.Main
                     onPasteLinkClick()
                 },
-                onRefreshSubscription = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    onRefreshSubscription()
-                },
+                onRefreshSubscription = onRefreshSubscription,
                 onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
-                onBuyOnWebsite = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    onBuyOnWebsiteClick()
-                },
-                onRenewTelegramClick = onRenewTelegramClick,
-                onCloseApp = onCloseApp,
+                onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
+                onTrafficRoutingModeChange = onTrafficRoutingModeChange,
+                onLanguageChange = onLanguageChange,
+                onOpenAppsEditor = { showAppsEditor = true },
+                onOpenSitesEditor = { showSitesEditor = true },
             )
-        } else {
-            when (selectedTab) {
-                AppTab.Home -> HomeScreen(
-                    modifier = Modifier.padding(padding),
-                    state = state,
-                    selectedDisplay = selectedDisplay,
-                    onConnectClick = onConnectClick,
-                    onDisconnectClick = onDisconnectClick,
-                    onOpenServers = { selectedTab = AppTab.Servers },
-                    onPasteLinkClick = onPasteLinkClick,
-                    onBuyOnWebsiteClick = onBuyOnWebsiteClick,
-                    onRenewTelegramClick = onRenewTelegramClick,
-                )
-                AppTab.Servers -> ServersScreen(
-                    modifier = Modifier.padding(padding),
-                    nodes = state.nodes,
-                    selectedNodeId = state.selectedNodeId,
-                    nodePings = state.nodePings,
-                    subscriptionInfo = state.subscriptionInfo,
-                    lastUpdatedAtMs = state.subscriptionLastUpdatedAtMs,
-                    isRefreshing = state.isLoading,
-                    isPinging = state.isPinging,
-                    canRefreshConfig = state.subscriptionUrl.isNotBlank(),
-                    enabled = state.vpnStatus != ru.coffeemaniavpn.app.vpn.VpnStatus.Starting &&
-                        state.vpnStatus != ru.coffeemaniavpn.app.vpn.VpnStatus.Stopping,
-                    onSelectNode = onSelectNode,
-                    onConnectToNode = { nodeId ->
-                        selectedTab = AppTab.Home
-                        onConnectToNode(nodeId)
-                    },
-                    onRefreshConfig = onRefreshConfig,
-                    onRefreshPing = onRefreshPing,
-                    onRenewTelegramClick = onRenewTelegramClick,
-                    onBuyOnWebsiteClick = onBuyOnWebsiteClick,
-                )
-            }
+            else -> HomeScreen(
+                modifier = Modifier.padding(padding),
+                state = state,
+                onConnectClick = onConnectClick,
+                onDisconnectClick = onDisconnectClick,
+                onPasteLinkClick = onPasteLinkClick,
+                onOpenSettings = { showSettings = true },
+                onSelectNode = onSelectNode,
+                onSelectAuto = onSelectAuto,
+                onToggleFavorite = onToggleFavorite,
+                onRefreshPing = onRefreshPing,
+                onRefreshConfig = onRefreshConfig,
+            )
         }
     }
 

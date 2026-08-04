@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.AppPreferences
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.PingState
@@ -29,6 +30,7 @@ import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 import ru.coffeemaniavpn.app.data.SubscriptionInfo
 import ru.coffeemaniavpn.app.data.SubscriptionParser
 import ru.coffeemaniavpn.app.data.SubscriptionRepository
+import ru.coffeemaniavpn.app.data.TrafficRoutingMode
 import org.json.JSONObject
 import ru.coffeemaniavpn.app.deeplink.DeepLinkAction
 import ru.coffeemaniavpn.app.deeplink.DeepLinkEffect
@@ -60,6 +62,10 @@ data class MainUiState(
     val connectionSettings: ConnectionSettingsState = ConnectionSettingsState(),
     val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval =
         SubscriptionAutoUpdateInterval.DEFAULT,
+    val favoriteNodeIds: Set<String> = emptySet(),
+    val appLanguage: AppLanguage = AppLanguage.DEFAULT,
+    val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
+    val isAutoSelected: Boolean = false,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -81,6 +87,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val startupCrash = MutableStateFlow<String?>(null)
     private var subscriptionAutoUpdateJob: Job? = null
     private var pendingConnectNodeId: String? = null
+
+    private val isAutoSelected = MutableStateFlow(false)
 
     private val _connectRequests = MutableSharedFlow<ProxyNode>(extraBufferCapacity = 1)
     val connectRequests: SharedFlow<ProxyNode> = _connectRequests.asSharedFlow()
@@ -115,12 +123,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             preferences.connectionSettings,
             preferences.subscriptionAutoUpdateInterval,
             preferences.subscriptionLastAutoRefreshAt,
-        ) { connectionSettings, autoUpdateInterval, lastUpdatedAt ->
-            SettingsUiState(connectionSettings, autoUpdateInterval, lastUpdatedAt)
+            preferences.favoriteNodeIds,
+            combine(
+                preferences.appLanguage,
+                preferences.trafficRoutingMode,
+                isAutoSelected,
+            ) { language, routingMode, autoSelected ->
+                Triple(language, routingMode, autoSelected)
+            },
+        ) { connectionSettings, autoUpdateInterval, lastUpdatedAt, favorites, langRouting ->
+            SettingsUiState(
+                connectionSettings = connectionSettings,
+                subscriptionAutoUpdateInterval = autoUpdateInterval,
+                subscriptionLastUpdatedAtMs = lastUpdatedAt,
+                favoriteNodeIds = favorites,
+                appLanguage = langRouting.first,
+                trafficRoutingMode = langRouting.second,
+                isAutoSelected = langRouting.third,
+            )
         },
         startupCrash,
     ) { savedData, vpnData, localData, settingsData, crash ->
-        val (connectionSettings, autoUpdateInterval, lastUpdatedAt) = settingsData
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, downlinkBps, uplinkBps, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
@@ -137,18 +160,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isPinging = pinging,
             nodePings = pings,
             subscriptionInfo = subscriptionInfo,
-            subscriptionLastUpdatedAtMs = lastUpdatedAt,
+            subscriptionLastUpdatedAtMs = settingsData.subscriptionLastUpdatedAtMs,
             message = info,
             error = localError ?: vpnError,
             startupCrash = crash,
-            connectionSettings = connectionSettings,
-            subscriptionAutoUpdateInterval = autoUpdateInterval,
+            connectionSettings = settingsData.connectionSettings,
+            subscriptionAutoUpdateInterval = settingsData.subscriptionAutoUpdateInterval,
+            favoriteNodeIds = settingsData.favoriteNodeIds,
+            appLanguage = settingsData.appLanguage,
+            trafficRoutingMode = settingsData.trafficRoutingMode,
+            isAutoSelected = settingsData.isAutoSelected,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = MainUiState(),
     )
+
+    private var lastAutoPingedNodeIds: Set<String> = emptySet()
 
     init {
         AppLog.i("MainViewModel init")
@@ -173,6 +202,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     AppLog.w("orphaned nodes without saved subscription url, clearing")
                     preferences.clearNodes()
                 }
+            }
+        }
+        viewModelScope.launch {
+            preferences.nodes.collect { nodes ->
+                val ids = nodes.map { it.id }.toSet()
+                if (nodes.isEmpty()) {
+                    lastAutoPingedNodeIds = emptySet()
+                    return@collect
+                }
+                if (ids == lastAutoPingedNodeIds) return@collect
+                lastAutoPingedNodeIds = ids
+                AppLog.i("auto-ping nodes=${nodes.size}")
+                pingAllNodes(nodes)
             }
         }
         viewModelScope.launch {
@@ -501,8 +543,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectNode(nodeId: String) {
+        isAutoSelected.value = false
         viewModelScope.launch {
             preferences.setSelectedNodeId(nodeId)
+        }
+    }
+
+    fun toggleFavorite(nodeId: String) {
+        viewModelScope.launch {
+            preferences.toggleFavoriteNode(nodeId)
+        }
+    }
+
+    fun selectAutoFastest() {
+        val pings = uiState.value.nodePings
+        val best = uiState.value.nodes
+            .mapNotNull { node ->
+                val ping = pings[node.id] as? PingState.Result ?: return@mapNotNull null
+                node to ping.latencyMs
+            }
+            .minByOrNull { it.second }
+            ?.first
+            ?: uiState.value.nodes.firstOrNull()
+            ?: return
+        isAutoSelected.value = true
+        viewModelScope.launch {
+            preferences.setSelectedNodeId(best.id)
+        }
+    }
+
+    fun setAppLanguage(language: AppLanguage) {
+        viewModelScope.launch {
+            preferences.setAppLanguage(language)
+            val tags = when (language) {
+                AppLanguage.SYSTEM -> androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+                AppLanguage.RU -> androidx.core.os.LocaleListCompat.forLanguageTags("ru")
+                AppLanguage.EN -> androidx.core.os.LocaleListCompat.forLanguageTags("en")
+            }
+            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(tags)
+        }
+    }
+
+    fun setTrafficRoutingMode(mode: TrafficRoutingMode) {
+        viewModelScope.launch {
+            preferences.setTrafficRoutingMode(mode)
         }
     }
 
@@ -607,5 +691,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val connectionSettings: ConnectionSettingsState,
         val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
         val subscriptionLastUpdatedAtMs: Long,
+        val favoriteNodeIds: Set<String> = emptySet(),
+        val appLanguage: AppLanguage = AppLanguage.DEFAULT,
+        val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
+        val isAutoSelected: Boolean = false,
     )
 }

@@ -81,18 +81,18 @@ class MainActivity : ComponentActivity() {
                         state = state,
                         onRefreshSubscription = viewModel::refreshSubscription,
                         onSelectNode = viewModel::selectNode,
-                        onConnectToNode = viewModel::requestConnectToNode,
+                        onSelectAuto = viewModel::selectAutoFastest,
+                        onToggleFavorite = viewModel::toggleFavorite,
                         onConnectClick = ::requestConnect,
                         onDisconnectClick = VpnManager::disconnect,
                         onRefreshPing = viewModel::pingAllNodes,
                         onRefreshConfig = viewModel::refreshConfig,
                         onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
-                        onBuyOnWebsiteClick = ::openSubscriptionRegister,
                         onDeleteSubscriptionClick = viewModel::deleteSubscription,
-                        onRenewTelegramClick = ::openTelegramBot,
-                        onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
                         onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
+                        onTrafficRoutingModeChange = viewModel::setTrafficRoutingMode,
+                        onLanguageChange = viewModel::setAppLanguage,
                     )
                 }
             }
@@ -134,22 +134,6 @@ class MainActivity : ComponentActivity() {
                 DeepLinkEffect.FinishActivity -> finish()
                 DeepLinkEffect.None -> Unit
             }
-        }
-    }
-
-    private fun openTelegramBot() {
-        runCatching {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TELEGRAM_BOT_URL)))
-        }.onFailure {
-            AppLog.e("openTelegramBot failed", it)
-        }
-    }
-
-    private fun openSubscriptionRegister() {
-        runCatching {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.SUBSCRIPTION_REGISTER_URL)))
-        }.onFailure {
-            AppLog.e("openSubscriptionRegister failed", it)
         }
     }
 

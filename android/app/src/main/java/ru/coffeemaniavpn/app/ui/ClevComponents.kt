@@ -1,0 +1,407 @@
+package ru.coffeemaniavpn.app.ui
+
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
+import ru.coffeemaniavpn.app.R
+import ru.coffeemaniavpn.app.data.formatTrafficBytes
+import ru.coffeemaniavpn.app.vpn.VpnStatus
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+
+enum class ConnectUiStatus { Off, Busy, On }
+
+@Composable
+fun ClevLogo(
+    modifier: Modifier = Modifier,
+    height: Dp = 28.dp,
+) {
+    val context = LocalContext.current
+    AsyncImage(
+        model = ImageRequest.Builder(context)
+            .data("file:///android_asset/logo_mark.svg")
+            .decoderFactory(SvgDecoder.Factory())
+            .build(),
+        contentDescription = "ClevVPN",
+        modifier = modifier.height(height),
+        contentScale = ContentScale.Fit,
+    )
+}
+
+@Composable
+fun YellowCircleIconButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val colors = coffemaniaColors()
+    Box(
+        modifier = modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(
+                Brush.linearGradient(listOf(colors.yellow, colors.amber)),
+            )
+            .clickable(enabled = enabled && !loading, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = Color.Black,
+            )
+        } else {
+            content()
+        }
+    }
+}
+
+@Composable
+fun ClevLogoFull(
+    modifier: Modifier = Modifier,
+    logoHeight: Dp = 22.dp,
+) {
+    val colors = coffemaniaColors()
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ClevLogo(height = logoHeight)
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = colors.espresso, fontWeight = FontWeight.Bold)) {
+                    append("Clev")
+                }
+                withStyle(SpanStyle(color = colors.yellow, fontWeight = FontWeight.Bold)) {
+                    append("VPN")
+                }
+            },
+            fontSize = (logoHeight.value * 0.82f).sp,
+        )
+    }
+}
+
+@Composable
+fun ClevCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val colors = coffemaniaColors()
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.cappuccino)
+            .border(1.dp, colors.latte, RoundedCornerShape(16.dp)),
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun StatusGlow(
+    status: ConnectUiStatus,
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+    val glow = when (status) {
+        ConnectUiStatus.Off -> colors.mocha.copy(alpha = 0.05f)
+        ConnectUiStatus.Busy -> colors.amber.copy(alpha = 0.18f)
+        ConnectUiStatus.On -> colors.logoYellow.copy(alpha = 0.22f)
+    }
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(glow, Color.Transparent),
+                    radius = 900f,
+                ),
+            ),
+    )
+}
+
+@Composable
+fun ClevConnectButton(
+    vpnStatus: VpnStatus,
+    connectionElapsedMs: Long,
+    isPinging: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 150.dp,
+) {
+    val colors = coffemaniaColors()
+    val uiStatus = when {
+        !enabled && vpnStatus == VpnStatus.Stopped -> ConnectUiStatus.Off
+        vpnStatus == VpnStatus.Started -> ConnectUiStatus.On
+        vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping -> ConnectUiStatus.Busy
+        isPinging -> ConnectUiStatus.Busy
+        else -> ConnectUiStatus.Off
+    }
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.94f else 1f, label = "press")
+    val infinite = rememberInfiniteTransition(label = "spin")
+    val spin by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(if (isPinging) 900 else 500, easing = LinearEasing), RepeatMode.Restart),
+        label = "spinAngle",
+    )
+    val ringSize = size + 36.dp
+
+    Box(
+        modifier = modifier
+            .size(ringSize + 28.dp)
+            .scale(scale)
+            .clickable(
+                enabled = enabled || vpnStatus == VpnStatus.Started,
+                interactionSource = interaction,
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.size(ringSize + 20.dp)) {
+            val rings = listOf(0.98f, 0.88f, 0.78f)
+            rings.forEachIndexed { index, scale ->
+                val r = this.size.minDimension / 2f * scale
+                drawCircle(
+                    color = Color(0xFF2A2A31).copy(alpha = 0.35f - index * 0.08f),
+                    radius = r,
+                    style = Stroke(width = 1.dp.toPx()),
+                    center = center,
+                )
+            }
+        }
+        Canvas(modifier = Modifier.size(ringSize)) {
+            val stroke = 3.dp.toPx()
+            drawCircle(
+                color = Color(0xFF2A2A31).copy(alpha = 0.55f),
+                style = Stroke(width = stroke),
+            )
+            when (uiStatus) {
+                ConnectUiStatus.On -> {
+                    drawArc(
+                        brush = Brush.sweepGradient(listOf(Color(0xFFFAC300), Color(0xFFE39A00), Color(0xFFFAC300))),
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+                    )
+                }
+                ConnectUiStatus.Busy -> {
+                    rotate(spin) {
+                        drawArc(
+                            brush = Brush.sweepGradient(listOf(Color.Transparent, Color(0xFFE39A00), Color.White)),
+                            startAngle = -90f,
+                            sweepAngle = 72f,
+                            useCenter = false,
+                            topLeft = Offset.Zero,
+                            size = Size(this.size.width, this.size.height),
+                            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round),
+                        )
+                    }
+                }
+                ConnectUiStatus.Off -> Unit
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .size(size)
+                .shadow(12.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.5f))
+                .clip(CircleShape)
+                .background(
+                    Brush.verticalGradient(listOf(Color(0xFF30303A), Color(0xFF121217))),
+                )
+                .border(1.dp, Color.White.copy(alpha = 0.06f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            val plateOn = uiStatus == ConnectUiStatus.On
+            Box(
+                modifier = Modifier
+                    .size(size * 0.74f)
+                    .clip(CircleShape)
+                    .background(
+                        if (plateOn) {
+                            Brush.radialGradient(
+                                colors = listOf(Color(0xFFFAC300), Color(0xFFE39A00)),
+                                center = Offset(0.5f, 0.42f),
+                            )
+                        } else {
+                            Brush.radialGradient(
+                                colors = listOf(Color(0xFF24242E), Color(0xFF0C0C11)),
+                                center = Offset(0.5f, 0.42f),
+                            )
+                        },
+                    )
+                    .border(1.5.dp, Color.Black.copy(alpha = 0.45f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.PowerSettingsNew,
+                        contentDescription = null,
+                        tint = if (plateOn) Color.Black.copy(alpha = 0.75f) else colors.espresso,
+                        modifier = Modifier.size(size * 0.22f),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = when (uiStatus) {
+                            ConnectUiStatus.On -> formatSession(connectionElapsedMs)
+                            ConnectUiStatus.Busy -> if (isPinging && vpnStatus == VpnStatus.Stopped) "ПИНГ" else "…"
+                            ConnectUiStatus.Off -> stringResource(R.string.clev_start)
+                        },
+                        color = if (plateOn) Color.Black.copy(alpha = 0.55f) else colors.mocha,
+                        fontSize = (size.value * 0.075f).sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatSession(elapsedMs: Long): String {
+    val totalSec = TimeUnit.MILLISECONDS.toSeconds(elapsedMs.coerceAtLeast(0))
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    val s = totalSec % 60
+    return if (h > 0) {
+        String.format(Locale.US, "%d:%02d:%02d", h, m, s)
+    } else {
+        String.format(Locale.US, "%02d:%02d", m, s)
+    }
+}
+
+fun VpnStatus.toConnectUi(): ConnectUiStatus = when (this) {
+    VpnStatus.Started -> ConnectUiStatus.On
+    VpnStatus.Starting, VpnStatus.Stopping -> ConnectUiStatus.Busy
+    VpnStatus.Stopped -> ConnectUiStatus.Off
+}
+
+@Composable
+fun ClevFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .then(
+                if (selected) {
+                    Modifier.background(Brush.linearGradient(listOf(colors.yellow, colors.amber)))
+                } else {
+                    Modifier.background(colors.cappuccino)
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp,
+            color = if (selected) Color.Black else colors.mocha,
+        )
+    }
+}
+
+/** Цвета бейджа протокола — сняты с макета 1:1. */
+private val ProtocolBadgeBackground = Color(0xFF16151A)
+private val ProtocolBadgeBorder = Color(0xFF4D3E1D)
+private val ProtocolBadgeText = Color(0xFFF0BD00)
+
+/** Бейдж протокола — тёмная capsule с золотым текстом. */
+@Composable
+fun ProtocolLabelBadge(
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(50)
+    Text(
+        text = label.uppercase(),
+        color = ProtocolBadgeText,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.3.sp,
+        maxLines = 1,
+        modifier = modifier
+            .clip(shape)
+            .background(ProtocolBadgeBackground, shape)
+            .border(1.dp, ProtocolBadgeBorder, shape)
+            .padding(horizontal = 9.dp, vertical = 2.dp),
+    )
+}
+
+fun formatTrafficLabel(used: Long, total: Long): String {
+    val gb = used.coerceAtLeast(0) / (1024.0 * 1024.0 * 1024.0)
+    return String.format(Locale.forLanguageTag("ru"), "%.2f ГБ", gb)
+}

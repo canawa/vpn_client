@@ -53,6 +53,12 @@ data class SubscriptionInfo(
         return SubscriptionExpireFormatter.formatRemaining(remainingSec)
     }
 
+    /** Дата окончания для info-bar: «26 октября 2027 г.» */
+    fun expireCalendarLabel(): String? {
+        if (expire <= 0) return null
+        return SubscriptionExpireFormatter.formatCalendarDate(expire)
+    }
+
     fun isExpired(nowMs: Long = System.currentTimeMillis()): Boolean {
         if (expire <= 0) return false
         return expire * 1_000L <= nowMs

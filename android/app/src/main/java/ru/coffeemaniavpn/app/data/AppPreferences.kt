@@ -209,6 +209,47 @@ class AppPreferences(private val context: Context) {
         ConnectionSettingsStore.update(settings)
     }
 
+    val favoriteNodeIds: Flow<Set<String>> = context.dataStore.data
+        .map { prefs ->
+            runCatching {
+                json.decodeFromString<List<String>>(prefs[KEY_FAVORITE_NODE_IDS].orEmpty().ifBlank { "[]" })
+            }.getOrDefault(emptyList()).toSet()
+        }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun setFavoriteNodeIds(ids: Set<String>) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_FAVORITE_NODE_IDS] = json.encodeToString(ids.toList())
+        }
+    }
+
+    suspend fun toggleFavoriteNode(nodeId: String) {
+        val current = favoriteNodeIds.first()
+        setFavoriteNodeIds(
+            if (nodeId in current) current - nodeId else current + nodeId,
+        )
+    }
+
+    val appLanguage: Flow<AppLanguage> = context.dataStore.data
+        .map { prefs -> AppLanguage.fromStored(prefs[KEY_APP_LANGUAGE]) }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun setAppLanguage(language: AppLanguage) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_APP_LANGUAGE] = language.name
+        }
+    }
+
+    val trafficRoutingMode: Flow<TrafficRoutingMode> = context.dataStore.data
+        .map { prefs -> TrafficRoutingMode.fromStored(prefs[KEY_TRAFFIC_ROUTING_MODE]) }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun setTrafficRoutingMode(mode: TrafficRoutingMode) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_TRAFFIC_ROUTING_MODE] = mode.name
+        }
+    }
+
     private fun Preferences.toConnectionSettings(): ConnectionSettingsState {
         val domains = this[KEY_SPLIT_SITES_DOMAINS].orEmpty()
             .lines()
@@ -252,5 +293,8 @@ class AppPreferences(private val context: Context) {
         private val KEY_APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
         private val KEY_SUB_AUTO_UPDATE_HOURS = intPreferencesKey("sub_auto_update_hours")
         private val KEY_SUB_LAST_AUTO_REFRESH_MS = longPreferencesKey("sub_last_auto_refresh_ms")
+        private val KEY_FAVORITE_NODE_IDS = stringPreferencesKey("favorite_node_ids")
+        private val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
+        private val KEY_TRAFFIC_ROUTING_MODE = stringPreferencesKey("traffic_routing_mode")
     }
 }

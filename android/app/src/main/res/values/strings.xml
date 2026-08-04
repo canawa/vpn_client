@@ -1,15 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">POROZOFF VPN</string>
-    <string name="application_label" translatable="false">POROZOFF VPN</string>
-    <string name="vpn_session_name">POROZOFF VPN</string>
+    <string name="app_name">ClevVPN</string>
+    <string name="application_label" translatable="false">ClevVPN</string>
+    <string name="vpn_session_name">ClevVPN</string>
     <string name="vpn_notification_channel">VPN</string>
-    <string name="vpn_notification_title">POROZOFF VPN</string>
+    <string name="vpn_notification_title">ClevVPN</string>
     <string name="vpn_starting">Подключение…</string>
     <string name="vpn_connected">Подключено</string>
     <string name="vpn_stop">Отключить VPN</string>
-    <string name="qs_vpn_tile_label">POROZOFF VPN</string>
+    <string name="qs_vpn_tile_label">ClevVPN</string>
     <string name="qs_vpn_connected">Подключено</string>
     <string name="qs_vpn_disconnected">Отключено</string>
     <string name="qs_vpn_disconnecting">Отключение…</string>
+    <string name="clev_tagline">Быстрый и стабильный доступ без границ</string>
+    <string name="clev_paste_key">Вставьте ключ доступа</string>
+    <string name="clev_paste_clipboard">Вставить из буфера</string>
+    <string name="clev_activate">Активировать</string>
+    <string name="clev_key_hint">Ключ выдаётся вместе с подпиской</string>
+    <string name="clev_all">Все</string>
+    <string name="clev_my">Мои</string>
+    <string name="clev_auto">Авто</string>
+    <string name="clev_auto_fastest">Авто — самый быстрый сервер</string>
+    <string name="clev_start">Старт</string>
+    <string name="clev_cat_bypass">Обходы</string>
+    <string name="clev_cat_speed">Скорость</string>
+    <string name="clev_cat_youtube">Ютуб</string>
+    <string name="clev_cat_gaming">Игровые</string>
+    <string name="clev_settings">Настройки</string>
+    <string name="clev_apps">Приложения</string>
+    <string name="clev_rules">Правила</string>
+    <string name="clev_subscription">Подписка</string>
+    <string name="clev_language">Язык</string>
+    <string name="clev_lang_system">Системный</string>
+    <string name="clev_lang_ru">Русский</string>
+    <string name="clev_lang_en">English</string>
 </resources>

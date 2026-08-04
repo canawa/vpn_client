@@ -88,7 +88,7 @@ class BoxService(
 
     private suspend fun startService() {
         withContext(Dispatchers.Main) {
-            notification.show(service.getString(ru.coffeemaniavpn.app.R.string.vpn_starting))
+            notification.show(connectedNotificationText())
         }
 
         val configFile = App.configFile
@@ -123,7 +123,7 @@ class BoxService(
         AppLog.i("BoxService started xray=${XrayCoreManager.isRunning()}")
         withContext(Dispatchers.Main) {
             activeNotification = notification
-            notification.show(service.getString(ru.coffeemaniavpn.app.R.string.vpn_connected))
+            notification.show(connectedNotificationText(connected = true))
         }
     }
 
@@ -209,12 +209,52 @@ class BoxService(
 
         fun updateTrafficNotification(rates: VpnTrafficRates) {
             val notification = activeNotification ?: return
-            val connected = App.instance.getString(ru.coffeemaniavpn.app.R.string.vpn_connected)
             val speed = formatTrafficSpeedLine(
                 downlinkBytesPerSec = rates.downlinkBytesPerSec,
                 uplinkBytesPerSec = rates.uplinkBytesPerSec,
             )
-            notification.show("$connected · $speed")
+            val (serverLine, statusLine) = connectedNotificationLines(
+                connected = true,
+                speed = speed,
+            )
+            notification.show(serverLine = serverLine, statusLine = statusLine)
+        }
+
+        private fun connectedNotificationText(
+            connected: Boolean = false,
+            speed: String? = null,
+        ): String {
+            val (serverLine, statusLine) = connectedNotificationLines(connected, speed)
+            return if (serverLine.isNotBlank()) {
+                "$serverLine\n$statusLine"
+            } else {
+                statusLine
+            }
+        }
+
+        private fun connectedNotificationLines(
+            connected: Boolean = false,
+            speed: String? = null,
+        ): Pair<String, String> {
+            val status = App.instance.getString(
+                if (connected) {
+                    ru.coffeemaniavpn.app.R.string.vpn_connected
+                } else {
+                    ru.coffeemaniavpn.app.R.string.vpn_starting
+                },
+            )
+            val statusLine = buildList {
+                add(status)
+                if (!speed.isNullOrBlank()) add(speed)
+            }.joinToString(" · ")
+
+            val node = VpnAutoReconnect.connectedNode() ?: return "" to statusLine
+            val display = ru.coffeemaniavpn.app.ui.ServerDisplayMapper.map(node)
+            val serverLine = listOf(display.flag, display.title)
+                .filter { it.isNotBlank() }
+                .joinToString(" ")
+                .ifBlank { node.name.trim() }
+            return serverLine to statusLine
         }
     }
 }

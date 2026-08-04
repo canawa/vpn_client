@@ -633,7 +633,7 @@ fun SelectedServerCard(
     val colors = coffemaniaColors()
     val pingColor = when {
         display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
-        display.pingText == "N/A" -> CoffemaniaColors.PingBad
+        display.pingText == "нет" -> CoffemaniaColors.PingBad
         else -> colors.mocha
     }
     Surface(
@@ -737,7 +737,7 @@ fun ServerListCard(
     val borderColor = if (selected) Color(0xFF6B6568) else coffemaniaColors().latte
     val pingColor = when {
         display.pingMs != null -> CoffemaniaColors.pingColor(display.pingMs)
-        display.pingText == "N/A" -> CoffemaniaColors.PingBad
+        display.pingText == "нет" -> CoffemaniaColors.PingBad
         else -> coffemaniaColors().mocha
     }
 

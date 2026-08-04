@@ -324,7 +324,7 @@ fun KillSwitchScreen(
             .verticalScroll(rememberScrollState()),
     ) {
         SettingsToggleRow(
-            title = "Kill Switch",
+            title = "Защита при обрыве",
             checked = settings.killSwitchEnabled,
             onCheckedChange = { enabled ->
                 onSave(settings.copy(killSwitchEnabled = enabled))

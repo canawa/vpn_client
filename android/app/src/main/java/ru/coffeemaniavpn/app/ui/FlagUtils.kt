@@ -3,6 +3,10 @@ package ru.coffeemaniavpn.app.ui
 object FlagUtils {
     private val regionalIndicatorBase = 0x1F1E6
 
+    /** Запасной флаг, если страны в имени нет. */
+    const val DEFAULT_FLAG_CODE = "eu"
+    const val DEFAULT_FLAG_EMOJI = "🇪🇺"
+
     /** ISO 3166-1 alpha-2 из emoji-флага (🇳🇱 → nl). */
     fun emojiToCountryCode(flag: String): String? {
         val codePoints = flag.trim()
@@ -30,7 +34,7 @@ object FlagUtils {
     /** Нормализует emoji / ISO-код / неизвестное → lowercase ISO или null. */
     fun resolveCountryCode(flagOrCode: String): String? {
         val trimmed = flagOrCode.trim()
-        if (trimmed.isEmpty()) return null
+        if (trimmed.isEmpty() || isGlobeOrUnknownRaw(trimmed)) return null
 
         emojiToCountryCode(trimmed)?.let { return it }
 
@@ -41,14 +45,18 @@ object FlagUtils {
         return null
     }
 
-    /** Локальный asset; null если файла нет / код неизвестен. */
-    fun flagAssetPath(flagOrCode: String): String? {
-        val code = resolveCountryCode(flagOrCode) ?: return null
+    /** Код страны или ЕС, если определить не удалось. */
+    fun resolveCountryCodeOrDefault(flagOrCode: String): String =
+        resolveCountryCode(flagOrCode) ?: DEFAULT_FLAG_CODE
+
+    /** Локальный asset; всегда есть (fallback — ЕС). */
+    fun flagAssetPath(flagOrCode: String): String {
+        val code = resolveCountryCodeOrDefault(flagOrCode)
         return "file:///android_asset/flags/$code.png"
     }
 
-    fun flagCdnUrl(flagOrCode: String, widthPx: Int = 160): String? {
-        val code = resolveCountryCode(flagOrCode) ?: return null
+    fun flagCdnUrl(flagOrCode: String, widthPx: Int = 160): String {
+        val code = resolveCountryCodeOrDefault(flagOrCode)
         val width = when {
             widthPx <= 40 -> 40
             widthPx <= 80 -> 80
@@ -61,7 +69,10 @@ object FlagUtils {
 
     fun isGlobeOrUnknown(flagOrCode: String): Boolean {
         val t = flagOrCode.trim()
-        if (t == "🌐" || t == "🌍" || t == "🌎" || t == "🌏" || t == "🗺") return true
+        if (isGlobeOrUnknownRaw(t)) return true
         return resolveCountryCode(t) == null
     }
+
+    private fun isGlobeOrUnknownRaw(t: String): Boolean =
+        t == "🌐" || t == "🌍" || t == "🌎" || t == "🌏" || t == "🗺"
 }

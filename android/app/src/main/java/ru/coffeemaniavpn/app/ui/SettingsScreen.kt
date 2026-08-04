@@ -78,7 +78,7 @@ enum class SettingsPage(
         title = "Раздельное туннелирование приложений",
         headerTitle = "Туннелирование приложений",
     ),
-    KillSwitch("Kill switch"),
+    KillSwitch("Защита при обрыве"),
     Subscription("Подписка"),
 }
 
@@ -172,7 +172,7 @@ private fun ConnectionMenuScreen(
         )
         SettingsDivider()
         SettingsNavRow(
-            title = "Kill switch",
+            title = "Защита при обрыве",
             icon = Icons.Default.Shield,
             onClick = { onPageChange(SettingsPage.KillSwitch) },
         )

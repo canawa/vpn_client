@@ -15,6 +15,10 @@ object SubscriptionExpireFormatter {
     private const val SEC_DAY = 86_400L
 
     private val updatedAtFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.forLanguageTag("ru"))
+    private val calendarDateFormat = SimpleDateFormat("d MMMM yyyy 'г.'", Locale.forLanguageTag("ru"))
+
+    fun formatCalendarDate(expireEpochSec: Long): String =
+        calendarDateFormat.format(Date(expireEpochSec * 1_000L))
 
     fun formatRemaining(remainingSec: Long): String {
         if (remainingSec <= 0) return "Подписка истекла"

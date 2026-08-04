@@ -56,7 +56,7 @@ class ServiceNotification(private val service: Service) {
             )
     }
 
-    fun show(contentText: String) {
+    fun show(serverLine: String, statusLine: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             App.notificationManager.createNotificationChannel(
                 NotificationChannel(
@@ -66,7 +66,33 @@ class ServiceNotification(private val service: Service) {
                 ),
             )
         }
-        service.startForeground(notificationId, builder.setContentText(contentText).build())
+        val title = service.getString(R.string.vpn_notification_title)
+        val preview = serverLine.ifBlank { statusLine }
+        val style = NotificationCompat.InboxStyle()
+            .setBigContentTitle(title)
+        if (serverLine.isNotBlank()) {
+            style.addLine(serverLine)
+        }
+        if (statusLine.isNotBlank()) {
+            style.addLine(statusLine)
+        }
+        service.startForeground(
+            notificationId,
+            builder
+                .setContentTitle(title)
+                .setContentText(preview)
+                .setStyle(style)
+                .build(),
+        )
+    }
+
+    fun show(contentText: String) {
+        val lines = contentText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        when (lines.size) {
+            0 -> show(serverLine = "", statusLine = contentText)
+            1 -> show(serverLine = "", statusLine = lines[0])
+            else -> show(serverLine = lines[0], statusLine = lines.drop(1).joinToString(" · "))
+        }
     }
 
     fun close() {
