@@ -19,7 +19,11 @@
     <string name="clev_key_hint">Ключ выдаётся вместе с подпиской</string>
     <string name="clev_all">Все</string>
     <string name="clev_my">Мои</string>
-    <string name="clev_auto">Авто</string>
+    <string name="clev_auto">⚡ Авто</string>
+    <string name="clev_auto_subtitle">Переключается автоматически по пингу</string>
+    <string name="clev_connecting">Подключение…</string>
+    <string name="clev_checking_ping">Проверка пинга…</string>
+    <string name="clev_connected">ПОДКЛЮЧЕНО</string>
     <string name="clev_auto_fastest">Авто — самый быстрый сервер</string>
     <string name="clev_start">Старт</string>
     <string name="clev_cat_bypass">Обходы</string>

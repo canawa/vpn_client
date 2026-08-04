@@ -27,8 +27,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -167,8 +167,8 @@ fun StatusGlow(
     val colors = coffemaniaColors()
     val glow = when (status) {
         ConnectUiStatus.Off -> colors.mocha.copy(alpha = 0.05f)
-        ConnectUiStatus.Busy -> colors.amber.copy(alpha = 0.18f)
-        ConnectUiStatus.On -> colors.logoYellow.copy(alpha = 0.22f)
+        ConnectUiStatus.Busy -> CoffemaniaColors.LogoAmber.copy(alpha = 0.16f)
+        ConnectUiStatus.On -> colors.logoYellow.copy(alpha = 0.20f)
     }
     Box(
         modifier = modifier
@@ -305,20 +305,45 @@ fun ClevConnectButton(
                     Icon(
                         imageVector = Icons.Default.PowerSettingsNew,
                         contentDescription = null,
-                        tint = if (plateOn) Color.Black.copy(alpha = 0.75f) else colors.espresso,
+                        tint = when {
+                            uiStatus == ConnectUiStatus.On -> Color.Black.copy(alpha = 0.75f)
+                            uiStatus == ConnectUiStatus.Busy || (isPinging && vpnStatus == VpnStatus.Stopped) ->
+                                colors.logoYellow
+                            else -> colors.mocha
+                        },
                         modifier = Modifier.size(size * 0.22f),
                     )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = when (uiStatus) {
-                            ConnectUiStatus.On -> formatSession(connectionElapsedMs)
-                            ConnectUiStatus.Busy -> if (isPinging && vpnStatus == VpnStatus.Stopped) "ПИНГ" else "…"
-                            ConnectUiStatus.Off -> stringResource(R.string.clev_start)
-                        },
-                        color = if (plateOn) Color.Black.copy(alpha = 0.55f) else colors.mocha,
-                        fontSize = (size.value * 0.075f).sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    Spacer(Modifier.height(if (uiStatus == ConnectUiStatus.On) 7.dp else 6.dp))
+                    if (uiStatus == ConnectUiStatus.On) {
+                        Text(
+                            text = stringResource(R.string.clev_connected),
+                            color = Color.Black.copy(alpha = 0.45f),
+                            fontSize = (size.value * 0.058f).sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 3.sp,
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            text = formatSession(connectionElapsedMs),
+                            color = Color.Black.copy(alpha = 0.7f),
+                            fontSize = (size.value * 0.11f).sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    } else {
+                        Text(
+                            text = when {
+                                isPinging && vpnStatus == VpnStatus.Stopped ->
+                                    stringResource(R.string.clev_checking_ping)
+                                uiStatus == ConnectUiStatus.Busy ->
+                                    stringResource(R.string.clev_connecting)
+                                else -> stringResource(R.string.clev_start)
+                            },
+                            color = colors.mocha,
+                            fontSize = (size.value * 0.075f).sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                        )
+                    }
                 }
             }
         }
@@ -367,41 +392,93 @@ fun ClevFilterChip(
     ) {
         Text(
             text = label,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             fontSize = 12.sp,
             color = if (selected) Color.Black else colors.mocha,
         )
     }
 }
 
-/** Цвета бейджа протокола — сняты с макета 1:1. */
-private val ProtocolBadgeBackground = Color(0xFF16151A)
-private val ProtocolBadgeBorder = Color(0xFF4D3E1D)
-private val ProtocolBadgeText = Color(0xFFF0BD00)
-
-/** Бейдж протокола — тёмная capsule с золотым текстом. */
+/** Бейдж протокола — как QuickServerRow в Components.swift. */
 @Composable
 fun ProtocolLabelBadge(
     label: String,
     modifier: Modifier = Modifier,
 ) {
+    val colors = coffemaniaColors()
     val shape = RoundedCornerShape(50)
     Text(
-        text = label.uppercase(),
-        color = ProtocolBadgeText,
+        text = label,
+        color = colors.yellow,
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
-        letterSpacing = 0.3.sp,
         maxLines = 1,
         modifier = modifier
             .clip(shape)
-            .background(ProtocolBadgeBackground, shape)
-            .border(1.dp, ProtocolBadgeBorder, shape)
-            .padding(horizontal = 9.dp, vertical = 2.dp),
+            .background(colors.surfaceVariant, shape)
+            .padding(horizontal = 5.dp, vertical = 1.dp),
     )
 }
 
-fun formatTrafficLabel(used: Long, total: Long): String {
-    val gb = used.coerceAtLeast(0) / (1024.0 * 1024.0 * 1024.0)
-    return String.format(Locale.forLanguageTag("ru"), "%.2f ГБ", gb)
+/** Пинг с цветовой точкой — как PingLabel в Components.swift. */
+@Composable
+fun PingLabel(
+    ms: Int,
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(CoffemaniaColors.pingColor(ms)),
+        )
+        Text(
+            text = "$ms мс",
+            color = colors.mocha,
+            fontSize = 11.sp,
+        )
+    }
+}
+
+/** Иконка info-bar без жёлтого круга — как на iOS/macOS. */
+@Composable
+fun InfoBarIconButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val colors = coffemaniaColors()
+    Box(
+        modifier = modifier
+            .size(28.dp)
+            .clickable(enabled = enabled && !loading, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                strokeWidth = 2.dp,
+                color = colors.yellow,
+            )
+        } else {
+            content()
+        }
+    }
+}
+
+fun formatTrafficInfoLine(used: Long, total: Long): String {
+    val usedText = formatTrafficBytes(used.coerceAtLeast(0))
+    return if (total > 0) {
+        "$usedText / ${formatTrafficBytes(total)}"
+    } else {
+        usedText
+    }
 }

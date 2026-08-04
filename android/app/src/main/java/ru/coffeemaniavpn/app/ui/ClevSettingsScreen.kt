@@ -310,7 +310,7 @@ private fun ClevSubscriptionTab(
         ClevCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = if (info != null) formatTrafficLabel(info.used, info.total) else "— / —",
+                    text = if (info != null) formatTrafficInfoLine(info.used, info.total) else "— / —",
                     color = colors.espresso,
                     fontWeight = FontWeight.Medium,
                 )

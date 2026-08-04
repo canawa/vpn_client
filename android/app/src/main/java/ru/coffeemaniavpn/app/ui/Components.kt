@@ -683,34 +683,15 @@ fun SelectedServerCard(
                         color = colors.espresso,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (display.subtitle.isNotBlank()) {
-                            Text(
-                                text = display.subtitle,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (emphasized) FontWeight.Medium else FontWeight.Normal,
-                                color = if (emphasized) {
-                                    colors.espresso.copy(alpha = 0.72f)
-                                } else {
-                                    colors.mocha
-                                },
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                        }
-                        if (emphasized && display.pingText.isNotBlank() && display.pingText != "—") {
-                            Text(
-                                text = display.pingText,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = pingColor,
-                            )
-                        }
+                    if (emphasized && display.pingText.isNotBlank() && display.pingText != "—") {
+                        Text(
+                            text = display.pingText,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = pingColor,
+                        )
                     }
                 }
             }
@@ -763,42 +744,15 @@ fun ServerListCard(
             modifier = Modifier.weight(1f),
         ) {
             ServerListFlag(flag = display.flag, height = 32.dp)
-            Column {
-                Text(
-                    text = display.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = coffemaniaColors().espresso,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 2.dp),
-                ) {
-                    Text(
-                        text = display.protocolLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = coffemaniaColors().espresso,
-                        modifier = Modifier
-                            .background(coffemaniaColors().latte, CircleShape)
-                            .padding(horizontal = 8.dp, vertical = 1.dp),
-                    )
-                    if (display.subtitle.isNotBlank()) {
-                        Text(
-                            text = display.subtitle,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Normal,
-                                letterSpacing = 0.sp,
-                            ),
-                            color = coffemaniaColors().mocha,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
+            Text(
+                text = display.title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = coffemaniaColors().espresso,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
         }
         Text(
             text = display.pingText,

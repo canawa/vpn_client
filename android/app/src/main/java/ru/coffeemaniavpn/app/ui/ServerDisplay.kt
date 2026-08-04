@@ -18,20 +18,15 @@ data class ServerDisplay(
 object ServerDisplayMapper {
     private val ipv4Regex = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
 
-    /** Группа из имени `Premium | 🇩🇪 Frankfurt`. */
+    /** Первая часть до `|` — метаданные группы (не убирается из отображаемого имени). */
     fun adminGroup(rawName: String): String? {
-        val pipe = rawName.indexOf('|')
-        if (pipe <= 0) return null
-        val group = rawName.substring(0, pipe).trim()
-        if (group.isBlank()) return null
-        if (group.contains("автовыбор", ignoreCase = true)) return null
-        return group
+        val parts = rawName.split("|").map { it.trim() }.filter { it.isNotBlank() }
+        if (parts.size < 2) return null
+        val prefix = parts.first()
+        if (prefix.contains("автовыбор", ignoreCase = true)) return null
+        return prefix
     }
 
-    fun nameWithoutGroup(rawName: String): String {
-        val pipe = rawName.indexOf('|')
-        return if (pipe >= 0) rawName.substring(pipe + 1).trim() else rawName.trim()
-    }
     private fun isAutoSelect(name: String, title: String): Boolean =
         name.contains("автовыбор", ignoreCase = true) ||
             title.contains("автовыбор", ignoreCase = true)
@@ -114,40 +109,36 @@ object ServerDisplayMapper {
         return FlagUtils.DEFAULT_FLAG_EMOJI to trimmed
     }
 
+    private fun cleanPart(part: String): String =
+        part.dropWhile { ch ->
+            val cp = ch.code
+            cp in 0x1F1E6..0x1F1FF || cp == 0xFE0F
+        }.trim().ifBlank { part }
+
     fun map(node: ProxyNode, ping: PingState? = null): ServerDisplay {
         val group = adminGroup(node.name)
-        val trimmed = nameWithoutGroup(node.name)
+        val trimmed = node.name.trim()
         val (flag, withoutFlag) = splitFlag(trimmed)
         val autoSelect = isAutoSelect(trimmed, withoutFlag.substringBefore("|").trim())
 
         val parts = withoutFlag.split("|").map { it.trim() }.filter { it.isNotBlank() }
+        val visibleParts = parts.map(::cleanPart).filter { it.isNotBlank() }
+        val titleParts = if (
+            visibleParts.size >= 2 &&
+            isHiddenSubtitle(visibleParts.last(), node)
+        ) {
+            visibleParts.dropLast(1)
+        } else {
+            visibleParts
+        }
         val title = when {
             autoSelect -> "Автовыбор"
-            parts.isEmpty() -> when {
+            titleParts.isEmpty() -> when {
                 isIpv4Address(node.host) -> "Сервер"
                 node.host.isNotBlank() -> node.host
                 else -> "Сервер"
             }
-            parts.size == 1 -> parts[0].let { candidate ->
-                candidate.dropWhile { ch ->
-                    val cp = ch.code
-                    cp in 0x1F1E6..0x1F1FF || cp == 0xFE0F
-                }.trim().ifBlank { candidate }
-            }
-            else -> parts.dropLast(1).joinToString(" | ") { part ->
-                part.dropWhile { ch ->
-                    val cp = ch.code
-                    cp in 0x1F1E6..0x1F1FF || cp == 0xFE0F
-                }.trim().ifBlank { part }
-            }
-        }
-
-        val subtitle = when {
-            autoSelect -> ""
-            parts.size >= 2 -> parts.last().let { raw ->
-                if (isHiddenSubtitle(raw, node)) "" else raw
-            }
-            else -> ""
+            else -> titleParts.joinToString(" | ")
         }
 
         val (pingText, pingMs) = when (ping) {
@@ -160,7 +151,7 @@ object ServerDisplayMapper {
         return ServerDisplay(
             flag = flag,
             title = title,
-            subtitle = subtitle,
+            subtitle = "",
             protocolLabel = if (node.isHysteria2) "Hysteria2" else "VLESS",
             pingText = pingText,
             pingMs = pingMs,
