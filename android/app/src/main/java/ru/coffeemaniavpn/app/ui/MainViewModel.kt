@@ -28,6 +28,10 @@ import ru.coffeemaniavpn.app.data.AppPreferences
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.PingState
 import ru.coffeemaniavpn.app.data.ProxyNode
+import ru.coffeemaniavpn.app.data.RoutingRule
+import ru.coffeemaniavpn.app.data.RoutingRuleInput
+import ru.coffeemaniavpn.app.data.RoutingRuleMatcher
+import ru.coffeemaniavpn.app.data.RoutingRuleTarget
 import ru.coffeemaniavpn.app.data.ServerPinger
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 import ru.coffeemaniavpn.app.data.SubscriptionInfo
@@ -68,7 +72,6 @@ data class MainUiState(
     val favoriteNodeIds: Set<String> = emptySet(),
     val appLanguage: AppLanguage = AppLanguage.DEFAULT,
     val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
-    val isAutoSelected: Boolean = false,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -93,8 +96,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val startupCrash = MutableStateFlow<String?>(null)
     private var subscriptionAutoUpdateJob: Job? = null
     private var pendingConnectNodeId: String? = null
-
-    private val isAutoSelected = MutableStateFlow(false)
 
     private val _connectRequests = MutableSharedFlow<ProxyNode>(extraBufferCapacity = 1)
     val connectRequests: SharedFlow<ProxyNode> = _connectRequests.asSharedFlow()
@@ -139,9 +140,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             combine(
                 preferences.appLanguage,
                 preferences.trafficRoutingMode,
-                isAutoSelected,
-            ) { language, routingMode, autoSelected ->
-                Triple(language, routingMode, autoSelected)
+            ) { language, routingMode ->
+                language to routingMode
             },
         ) { connectionSettings, autoUpdateInterval, lastUpdatedAt, favorites, langRouting ->
             SettingsUiState(
@@ -151,7 +151,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 favoriteNodeIds = favorites,
                 appLanguage = langRouting.first,
                 trafficRoutingMode = langRouting.second,
-                isAutoSelected = langRouting.third,
             )
         },
         startupCrash,
@@ -181,7 +180,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             favoriteNodeIds = settingsData.favoriteNodeIds,
             appLanguage = settingsData.appLanguage,
             trafficRoutingMode = settingsData.trafficRoutingMode,
-            isAutoSelected = settingsData.isAutoSelected,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -233,6 +231,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             preferences.subscriptionAutoUpdateInterval.collect { interval ->
                 restartSubscriptionAutoUpdate(interval)
             }
+        }
+        viewModelScope.launch {
+            maybeRefreshStaleNodesOnStartup()
         }
         viewModelScope.launch {
             VpnManager.status.collect { status ->
@@ -556,6 +557,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun maybeAutoRefreshSubscriptionOnResume() {
+        if (maybeRefreshStaleNodes()) return
         val interval = preferences.subscriptionAutoUpdateInterval.first()
         if (interval == SubscriptionAutoUpdateInterval.OFF) return
         val url = preferences.subscriptionUrl.first().trim()
@@ -566,6 +568,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             AppLog.i("autoRefreshSubscription on resume elapsed=${elapsed}ms interval=${interval.label}")
             autoRefreshSubscriptionSilent()
         }
+    }
+
+    private suspend fun maybeRefreshStaleNodesOnStartup() {
+        maybeRefreshStaleNodes()
+    }
+
+    /** Re-fetch subscription when cached nodes predate grpc/rawOutbound support. */
+    private suspend fun maybeRefreshStaleNodes(): Boolean {
+        val url = preferences.subscriptionUrl.first().trim()
+        if (url.isBlank() || url == LOCAL_IMPORT_URL) return false
+        val nodes = preferences.nodes.first()
+        if (nodes.isEmpty()) return false
+
+        val cacheVersion = preferences.nodesCacheVersion()
+        val staleCache = cacheVersion < AppPreferences.NODES_CACHE_VERSION
+        val missingRaw = nodes.any { it.rawOutboundJson.isNullOrBlank() }
+        if (!staleCache && !missingRaw) return false
+
+        AppLog.i(
+            "refreshStaleNodes cacheVersion=$cacheVersion need=${AppPreferences.NODES_CACHE_VERSION} " +
+                "missingRaw=$missingRaw nodes=${nodes.size}",
+        )
+        autoRefreshSubscriptionSilent()
+        return true
     }
 
     private fun restartSubscriptionAutoUpdate(interval: SubscriptionAutoUpdateInterval) {
@@ -582,7 +608,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectNode(nodeId: String) {
-        isAutoSelected.value = false
         viewModelScope.launch {
             preferences.setSelectedNodeId(nodeId)
         }
@@ -591,23 +616,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleFavorite(nodeId: String) {
         viewModelScope.launch {
             preferences.toggleFavoriteNode(nodeId)
-        }
-    }
-
-    fun selectAutoFastest() {
-        val pings = uiState.value.nodePings
-        val best = uiState.value.nodes
-            .mapNotNull { node ->
-                val ping = pings[node.id] as? PingState.Result ?: return@mapNotNull null
-                node to ping.latencyMs
-            }
-            .minByOrNull { it.second }
-            ?.first
-            ?: uiState.value.nodes.firstOrNull()
-            ?: return
-        isAutoSelected.value = true
-        viewModelScope.launch {
-            preferences.setSelectedNodeId(best.id)
         }
     }
 
@@ -684,17 +692,66 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveConnectionSettings(settings: ConnectionSettingsState) {
         viewModelScope.launch(Dispatchers.IO) {
-            preferences.saveConnectionSettings(settings)
-            if (!settings.killSwitchEnabled) {
-                KillSwitchVpnService.release(getApplication())
+            persistConnectionSettings(settings)
+        }
+    }
+
+    fun updateConnectionSettings(transform: (ConnectionSettingsState) -> ConnectionSettingsState) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val current = preferences.connectionSettings.first()
+            persistConnectionSettings(transform(current))
+        }
+    }
+
+    fun addCustomRule(rawValue: String, target: RoutingRuleTarget) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val normalized = RoutingRuleInput.normalizeWebsite(rawValue)
+            if (normalized.isBlank()) return@launch
+
+            val current = preferences.connectionSettings.first()
+            val duplicate = current.customRules.any { rule ->
+                rule.matcher == RoutingRuleMatcher.DomainSuffix &&
+                    RoutingRuleInput.normalizeWebsite(rule.value) == normalized
             }
-            val node = selectedNode()
-            val wasConnected = uiState.value.vpnStatus == VpnStatus.Started
-            if (wasConnected && node != null) {
-                withContext(Dispatchers.Main) {
-                    VpnManager.disconnect(userInitiated = true)
-                    VpnManager.connect(node)
-                }
+            if (duplicate) return@launch
+
+            persistConnectionSettings(
+                current.copy(
+                    customRules = current.customRules + RoutingRule(
+                        value = normalized,
+                        matcher = RoutingRuleMatcher.DomainSuffix,
+                        target = target,
+                    ),
+                    sitesEnabled = true,
+                ),
+            )
+
+            if (preferences.trafficRoutingMode.first() != TrafficRoutingMode.CUSTOM) {
+                preferences.setTrafficRoutingMode(TrafficRoutingMode.CUSTOM)
+            }
+        }
+    }
+
+    fun removeCustomRule(ruleId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val current = preferences.connectionSettings.first()
+            persistConnectionSettings(
+                current.copy(customRules = current.customRules.filter { it.id != ruleId }),
+            )
+        }
+    }
+
+    private suspend fun persistConnectionSettings(settings: ConnectionSettingsState) {
+        preferences.saveConnectionSettings(settings)
+        if (!settings.killSwitchEnabled) {
+            KillSwitchVpnService.release(getApplication())
+        }
+        val node = selectedNode()
+        val wasConnected = uiState.value.vpnStatus == VpnStatus.Started
+        if (wasConnected && node != null) {
+            withContext(Dispatchers.Main) {
+                VpnManager.disconnect(userInitiated = true)
+                VpnManager.connect(node)
             }
         }
     }
@@ -735,6 +792,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val favoriteNodeIds: Set<String> = emptySet(),
         val appLanguage: AppLanguage = AppLanguage.DEFAULT,
         val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
-        val isAutoSelected: Boolean = false,
     )
 }

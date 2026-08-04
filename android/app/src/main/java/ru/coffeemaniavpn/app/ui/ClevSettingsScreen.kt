@@ -64,7 +64,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import ru.coffeemaniavpn.app.R
 import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
@@ -74,9 +73,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.RoutingRule
@@ -118,10 +116,14 @@ fun ClevSettingsHost(
     state: MainUiState,
     onClose: () -> Unit,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
+    onUpdateConnectionSettings: ((ConnectionSettingsState) -> ConnectionSettingsState) -> Unit,
+    onAddCustomRule: (String, RoutingRuleTarget) -> Unit,
+    onRemoveCustomRule: (String) -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
     onTrafficRoutingModeChange: (TrafficRoutingMode) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
+    onExportLogs: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
@@ -176,13 +178,16 @@ fun ClevSettingsHost(
                 ClevSettingsTab.Rules -> ClevRulesTab(
                     settings = state.connectionSettings,
                     routingMode = state.trafficRoutingMode,
-                    onSave = onSaveConnectionSettings,
+                    onUpdateSettings = onUpdateConnectionSettings,
+                    onAddCustomRule = onAddCustomRule,
+                    onRemoveCustomRule = onRemoveCustomRule,
                     onRoutingModeChange = onTrafficRoutingModeChange,
                 )
                 ClevSettingsTab.Subscription -> ClevSubscriptionTab(
                     state = state,
                     onRefresh = onRefreshSubscription,
                     onDelete = onDeleteSubscription,
+                    onExportLogs = onExportLogs,
                 )
                 ClevSettingsTab.Language -> ClevLanguageTab(
                     language = state.appLanguage,
@@ -551,13 +556,21 @@ private fun ClevSearchField(
 private fun ClevRulesTab(
     settings: ConnectionSettingsState,
     routingMode: TrafficRoutingMode,
-    onSave: (ConnectionSettingsState) -> Unit,
+    onUpdateSettings: ((ConnectionSettingsState) -> ConnectionSettingsState) -> Unit,
+    onAddCustomRule: (String, RoutingRuleTarget) -> Unit,
+    onRemoveCustomRule: (String) -> Unit,
     onRoutingModeChange: (TrafficRoutingMode) -> Unit,
 ) {
     val colors = coffemaniaColors()
     var newValue by remember { mutableStateOf("") }
-    var newMatcher by remember { mutableStateOf(RoutingRuleMatcher.DomainSuffix) }
     var newTarget by remember { mutableStateOf(RoutingRuleTarget.Direct) }
+
+    fun addRule() {
+        val trimmed = newValue.trim()
+        if (trimmed.isEmpty()) return
+        onAddCustomRule(trimmed, newTarget)
+        newValue = ""
+    }
 
     Column(
         modifier = Modifier
@@ -572,19 +585,18 @@ private fun ClevRulesTab(
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
         )
-        TrafficRoutingMode.entries.forEach { mode ->
+        TrafficRoutingMode.selectable.forEach { mode ->
             ClevRadioRow(
                 label = mode.displayLabel(),
                 selected = routingMode == mode,
                 onClick = {
                     onRoutingModeChange(mode)
-                    onSave(
+                    onUpdateSettings { current ->
                         when (mode) {
-                            TrafficRoutingMode.GLOBAL -> settings.copy(sitesEnabled = false)
-                            TrafficRoutingMode.SMART, TrafficRoutingMode.CUSTOM ->
-                                settings.copy(sitesEnabled = true)
-                        },
-                    )
+                            TrafficRoutingMode.GLOBAL -> current.copy(sitesEnabled = false)
+                            TrafficRoutingMode.CUSTOM -> current.copy(sitesEnabled = true)
+                        }
+                    }
                 },
             )
         }
@@ -597,28 +609,34 @@ private fun ClevRulesTab(
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
                 Text(
                     text = stringResource(R.string.clev_kill_switch),
                     color = colors.espresso,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp),
                 )
-                Text(
-                    text = stringResource(R.string.clev_kill_switch_hint),
-                    color = colors.mocha,
-                    fontSize = 11.sp,
-                    lineHeight = 14.sp,
-                    modifier = Modifier.padding(top = 3.dp),
+                CoffemaniaSwitch(
+                    checked = settings.killSwitchEnabled,
+                    onCheckedChange = { enabled ->
+                        onUpdateSettings { it.copy(killSwitchEnabled = enabled) }
+                    },
                 )
             }
-            CoffemaniaSwitch(
-                checked = settings.killSwitchEnabled,
-                onCheckedChange = { onSave(settings.copy(killSwitchEnabled = it)) },
+            Text(
+                text = stringResource(R.string.clev_kill_switch_hint),
+                color = colors.mocha,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                modifier = Modifier.padding(top = 4.dp),
             )
         }
 
@@ -632,9 +650,7 @@ private fun ClevRulesTab(
         )
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -643,25 +659,19 @@ private fun ClevRulesTab(
                 onValueChange = { newValue = it },
                 placeholder = {
                     Text(
-                        text = stringResource(
-                            if (newMatcher == RoutingRuleMatcher.DomainSuffix) {
-                                R.string.clev_rule_domain_placeholder
-                            } else {
-                                R.string.clev_rule_ip_placeholder
-                            },
-                        ),
+                        text = stringResource(R.string.clev_rule_domain_placeholder),
                         color = colors.mocha,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                     )
                 },
                 singleLine = true,
                 modifier = Modifier
-                    .widthIn(min = 120.dp, max = 160.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .border(1.dp, colors.latte, RoundedCornerShape(6.dp)),
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(1.dp, colors.latte, RoundedCornerShape(8.dp)),
                 textStyle = LocalTextStyle.current.copy(
                     color = colors.espresso,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                 ),
                 shape = RoundedCornerShape(8.dp),
                 colors = TextFieldDefaults.colors(
@@ -672,98 +682,53 @@ private fun ClevRulesTab(
                     cursorColor = colors.yellow,
                 ),
             )
-            ClevRulePicker(
-                label = stringResource(
-                    if (newMatcher == RoutingRuleMatcher.DomainSuffix) {
-                        R.string.clev_rule_domain
-                    } else {
-                        R.string.clev_rule_ip
-                    },
-                ),
-                modifier = Modifier.width(96.dp),
-            ) { dismiss ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.clev_rule_domain)) },
-                    onClick = {
-                        newMatcher = RoutingRuleMatcher.DomainSuffix
-                        dismiss()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.clev_rule_ip)) },
-                    onClick = {
-                        newMatcher = RoutingRuleMatcher.IpCidr
-                        dismiss()
-                    },
-                )
-            }
-            ClevRulePicker(
-                label = stringResource(
-                    if (newTarget == RoutingRuleTarget.Direct) {
-                        R.string.clev_rule_bypass
-                    } else {
-                        R.string.clev_rule_via_vpn
-                    },
-                ),
-                modifier = Modifier.width(112.dp),
-            ) { dismiss ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.clev_rule_bypass)) },
-                    onClick = {
-                        newTarget = RoutingRuleTarget.Direct
-                        dismiss()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.clev_rule_via_vpn)) },
-                    onClick = {
-                        newTarget = RoutingRuleTarget.Proxy
-                        dismiss()
-                    },
-                )
-            }
             IconButton(
-                onClick = {
-                    val trimmed = newValue.trim()
-                    if (trimmed.isEmpty()) return@IconButton
-                    onSave(
-                        settings.copy(
-                            customRules = settings.customRules + RoutingRule(
-                                value = trimmed,
-                                matcher = newMatcher,
-                                target = newTarget,
-                            ),
-                        ),
-                    )
-                    newValue = ""
-                },
-                modifier = Modifier.size(28.dp),
+                onClick = { addRule() },
+                modifier = Modifier.size(40.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.AddCircle,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.clev_rule_add),
                     tint = colors.yellow,
-                    modifier = Modifier.size(26.dp),
+                    modifier = Modifier.size(30.dp),
                 )
             }
         }
 
-        settings.customRules.forEach { rule ->
-            ClevRuleRow(
-                rule = rule,
-                onToggle = { enabled ->
-                    onSave(
-                        settings.copy(
-                            customRules = settings.customRules.map {
-                                if (it.id == rule.id) it.copy(isEnabled = enabled) else it
-                            },
-                        ),
-                    )
-                },
-                onDelete = {
-                    onSave(settings.copy(customRules = settings.customRules.filter { it.id != rule.id }))
-                },
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ClevRuleTargetChip(
+                label = stringResource(R.string.clev_rule_bypass),
+                selected = newTarget == RoutingRuleTarget.Direct,
+                selectedColor = colors.orange,
+                onClick = { newTarget = RoutingRuleTarget.Direct },
+                modifier = Modifier.weight(1f),
             )
+            ClevRuleTargetChip(
+                label = stringResource(R.string.clev_rule_via_vpn),
+                selected = newTarget == RoutingRuleTarget.Proxy,
+                selectedColor = colors.green,
+                onClick = { newTarget = RoutingRuleTarget.Proxy },
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        if (settings.customRules.isEmpty()) {
+            Text(
+                text = stringResource(R.string.clev_rules_empty),
+                color = colors.mocha,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        } else {
+            settings.customRules.forEach { rule ->
+                ClevRuleRow(
+                    rule = rule,
+                    onDelete = { onRemoveCustomRule(rule.id) },
+                )
+            }
         }
     }
 }
@@ -816,52 +781,42 @@ private fun ClevRadioRow(
 }
 
 @Composable
-private fun ClevRulePicker(
+private fun ClevRuleTargetChip(
     label: String,
+    selected: Boolean,
+    selectedColor: Color,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable (dismiss: () -> Unit) -> Unit,
 ) {
     val colors = coffemaniaColors()
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(colors.surfaceVariant)
-                .border(1.dp, colors.latte, RoundedCornerShape(8.dp))
-                .clickable { expanded = true }
-                .padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = label,
-                color = colors.espresso,
-                fontSize = 12.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) selectedColor.copy(alpha = 0.14f) else colors.surfaceVariant)
+            .border(
+                width = 1.dp,
+                color = if (selected) selectedColor else colors.latte,
+                shape = RoundedCornerShape(8.dp),
             )
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = null,
-                tint = colors.mocha,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            content { expanded = false }
-        }
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = if (selected) selectedColor else colors.espresso,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
 @Composable
 private fun ClevRuleRow(
     rule: RoutingRule,
-    onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit,
 ) {
     val colors = coffemaniaColors()
@@ -906,17 +861,12 @@ private fun ClevRuleRow(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        CoffemaniaSwitch(
-            checked = rule.isEnabled,
-            onCheckedChange = onToggle,
-            modifier = Modifier.padding(start = 8.dp),
-        )
-        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+        IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
             Icon(
                 imageVector = Icons.Default.Delete,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.clev_rule_delete),
                 tint = colors.error,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
     }
@@ -927,6 +877,7 @@ private fun ClevSubscriptionTab(
     state: MainUiState,
     onRefresh: () -> Unit,
     onDelete: () -> Unit,
+    onExportLogs: () -> Unit,
 ) {
     val colors = coffemaniaColors()
     val context = LocalContext.current
@@ -1092,6 +1043,35 @@ private fun ClevSubscriptionTab(
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onExportLogs)
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Description,
+                    contentDescription = null,
+                    tint = colors.mocha,
+                    modifier = Modifier.size(16.dp),
+                )
+                Column {
+                    Text(
+                        text = stringResource(R.string.clev_export_logs),
+                        color = colors.espresso,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = stringResource(R.string.clev_export_logs_hint),
+                        color = colors.mocha,
+                        fontSize = 11.sp,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(supportUrl)))
                     }
@@ -1159,7 +1139,6 @@ private fun SubscriptionActionButton(
 private fun TrafficRoutingMode.displayLabel(): String = stringResource(
     when (this) {
         TrafficRoutingMode.GLOBAL -> R.string.clev_traffic_mode_global
-        TrafficRoutingMode.SMART -> R.string.clev_traffic_mode_smart
         TrafficRoutingMode.CUSTOM -> R.string.clev_traffic_mode_custom
     },
 )

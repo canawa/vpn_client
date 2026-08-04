@@ -1,12 +1,22 @@
 package ru.coffeemaniavpn.app.util
 
 import android.content.ContentValues
+import android.content.ClipData
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
 import ru.coffeemaniavpn.app.BuildConfig
+import ru.coffeemaniavpn.app.data.ConnectionSettingsStore
+import ru.coffeemaniavpn.app.data.TrafficRoutingStore
+import ru.coffeemaniavpn.app.vpn.KillSwitchVpnService
+import ru.coffeemaniavpn.app.vpn.VpnAutoReconnect
+import ru.coffeemaniavpn.app.vpn.VpnManager
+import ru.coffeemaniavpn.app.vpn.XrayCoreManager
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -16,14 +26,27 @@ object LogExporter {
     private val fileNameFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US)
 
     fun suggestedFileName(): String =
-        "porozoff-logs-${fileNameFormat.format(Date())}.txt"
+        "clevvpn-logs-${fileNameFormat.format(Date())}.txt"
 
     fun buildExportText(): String = buildString {
-        appendLine("=== POROZOFF VPN — export ===")
+        appendLine("=== ClevVPN — diagnostic export ===")
         appendLine("version=${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
         appendLine("exported=${fileNameFormat.format(Date())}")
+        appendLine("device=${Build.MANUFACTURER} ${Build.MODEL}")
+        appendLine("android=${Build.VERSION.RELEASE} (sdk=${Build.VERSION.SDK_INT})")
         appendLine("logFile=${AppLog.logPath()}")
         appendLine("crashFile=${AppLog.crashPath()}")
+        appendLine()
+        appendLine("--- vpn snapshot ---")
+        appendLine("status=${VpnManager.status.value}")
+        appendLine("xrayRunning=${XrayCoreManager.isRunning()}")
+        appendLine("killSwitchActive=${KillSwitchVpnService.isActive}")
+        appendLine("lastError=${VpnManager.lastError.value ?: "—"}")
+        appendLine("node=${VpnAutoReconnect.connectedNode()?.name ?: "—"}")
+        val settings = ConnectionSettingsStore.state
+        appendLine("routing=${TrafficRoutingStore.mode}")
+        appendLine("appsEnabled=${settings.appsEnabled} mode=${settings.appsMode} count=${settings.appPackages.size}")
+        appendLine("killSwitch=${settings.killSwitchEnabled}")
         appendLine()
         appendLine("--- app.log ---")
         append(AppLog.readFull().ifBlank { "(пусто)" })
@@ -31,6 +54,28 @@ object LogExporter {
             appendLine()
             appendLine("--- crash.log ---")
             append(crash)
+        }
+    }
+
+    fun createShareIntent(context: Context): Intent {
+        AppLog.i("LogExporter share requested")
+        val fileName = suggestedFileName()
+        val exportDir = File(context.cacheDir, "export_logs").apply { mkdirs() }
+        val file = File(exportDir, fileName)
+        file.writeText(buildExportText(), Charsets.UTF_8)
+
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file,
+        )
+
+        return Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "ClevVPN logs")
+            clipData = ClipData.newRawUri("", uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }
 

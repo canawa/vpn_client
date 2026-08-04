@@ -42,6 +42,11 @@ object VpnManager {
     }
 
     internal fun setStatus(value: VpnStatus) {
+        val previous = _status.value
+        if (previous != value) {
+            AppLog.i("VpnManager status $previous -> $value")
+            VpnDiagnostics.snapshot("status-$value")
+        }
         when (value) {
             VpnStatus.Started -> {
                 if (connectedSinceMs == null) {
@@ -93,6 +98,10 @@ object VpnManager {
     }
 
     internal fun setError(message: String?) {
+        if (message != null) {
+            AppLog.e("VpnManager error: $message")
+            VpnDiagnostics.snapshot("error")
+        }
         _lastError.value = message
     }
 
@@ -110,13 +119,14 @@ object VpnManager {
 
     private fun performConnect(node: ProxyNode) {
         _lastError.value = null
+        VpnDiagnostics.snapshot("connect-start")
         KillSwitchVpnService.releaseImmediate()
         KillSwitchVpnService.release(App.instance)
         XrayCoreManager.stopLoop()
         try {
             val config = XrayConfigBuilder.build(node)
-            AppLog.i("VpnManager.connect node=${node.name} protocol=${node.protocol}")
-            AppLog.i("VpnManager config preview:\n${config.take(1200)}")
+            AppLog.i("VpnManager.connect node=${node.name} protocol=${node.protocol} transport=${node.transport} host=${node.host}:${node.port} rawOutbound=${node.rawOutboundJson != null}")
+            AppLog.i("VpnManager config (${config.length} bytes):\n$config")
             App.configFile.writeText(config)
             BoxService.start()
         } catch (t: Throwable) {
@@ -145,6 +155,7 @@ object VpnManager {
     }
 
     internal fun onVpnFullyStopped() {
+        VpnDiagnostics.snapshot("fully-stopped")
         val killSwitch = ConnectionSettingsStore.state.killSwitchEnabled
         if (killSwitch && !userInitiatedDisconnect) {
             KillSwitchVpnService.engage(App.instance)

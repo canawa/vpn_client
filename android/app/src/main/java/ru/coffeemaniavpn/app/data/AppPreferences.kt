@@ -64,6 +64,9 @@ class AppPreferences(private val context: Context) {
         }
         .flowOn(Dispatchers.IO)
 
+    suspend fun nodesCacheVersion(): Int =
+        context.dataStore.data.first()[KEY_NODES_CACHE_VERSION] ?: 0
+
     suspend fun saveSubscription(
         url: String,
         nodes: List<ProxyNode>,
@@ -76,6 +79,7 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[KEY_SUBSCRIPTION_URL] = url.trim()
             prefs[KEY_NODES] = json.encodeToString(nodes)
+            prefs[KEY_NODES_CACHE_VERSION] = NODES_CACHE_VERSION
             prefs[KEY_SUB_LAST_AUTO_REFRESH_MS] = System.currentTimeMillis()
             if (info != null) {
                 prefs[KEY_SUBSCRIPTION_INFO] = json.encodeToString(info)
@@ -103,6 +107,7 @@ class AppPreferences(private val context: Context) {
             prefs.remove(KEY_SELECTED_NODE_ID)
             prefs.remove(KEY_SUBSCRIPTION_INFO)
             prefs.remove(KEY_SUB_LAST_AUTO_REFRESH_MS)
+            prefs.remove(KEY_NODES_CACHE_VERSION)
         }
     }
 
@@ -293,7 +298,11 @@ class AppPreferences(private val context: Context) {
     }
 
     companion object {
+        /** Bump when saved node shape changes (e.g. rawOutboundJson, grpc transport). */
+        const val NODES_CACHE_VERSION = 2
+
         private val KEY_SUBSCRIPTION_URL = stringPreferencesKey("subscription_url")
+        private val KEY_NODES_CACHE_VERSION = intPreferencesKey("nodes_cache_version")
         private val KEY_NODES = stringPreferencesKey("nodes")
         private val KEY_SELECTED_NODE_ID = stringPreferencesKey("selected_node_id")
         private val KEY_SUBSCRIPTION_INFO = stringPreferencesKey("subscription_info")

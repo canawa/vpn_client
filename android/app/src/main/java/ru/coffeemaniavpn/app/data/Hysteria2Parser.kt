@@ -1,5 +1,7 @@
 package ru.coffeemaniavpn.app.data
 
+import org.json.JSONArray
+import org.json.JSONObject
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.util.UUID
@@ -42,6 +44,8 @@ object Hysteria2Parser {
             val name = URLDecoder.decode(namePart, StandardCharsets.UTF_8.name())
                 .ifBlank { "$host:$port" }
 
+            val (obfsType, obfsPassword) = parseObfsFromParams(params)
+
             ProxyNode(
                 id = UUID.nameUUIDFromBytes(trimmed.toByteArray()).toString(),
                 name = name,
@@ -52,13 +56,22 @@ object Hysteria2Parser {
                 uuid = password,
                 sni = params["sni"] ?: params["peer"],
                 fingerprint = params["fp"] ?: params["fingerprint"],
-                obfsType = params["obfs"],
-                obfsPassword = params["obfs-password"],
+                obfsType = obfsType ?: params["obfs"],
+                obfsPassword = obfsPassword ?: params["obfs-password"],
                 insecureTls = params["insecure"] == "1" || params["allowInsecure"] == "1",
                 upMbps = params["upmbps"]?.toIntOrNull()?.takeIf { it > 0 },
                 downMbps = params["downmbps"]?.toIntOrNull()?.takeIf { it > 0 },
-            )
+            ).withBuiltOutbound()
         }.getOrNull()
+    }
+
+    private fun parseObfsFromParams(params: Map<String, String>): Pair<String?, String?> {
+        val fmRaw = params["fm"] ?: return null to null
+        val fm = runCatching { JSONObject(fmRaw) }.getOrNull() ?: return null to null
+        val quicParam = fm.optJSONArray("quicParams")?.optJSONObject(0) ?: return null to null
+        val type = quicParam.optString("type").takeIf { it.isNotBlank() }
+        val password = quicParam.optJSONObject("settings")?.optString("password")?.takeIf { it.isNotBlank() }
+        return type to password
     }
 
     private fun parseQuery(query: String): Map<String, String> {

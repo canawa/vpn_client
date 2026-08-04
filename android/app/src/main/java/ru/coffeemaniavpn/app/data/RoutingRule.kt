@@ -24,6 +24,35 @@ data class RoutingRule(
     val isEnabled: Boolean = true,
 )
 
+object RoutingRuleInput {
+    fun normalizeWebsite(raw: String): String {
+        var value = raw.trim()
+        if (value.isBlank()) return ""
+
+        value = stripPrefixIgnoreCase(value, "https://")
+        value = stripPrefixIgnoreCase(value, "http://")
+        value = value.substringBefore('/')
+        value = value.substringBefore('?')
+        value = value.substringBefore('#')
+        if (value.startsWith("[")) {
+            value = value.removePrefix("[").removeSuffix("]")
+        }
+        value = value.substringBefore(':')
+
+        return value.lowercase()
+            .removePrefix("www.")
+            .removePrefix(".")
+            .trim()
+    }
+
+    private fun stripPrefixIgnoreCase(value: String, prefix: String): String =
+        if (value.startsWith(prefix, ignoreCase = true)) {
+            value.substring(prefix.length)
+        } else {
+            value
+        }
+}
+
 object RoutingRuleMigration {
     fun fromLegacyDomains(domains: List<String>, mode: SplitTunnelSitesMode): List<RoutingRule> {
         val target = when (mode) {

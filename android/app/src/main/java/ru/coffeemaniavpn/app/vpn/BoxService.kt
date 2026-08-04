@@ -10,11 +10,13 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.data.formatTrafficSpeedLine
 import ru.coffeemaniavpn.app.util.AppLog
+import ru.coffeemaniavpn.app.vpn.VpnDiagnostics
 
 class BoxService(
     private val service: android.app.Service,
@@ -144,6 +146,7 @@ class BoxService(
 
         VpnManager.setStatus(VpnStatus.Started)
         AppLog.i("BoxService started xrayRunning=${XrayCoreManager.isRunning()}")
+        scheduleProxyHealthCheck()
         withContext(Dispatchers.Main) {
             activeNotification = notification
             notification.show(connectedNotificationText(connected = true))
@@ -188,6 +191,7 @@ class BoxService(
     }
 
     private suspend fun stopServiceWithError(message: String) {
+        VpnDiagnostics.snapshot("stop-error: $message")
         XrayCoreManager.stopLoop()
         fileDescriptor?.close()
         fileDescriptor = null
@@ -212,6 +216,21 @@ class BoxService(
         }
         if (!App.xrayReady.get()) {
             error("Xray не инициализирован")
+        }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun scheduleProxyHealthCheck() {
+        GlobalScope.launch(Dispatchers.IO) {
+            delay(2_500)
+            if (VpnManager.status.value != VpnStatus.Started) return@launch
+            val delayMs = XrayCoreManager.measureDelay()
+            if (delayMs != null && delayMs > 0) {
+                AppLog.i("BoxService proxy health ok delayMs=$delayMs")
+            } else {
+                AppLog.w("BoxService proxy health failed (no response through proxy)")
+                VpnDiagnostics.snapshot("proxy-health-failed")
+            }
         }
     }
 

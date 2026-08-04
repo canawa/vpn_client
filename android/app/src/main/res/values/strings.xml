@@ -62,6 +62,9 @@
     <string name="clev_rule_via_vpn">Через VPN</string>
     <string name="clev_rule_domain_placeholder">example.com</string>
     <string name="clev_rule_ip_placeholder">192.168.1.0/24</string>
+    <string name="clev_rule_add">Добавить правило</string>
+    <string name="clev_rule_delete">Удалить правило</string>
+    <string name="clev_rules_empty">Пока нет правил. Введите сайт и нажмите +.</string>
     <string name="clev_expire_unknown">Срок неизвестен</string>
     <string name="clev_devices_unknown">Устройств: —</string>
     <string name="clev_refresh_subscription">Обновить подписку</string>
@@ -81,6 +84,11 @@
     <string name="clev_delete_subscription_message">Ссылка и список серверов будут удалены с устройства.</string>
     <string name="clev_delete">Удалить</string>
     <string name="clev_cancel">Отмена</string>
+    <string name="clev_export_logs">Отправить логи</string>
+    <string name="clev_export_logs_hint">Поможет найти ошибку подключения</string>
+    <string name="clev_export_logs_chooser">Отправить логи через…</string>
+    <string name="clev_export_logs_saved">Логи сохранены в Загрузки: %s</string>
+    <string name="clev_export_logs_failed">Не удалось сохранить логи</string>
     <string name="msg_invalid_subscription_link">Вставьте верную ссылку подписки</string>
     <string name="msg_wait_servers_loading">Дождитесь загрузки серверов</string>
     <string name="msg_subscription_expired">Подписка истекла</string>
@@ -95,6 +103,7 @@
     <string name="msg_subscription_deleted">Подписка удалена</string>
     <string name="msg_config_updated">Конфиг обновлён: %1$d серверов</string>
     <string name="msg_config_update_failed">Не удалось обновить конфиг</string>
+    <string name="msg_vpn_permission_denied">Нужно разрешение VPN для подключения</string>
     <string name="msg_default_profile_name">Профиль</string>
     <string name="subscription_unlimited">Бессрочная подписка</string>
     <string name="subscription_expired">Подписка истекла</string>

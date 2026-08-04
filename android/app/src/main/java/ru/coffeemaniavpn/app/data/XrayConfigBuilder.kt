@@ -17,10 +17,7 @@ object XrayConfigBuilder {
 
     /** Минимальный конфиг для URL-теста (HTTP GET через outbound), без TUN и geo-правил. */
     fun buildForDelayTest(node: ProxyNode): String {
-        val proxyOutbound = when {
-            node.isHysteria2 -> buildHysteria2Outbound(node)
-            else -> buildVlessOutbound(node)
-        }
+        val proxyOutbound = buildProxyOutbound(node)
         return JSONObject().apply {
             put("log", JSONObject().put("loglevel", "warning"))
             put("inbounds", JSONArray())
@@ -32,11 +29,20 @@ object XrayConfigBuilder {
         }.toString()
     }
 
-    private fun buildBaseConfig(node: ProxyNode): JSONObject {
-        val proxyOutbound = when {
+    /** Собирает Xray-outbound для подключения (из raw JSON подписки или из полей ноды). */
+    fun buildProxyOutbound(node: ProxyNode): JSONObject {
+        node.rawOutboundJson?.let { raw ->
+            return JSONObject(raw).apply { put("tag", "proxy") }
+        }
+        return when {
             node.isHysteria2 -> buildHysteria2Outbound(node)
+            node.isTrojan -> buildTrojanOutbound(node)
             else -> buildVlessOutbound(node)
         }
+    }
+
+    private fun buildBaseConfig(node: ProxyNode): JSONObject {
+        val proxyOutbound = buildProxyOutbound(node)
 
         return JSONObject().apply {
             put("log", JSONObject().put("loglevel", "warning"))
@@ -150,11 +156,33 @@ object XrayConfigBuilder {
         }
     }
 
+    private fun buildTrojanOutbound(node: ProxyNode): JSONObject {
+        val password = node.password ?: node.uuid
+        return JSONObject().apply {
+            put("tag", "proxy")
+            put("protocol", "trojan")
+            put("settings", JSONObject().apply {
+                put("servers", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("address", node.host)
+                        put("port", node.port)
+                        put("password", password)
+                    })
+                })
+            })
+            put("streamSettings", buildVlessStreamSettings(node).apply {
+                if (!has("security") || optString("security") == "none") {
+                    put("security", "tls")
+                }
+            })
+        }
+    }
+
     private fun buildVlessOutbound(node: ProxyNode): JSONObject {
         val user = JSONObject().apply {
             put("id", node.uuid)
             put("encryption", node.encryption.ifBlank { "none" })
-            if (!node.isXhttp && !node.flow.isNullOrBlank()) {
+            if (!node.isXhttp && !node.isGrpc && !node.flow.isNullOrBlank()) {
                 put("flow", node.flow)
             }
         }
@@ -177,14 +205,33 @@ object XrayConfigBuilder {
 
     private fun buildVlessStreamSettings(node: ProxyNode): JSONObject {
         return JSONObject().apply {
-            if (node.isXhttp) {
-                put("network", "xhttp")
-                put("xhttpSettings", buildXhttpSettings(node))
-            } else {
-                put("network", "tcp")
-                put("tcpSettings", JSONObject().apply {
-                    put("header", JSONObject().put("type", "none"))
-                })
+            when {
+                node.isXhttp -> {
+                    put("network", "xhttp")
+                    put("xhttpSettings", buildXhttpSettings(node))
+                }
+                node.isGrpc -> {
+                    put("network", "grpc")
+                    put("grpcSettings", JSONObject().apply {
+                        put("serviceName", node.grpcServiceName?.takeIf { it.isNotBlank() } ?: "grpc")
+                        put("multiMode", false)
+                    })
+                }
+                node.isWebSocket -> {
+                    put("network", "ws")
+                    put("wsSettings", JSONObject().apply {
+                        put("path", node.wsPath?.takeIf { it.isNotBlank() } ?: "/")
+                        node.wsHost?.takeIf { it.isNotBlank() }?.let { host ->
+                            put("headers", JSONObject().put("Host", host))
+                        }
+                    })
+                }
+                else -> {
+                    put("network", "tcp")
+                    put("tcpSettings", JSONObject().apply {
+                        put("header", JSONObject().put("type", "none"))
+                    })
+                }
             }
             applyTls(this, node)
         }
@@ -225,7 +272,10 @@ object XrayConfigBuilder {
                 stream.put("security", "tls")
                 stream.put("tlsSettings", JSONObject().apply {
                     put("serverName", node.sni ?: node.host)
-                    node.fingerprint?.takeIf { it.isNotBlank() }?.let { put("fingerprint", it) }
+                    put("fingerprint", node.fingerprint?.takeIf { it.isNotBlank() } ?: "chrome")
+                    node.alpn?.takeIf { it.isNotEmpty() }?.let { alpn ->
+                        put("alpn", JSONArray().apply { alpn.forEach { put(it) } })
+                    }
                     if (node.insecureTls) put("allowInsecure", true)
                 })
             }

@@ -71,6 +71,15 @@ object XrayCoreManager {
         runCatching { coreController?.stopLoop() }
     }
 
+    /** Задержка до URL через текущий прокси-outbound (мс), для проверки после подключения. */
+    fun measureDelay(url: String = "https://www.gstatic.com/generate_204"): Long? {
+        val controller = coreController ?: return null
+        if (!controller.isRunning) return null
+        return runCatching { controller.measureDelay(url) }
+            .onFailure { AppLog.w("measureDelay failed url=$url", it) }
+            .getOrNull()
+    }
+
     private object XrayCoreCallback : CoreCallbackHandler {
         override fun startup(): Long = 0
 

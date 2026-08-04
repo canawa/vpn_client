@@ -23,15 +23,17 @@ enum class AppLanguage {
 
 enum class TrafficRoutingMode {
     GLOBAL,
-    SMART,
     CUSTOM,
     ;
 
     companion object {
         val DEFAULT = GLOBAL
 
+        val selectable: List<TrafficRoutingMode> = listOf(GLOBAL, CUSTOM)
+
         fun fromStored(value: String?): TrafficRoutingMode {
             if (value == null) return DEFAULT
+            if (value == "SMART") return GLOBAL
             return entries.find { it.name == value } ?: DEFAULT
         }
     }

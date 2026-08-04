@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
+import ru.coffeemaniavpn.app.data.RoutingRuleTarget
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 import ru.coffeemaniavpn.app.data.TrafficRoutingMode
 
@@ -35,7 +36,6 @@ fun AppShell(
     state: MainUiState,
     onRefreshSubscription: () -> Unit,
     onSelectNode: (String) -> Unit,
-    onSelectAuto: () -> Unit,
     onToggleFavorite: (String) -> Unit,
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
@@ -44,9 +44,13 @@ fun AppShell(
     onPasteLinkClick: () -> Unit,
     onDeleteSubscriptionClick: () -> Unit,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
+    onUpdateConnectionSettings: ((ConnectionSettingsState) -> ConnectionSettingsState) -> Unit,
+    onAddCustomRule: (String, RoutingRuleTarget) -> Unit,
+    onRemoveCustomRule: (String) -> Unit,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     onTrafficRoutingModeChange: (TrafficRoutingMode) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
+    onExportLogs: () -> Unit,
 ) {
     var showSettings by remember { mutableStateOf(false) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
@@ -89,10 +93,14 @@ fun AppShell(
                     state = state,
                     onClose = { showSettings = false },
                     onSaveConnectionSettings = onSaveConnectionSettings,
+                    onUpdateConnectionSettings = onUpdateConnectionSettings,
+                    onAddCustomRule = onAddCustomRule,
+                    onRemoveCustomRule = onRemoveCustomRule,
                     onRefreshSubscription = onRefreshSubscription,
                     onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
                     onTrafficRoutingModeChange = onTrafficRoutingModeChange,
                     onLanguageChange = onLanguageChange,
+                    onExportLogs = onExportLogs,
                 )
             } else {
                 HomeScreen(
@@ -102,7 +110,6 @@ fun AppShell(
                     onPasteLinkClick = onPasteLinkClick,
                     onOpenSettings = { showSettings = true },
                     onSelectNode = onSelectNode,
-                    onSelectAuto = onSelectAuto,
                     onToggleFavorite = onToggleFavorite,
                     onRefreshPing = onRefreshPing,
                     onRefreshConfig = onRefreshConfig,

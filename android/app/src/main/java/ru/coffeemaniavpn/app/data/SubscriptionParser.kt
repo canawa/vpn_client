@@ -31,6 +31,8 @@ object SubscriptionParser {
                     line.startsWith("hy2://", ignoreCase = true) ||
                         line.startsWith("hysteria2://", ignoreCase = true) ->
                         listOfNotNull(Hysteria2Parser.parseUri(line))
+                    line.startsWith("trojan://", ignoreCase = true) ->
+                        listOfNotNull(TrojanParser.parse(line))
                     line.startsWith("[") || line.startsWith("{") ->
                         parseJson(line).orEmpty()
                     else ->
@@ -41,7 +43,11 @@ object SubscriptionParser {
             }
             .distinctBy { it.id }
 
-        if (perLine.isNotEmpty()) return perLine.also { AppLog.i("SubscriptionParser parsed ${it.size} nodes from lines") }
+        if (perLine.isNotEmpty()) {
+            return perLine.withBuiltOutbounds().also {
+                AppLog.i("SubscriptionParser parsed ${it.size} nodes from lines")
+            }
+        }
 
         error("Неизвестный формат подписки")
     }
@@ -55,6 +61,8 @@ object SubscriptionParser {
                     line.startsWith("hy2://", ignoreCase = true) ||
                         line.startsWith("hysteria2://", ignoreCase = true) ->
                         Hysteria2Parser.parseUri(line)
+                    line.startsWith("trojan://", ignoreCase = true) ->
+                        TrojanParser.parse(line)
                     else -> null
                 }
             }
@@ -93,6 +101,7 @@ object SubscriptionParser {
             }
         }
         return nodes.distinctBy { it.id }
+            .withBuiltOutbounds()
             .takeIf { it.isNotEmpty() }
             ?.also { AppLog.i("SubscriptionParser JSON parsed ${it.size} nodes") }
     }
@@ -108,11 +117,23 @@ object SubscriptionParser {
     private fun extractNodesFromProfile(profile: JSONObject, profileName: String): List<ProxyNode> {
         val outbounds = profile.optJSONArray("outbounds") ?: return emptyList()
 
-        for (i in 0 until outbounds.length()) {
-            val outbound = outbounds.optJSONObject(i) ?: continue
-            parseSingBoxOutbound(outbound, profileName)?.let { return listOf(it) }
-            parseXrayHysteriaOutbound(outbound, profileName)?.let { return listOf(it) }
+        // Balancer-профили содержат proxy, proxy-2, … — берём основной outbound.
+        val ordered = buildList {
+            for (i in 0 until outbounds.length()) {
+                val outbound = outbounds.optJSONObject(i) ?: continue
+                if (outbound.optString("tag") == "proxy") add(outbound)
+            }
+            for (i in 0 until outbounds.length()) {
+                val outbound = outbounds.optJSONObject(i) ?: continue
+                if (outbound.optString("tag") != "proxy") add(outbound)
+            }
+        }
+
+        for (outbound in ordered) {
             parseXrayVlessOutbound(outbound, profileName)?.let { return listOf(it) }
+            parseXrayTrojanOutbound(outbound, profileName)?.let { return listOf(it) }
+            parseXrayHysteriaOutbound(outbound, profileName)?.let { return listOf(it) }
+            parseSingBoxOutbound(outbound, profileName)?.let { return listOf(it) }
         }
 
         return emptyList()
@@ -127,15 +148,28 @@ object SubscriptionParser {
         val user = vnext.optJSONArray("users")?.optJSONObject(0) ?: return null
         val stream = outbound.optJSONObject("streamSettings") ?: JSONObject()
         val reality = stream.optJSONObject("realitySettings") ?: JSONObject()
+        val tlsSettings = stream.optJSONObject("tlsSettings") ?: JSONObject()
         val network = stream.optString("network").lowercase()
         val xhttpSettings = stream.optJSONObject("xhttpSettings")
             ?: stream.optJSONObject("splithttpSettings")
+        val grpcSettings = stream.optJSONObject("grpcSettings")
+        val wsSettings = stream.optJSONObject("wsSettings")
         val isXhttp = network in setOf("xhttp", "splithttp") || xhttpSettings != null
+        val isGrpc = network in setOf("grpc", "gun") || grpcSettings != null
+        val isWs = network in setOf("ws", "websocket") || wsSettings != null
         val xhttp = XhttpParseHelper.parseFromSettings(xhttpSettings)
+        val wsHeaders = wsSettings?.optJSONObject("headers")
         val tag = outbound.optString("tag")
         val host = vnext.optString("address")
         val port = vnext.optInt("port")
         val flow = user.optString("flow").takeIf { it.isNotBlank() && !isXhttp }
+
+        val transport = when {
+            isXhttp -> "xhttp"
+            isGrpc -> "grpc"
+            isWs -> "ws"
+            else -> "tcp"
+        }
 
         return ProxyNode(
             id = stableId("$profileName|$tag|$host|$port|vless|${user.optString("id")}"),
@@ -148,16 +182,81 @@ object SubscriptionParser {
             flow = flow,
             security = stream.optString("security", "none"),
             sni = reality.optString("serverName").takeIf { it.isNotBlank() }
-                ?: stream.optJSONObject("tlsSettings")?.optString("serverName"),
-            fingerprint = reality.optString("fingerprint").takeIf { it.isNotBlank() },
+                ?: tlsSettings.optString("serverName").takeIf { it.isNotBlank() },
+            fingerprint = reality.optString("fingerprint").takeIf { it.isNotBlank() }
+                ?: tlsSettings.optString("fingerprint").takeIf { it.isNotBlank() },
             publicKey = reality.optString("publicKey").takeIf { it.isNotBlank() },
             shortId = reality.optString("shortId").takeIf { it.isNotBlank() },
             spiderX = reality.optString("spiderX").takeIf { it.isNotBlank() },
-            transport = if (isXhttp) "xhttp" else "tcp",
+            insecureTls = tlsSettings.optBoolean("allowInsecure") || tlsSettings.optBoolean("insecure"),
+            alpn = readStringList(tlsSettings.optJSONArray("alpn")),
+            transport = transport,
+            grpcServiceName = grpcSettings?.optString("serviceName")?.takeIf { it.isNotBlank() },
+            wsPath = wsSettings?.optString("path")?.takeIf { it.isNotBlank() },
+            wsHost = wsHeaders?.optString("Host")?.takeIf { it.isNotBlank() }
+                ?: wsSettings?.optString("host")?.takeIf { it.isNotBlank() },
             xhttpHost = xhttp?.host,
             xhttpPath = xhttp?.path,
             xhttpMode = xhttp?.mode,
             xhttpExtra = xhttp?.extra,
+            rawOutboundJson = outbound.toString(),
+        )
+    }
+
+    private fun parseXrayTrojanOutbound(outbound: JSONObject, profileName: String): ProxyNode? {
+        if (outbound.optString("protocol") != "trojan") return null
+
+        val server = outbound.optJSONObject("settings")
+            ?.optJSONArray("servers")
+            ?.optJSONObject(0) ?: return null
+        val stream = outbound.optJSONObject("streamSettings") ?: JSONObject()
+        val reality = stream.optJSONObject("realitySettings") ?: JSONObject()
+        val tlsSettings = stream.optJSONObject("tlsSettings") ?: JSONObject()
+        val network = stream.optString("network").lowercase()
+        val grpcSettings = stream.optJSONObject("grpcSettings")
+        val wsSettings = stream.optJSONObject("wsSettings")
+        val isGrpc = network in setOf("grpc", "gun") || grpcSettings != null
+        val isWs = network in setOf("ws", "websocket") || wsSettings != null
+        val wsHeaders = wsSettings?.optJSONObject("headers")
+        val tag = outbound.optString("tag")
+        val host = server.optString("address")
+        val port = server.optInt("port")
+        val password = server.optString("password")
+        if (host.isBlank() || password.isBlank()) return null
+
+        val transport = when {
+            isGrpc -> "grpc"
+            isWs -> "ws"
+            else -> "tcp"
+        }
+        val security = stream.optString("security", "none").let {
+            if (it == "none") "tls" else it
+        }
+
+        return ProxyNode(
+            id = stableId("$profileName|$tag|$host|$port|trojan|$password"),
+            name = profileName,
+            protocol = "trojan",
+            host = host,
+            port = port,
+            password = password,
+            uuid = password,
+            security = security,
+            sni = reality.optString("serverName").takeIf { it.isNotBlank() }
+                ?: tlsSettings.optString("serverName").takeIf { it.isNotBlank() },
+            fingerprint = reality.optString("fingerprint").takeIf { it.isNotBlank() }
+                ?: tlsSettings.optString("fingerprint").takeIf { it.isNotBlank() },
+            publicKey = reality.optString("publicKey").takeIf { it.isNotBlank() },
+            shortId = reality.optString("shortId").takeIf { it.isNotBlank() },
+            spiderX = reality.optString("spiderX").takeIf { it.isNotBlank() },
+            insecureTls = tlsSettings.optBoolean("allowInsecure") || tlsSettings.optBoolean("insecure"),
+            alpn = readStringList(tlsSettings.optJSONArray("alpn")),
+            transport = transport,
+            grpcServiceName = grpcSettings?.optString("serviceName")?.takeIf { it.isNotBlank() },
+            wsPath = wsSettings?.optString("path")?.takeIf { it.isNotBlank() },
+            wsHost = wsHeaders?.optString("Host")?.takeIf { it.isNotBlank() }
+                ?: wsSettings?.optString("host")?.takeIf { it.isNotBlank() },
+            rawOutboundJson = outbound.toString(),
         )
     }
 
@@ -222,6 +321,7 @@ object SubscriptionParser {
             upMbps = if (useBbr) null else readPositiveInt(settings, "up_mbps", "up"),
             downMbps = if (useBbr) null else readPositiveInt(settings, "down_mbps", "down"),
             alpn = readStringList(tls.optJSONArray("alpn")),
+            rawOutboundJson = outbound.toString(),
         )
     }
 
@@ -236,9 +336,12 @@ object SubscriptionParser {
     private fun parseSingBoxVless(outbound: JSONObject, profileName: String): ProxyNode? {
         val tls = outbound.optJSONObject("tls") ?: JSONObject()
         val reality = tls.optJSONObject("reality") ?: JSONObject()
-        val transport = outbound.optJSONObject("transport")
-        val xhttp = XhttpParseHelper.parseFromTransport(transport)
+        val transportObj = outbound.optJSONObject("transport")
+        val xhttp = XhttpParseHelper.parseFromTransport(transportObj)
         val isXhttp = xhttp != null
+        val transportType = transportObj?.optString("type").orEmpty().lowercase()
+        val isGrpc = transportType in setOf("grpc", "gun")
+        val isWs = transportType in setOf("ws", "websocket")
         val host = outbound.optString("server")
             .ifBlank { outbound.optString("address") }
         val port = readPort(outbound, "server_port", default = 443)
@@ -261,6 +364,13 @@ object SubscriptionParser {
 
         if (host.isBlank() || uuid.isBlank()) return null
 
+        val transport = when {
+            isXhttp -> "xhttp"
+            isGrpc -> "grpc"
+            isWs -> "ws"
+            else -> "tcp"
+        }
+
         return ProxyNode(
             id = stableId("$profileName|$tag|$host|$port|vless|$uuid"),
             name = profileName,
@@ -270,12 +380,23 @@ object SubscriptionParser {
             port = port,
             encryption = outbound.optString("encryption", "none"),
             flow = flow,
-            security = if (reality.optBoolean("enabled")) "reality" else outbound.optString("security", "none"),
+            security = when {
+                reality.optBoolean("enabled") -> "reality"
+                tls.optBoolean("enabled") -> "tls"
+                else -> outbound.optString("security", "none")
+            },
             sni = tls.optString("server_name").takeIf { it.isNotBlank() },
             fingerprint = tls.optJSONObject("utls")?.optString("fingerprint"),
             publicKey = reality.optString("public_key").takeIf { it.isNotBlank() },
             shortId = reality.optString("short_id").takeIf { it.isNotBlank() },
-            transport = if (isXhttp) "xhttp" else "tcp",
+            insecureTls = tls.optBoolean("insecure"),
+            alpn = readStringList(tls.optJSONArray("alpn")),
+            transport = transport,
+            grpcServiceName = transportObj?.optString("service_name")?.takeIf { it.isNotBlank() }
+                ?: transportObj?.optString("serviceName")?.takeIf { it.isNotBlank() },
+            wsPath = transportObj?.optString("path")?.takeIf { it.isNotBlank() },
+            wsHost = transportObj?.optJSONObject("headers")?.optString("Host")?.takeIf { it.isNotBlank() }
+                ?: transportObj?.optString("host")?.takeIf { it.isNotBlank() },
             xhttpHost = xhttp?.host,
             xhttpPath = xhttp?.path,
             xhttpMode = xhttp?.mode,

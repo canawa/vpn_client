@@ -29,6 +29,8 @@ import ru.coffeemaniavpn.app.ui.CoffemaniaTheme
 import ru.coffeemaniavpn.app.ui.MainViewModel
 import ru.coffeemaniavpn.app.util.AppLocale
 import ru.coffeemaniavpn.app.util.AppLog
+import ru.coffeemaniavpn.app.util.LogExporter
+import ru.coffeemaniavpn.app.vpn.VpnDiagnostics
 import ru.coffeemaniavpn.app.vpn.VpnManager
 import ru.coffeemaniavpn.app.vpn.VpnQuickConnect
 
@@ -43,6 +45,9 @@ class MainActivity : AppCompatActivity() {
         AppLog.i("vpn permission result=${result.resultCode}")
         if (result.resultCode == RESULT_OK) {
             pendingConnectNode?.let { VpnManager.connect(it) }
+        } else {
+            AppLog.w("vpn permission denied by user")
+            VpnManager.setError(getString(R.string.msg_vpn_permission_denied))
         }
         pendingConnectNode = null
     }
@@ -92,7 +97,6 @@ class MainActivity : AppCompatActivity() {
                             state = state,
                             onRefreshSubscription = viewModel::refreshSubscription,
                             onSelectNode = viewModel::selectNode,
-                            onSelectAuto = viewModel::selectAutoFastest,
                             onToggleFavorite = viewModel::toggleFavorite,
                             onConnectClick = ::requestConnect,
                             onDisconnectClick = VpnManager::disconnect,
@@ -101,9 +105,13 @@ class MainActivity : AppCompatActivity() {
                             onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
                             onDeleteSubscriptionClick = viewModel::deleteSubscription,
                             onSaveConnectionSettings = viewModel::saveConnectionSettings,
+                            onUpdateConnectionSettings = viewModel::updateConnectionSettings,
+                            onAddCustomRule = viewModel::addCustomRule,
+                            onRemoveCustomRule = viewModel::removeCustomRule,
                             onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
                             onTrafficRoutingModeChange = viewModel::setTrafficRoutingMode,
                             onLanguageChange = ::changeLanguage,
+                            onExportLogs = ::shareLogs,
                         )
                     }
                 }
@@ -181,5 +189,18 @@ class MainActivity : AppCompatActivity() {
             VpnManager.connect(node)
             pendingConnectNode = null
         }
+    }
+
+    private fun shareLogs() {
+        VpnDiagnostics.snapshot("user-export")
+        AppLog.i("shareLogs requested")
+        startActivity(
+            Intent.createChooser(
+                LogExporter.createShareIntent(this),
+                getString(R.string.clev_export_logs_chooser),
+            ).apply {
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            },
+        )
     }
 }

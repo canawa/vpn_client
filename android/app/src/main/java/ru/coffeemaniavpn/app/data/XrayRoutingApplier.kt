@@ -85,7 +85,6 @@ object XrayRoutingApplier {
 
         val finalOutbound = when (TrafficRoutingStore.mode) {
             TrafficRoutingMode.GLOBAL -> "proxy"
-            TrafficRoutingMode.SMART -> "proxy"
             TrafficRoutingMode.CUSTOM -> if (rules.isEmpty()) "proxy" else "direct"
         }
         putFinalRule(routing, finalOutbound)

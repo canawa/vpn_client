@@ -58,13 +58,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.PingState
-import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.vpn.VpnStatus
 
-/** Фильтры как в ConnectView.swift: All / Auto / категория. */
+/** Фильтры: All / категория. */
 private sealed interface HomeFilter {
     data object All : HomeFilter
-    data object Auto : HomeFilter
     data class Category(val category: ServerCategory) : HomeFilter
 }
 
@@ -87,7 +85,6 @@ fun HomeScreen(
     onPasteLinkClick: () -> Unit,
     onOpenSettings: () -> Unit,
     onSelectNode: (String) -> Unit,
-    onSelectAuto: () -> Unit,
     onToggleFavorite: (String) -> Unit,
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
@@ -124,7 +121,6 @@ fun HomeScreen(
     val filteredNodes = remember(state.nodes, state.favoriteNodeIds, filter) {
         val nodes = when (val f = filter) {
             HomeFilter.All -> state.nodes
-            HomeFilter.Auto -> emptyList()
             is HomeFilter.Category -> state.nodes.filter { f.category.matches(it.name) }
         }
         nodes.sortedWith { a, b ->
@@ -137,8 +133,6 @@ fun HomeScreen(
             }
         }
     }
-
-    val showAutoRow = filter is HomeFilter.All || filter is HomeFilter.Auto
 
     Box(modifier = modifier.fillMaxSize().background(colors.milkFoam)) {
         StatusGlow(status = glow)
@@ -242,11 +236,6 @@ fun HomeScreen(
                         selected = filter is HomeFilter.All,
                         onClick = { filter = HomeFilter.All },
                     )
-                    ClevFilterChip(
-                        label = stringResource(R.string.clev_auto),
-                        selected = filter is HomeFilter.Auto,
-                        onClick = { filter = HomeFilter.Auto },
-                    )
                     ServerCategory.ALL
                         .filter { it != ServerCategory.AUTO }
                         .forEach { category ->
@@ -266,21 +255,11 @@ fun HomeScreen(
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (showAutoRow) {
-                    item(key = "auto-row") {
-                        AutoServerRow(
-                            selected = state.isAutoSelected,
-                            fastest = fastestNode(state),
-                            ping = fastestNode(state)?.let { state.nodePings[it.id] },
-                            onClick = onSelectAuto,
-                        )
-                    }
-                }
                 items(filteredNodes, key = { it.id }) { node ->
                     val display = ServerDisplayMapper.map(node, state.nodePings[node.id])
                     QuickServerRow(
                         display = display,
-                        selected = !state.isAutoSelected && state.selectedNodeId == node.id,
+                        selected = state.selectedNodeId == node.id,
                         favorite = node.id in state.favoriteNodeIds,
                         isPinging = state.nodePings[node.id] is PingState.Loading,
                         onClick = { onSelectNode(node.id) },
@@ -471,71 +450,6 @@ private fun HomeInfoBar(
     }
 }
 
-@Composable
-private fun AutoServerRow(
-    selected: Boolean,
-    fastest: ProxyNode?,
-    ping: PingState?,
-    onClick: () -> Unit,
-) {
-    val colors = coffemaniaColors()
-    val shape = RoundedCornerShape(13.dp)
-    val borderBrush = if (selected) {
-        Brush.linearGradient(listOf(colors.yellow, colors.amber))
-    } else {
-        null
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(colors.cappuccino)
-            .then(
-                if (borderBrush != null) {
-                    Modifier.border(1.dp, borderBrush, shape)
-                } else {
-                    Modifier.border(1.dp, colors.latte, shape)
-                },
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("⚡", fontSize = 20.sp)
-            Text(
-                text = fastest?.let {
-                    val display = ServerDisplayMapper.map(it)
-                    "${stringResource(R.string.clev_auto_fastest)} · ${display.title}"
-                } ?: stringResource(R.string.clev_auto_fastest),
-                color = colors.espresso,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            when (val p = ping) {
-                is PingState.Result -> PingLabel(ms = p.latencyMs)
-                PingState.Loading -> CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = colors.yellow,
-                )
-                PingState.Unreachable, PingState.Timeout -> Text(
-                    text = "—",
-                    color = colors.mocha,
-                    fontSize = 12.sp,
-                )
-                else -> Unit
-            }
-            SelectionIndicator(selected = selected)
-        }
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun QuickServerRow(
@@ -604,12 +518,3 @@ private fun SelectionIndicator(selected: Boolean) {
         modifier = Modifier.size(18.dp),
     )
 }
-
-private fun fastestNode(state: MainUiState): ProxyNode? =
-    state.nodes
-        .mapNotNull { node ->
-            val ping = state.nodePings[node.id] as? PingState.Result ?: return@mapNotNull null
-            node to ping.latencyMs
-        }
-        .minByOrNull { it.second }
-        ?.first

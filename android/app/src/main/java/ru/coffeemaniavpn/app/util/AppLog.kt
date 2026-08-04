@@ -9,7 +9,7 @@ import java.util.Locale
 
 object AppLog {
     private const val TAG = "PorozoffVPN"
-    private const val MAX_FILE_BYTES = 512 * 1024
+    private const val MAX_FILE_BYTES = 1024 * 1024
 
     private val lock = Any()
     private val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)

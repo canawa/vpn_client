@@ -1,36 +1,27 @@
 package ru.coffeemaniavpn.app.data
 
-import android.net.Uri
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-object VlessParser {
+object TrojanParser {
     fun parse(link: String): ProxyNode? {
         val trimmed = link.trim()
-        if (!trimmed.startsWith("vless://", ignoreCase = true)) return null
+        if (!trimmed.startsWith("trojan://", ignoreCase = true)) return null
 
         return runCatching {
-            val withoutScheme = trimmed.substringAfter("vless://")
+            val withoutScheme = trimmed.substringAfter("trojan://")
             val namePart = withoutScheme.substringAfter("#", "")
             val mainPart = withoutScheme.substringBefore("#")
 
             val atIndex = mainPart.lastIndexOf('@')
             if (atIndex <= 0) return@runCatching null
 
-            val uuid = URLDecoder.decode(mainPart.substring(0, atIndex), StandardCharsets.UTF_8.name())
+            val password = URLDecoder.decode(mainPart.substring(0, atIndex), StandardCharsets.UTF_8.name())
             val hostPortQuery = mainPart.substring(atIndex + 1)
             val queryStart = hostPortQuery.indexOf('?')
-            val hostPort = if (queryStart >= 0) {
-                hostPortQuery.substring(0, queryStart)
-            } else {
-                hostPortQuery
-            }
-            val query = if (queryStart >= 0) {
-                hostPortQuery.substring(queryStart + 1)
-            } else {
-                ""
-            }
+            val hostPort = if (queryStart >= 0) hostPortQuery.substring(0, queryStart) else hostPortQuery
+            val query = if (queryStart >= 0) hostPortQuery.substring(queryStart + 1) else ""
 
             val host: String
             val port: Int
@@ -51,40 +42,28 @@ object VlessParser {
             val transport = when (typeParam) {
                 "grpc", "gun" -> "grpc"
                 "ws", "websocket" -> "ws"
-                else -> XhttpParseHelper.transportFromParams(params)
+                else -> "tcp"
             }
-            val xhttpHost = params["host"]?.takeIf { it.isNotBlank() }
-            val xhttpPath = params["path"]?.takeIf { it.isNotBlank() }
-            val xhttpMode = params["mode"]?.takeIf { it.isNotBlank() }
-            val xhttpExtra = XhttpParseHelper.extraFromParams(params)
             val alpn = params["alpn"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+            val security = params["security"]?.takeIf { it.isNotBlank() } ?: "tls"
 
             ProxyNode(
                 id = UUID.nameUUIDFromBytes(trimmed.toByteArray()).toString(),
                 name = name,
-                protocol = "vless",
-                uuid = uuid,
+                protocol = "trojan",
                 host = host,
                 port = port,
-                encryption = params["encryption"] ?: "none",
-                flow = params["flow"].takeIf {
-                    transport !in setOf("xhttp", "splithttp", "grpc", "gun", "ws", "websocket")
-                },
-                security = params["security"] ?: "none",
+                password = password,
+                uuid = password,
+                security = security,
                 sni = params["sni"],
                 fingerprint = params["fp"],
-                publicKey = params["pbk"],
-                shortId = params["sid"],
-                spiderX = params["spx"],
+                insecureTls = params["allowInsecure"] == "1" || params["insecure"] == "1",
                 alpn = alpn?.takeIf { it.isNotEmpty() },
                 transport = transport,
                 grpcServiceName = params["serviceName"]?.takeIf { it.isNotBlank() },
                 wsPath = params["path"]?.takeIf { transport == "ws" || transport == "websocket" },
                 wsHost = params["host"]?.takeIf { transport == "ws" || transport == "websocket" },
-                xhttpHost = xhttpHost,
-                xhttpPath = xhttpPath,
-                xhttpMode = xhttpMode,
-                xhttpExtra = xhttpExtra,
             ).withBuiltOutbound()
         }.getOrNull()
     }

@@ -61,6 +61,9 @@
     <string name="clev_rule_via_vpn">Via VPN</string>
     <string name="clev_rule_domain_placeholder">example.com</string>
     <string name="clev_rule_ip_placeholder">192.168.1.0/24</string>
+    <string name="clev_rule_add">Add rule</string>
+    <string name="clev_rule_delete">Delete rule</string>
+    <string name="clev_rules_empty">No rules yet. Enter a site and tap +.</string>
     <string name="clev_expire_unknown">Expiry unknown</string>
     <string name="clev_devices_unknown">Devices: —</string>
     <string name="clev_refresh_subscription">Update subscription</string>
@@ -80,6 +83,11 @@
     <string name="clev_delete_subscription_message">The link and server list will be removed from this device.</string>
     <string name="clev_delete">Delete</string>
     <string name="clev_cancel">Cancel</string>
+    <string name="clev_export_logs">Send logs</string>
+    <string name="clev_export_logs_hint">Helps diagnose connection issues</string>
+    <string name="clev_export_logs_chooser">Send logs via…</string>
+    <string name="clev_export_logs_saved">Logs saved to Downloads: %s</string>
+    <string name="clev_export_logs_failed">Could not save logs</string>
     <string name="msg_invalid_subscription_link">Paste a valid subscription link</string>
     <string name="msg_wait_servers_loading">Wait for servers to load</string>
     <string name="msg_subscription_expired">Subscription expired</string>
@@ -94,6 +102,7 @@
     <string name="msg_subscription_deleted">Subscription deleted</string>
     <string name="msg_config_updated">Config updated: %1$d servers</string>
     <string name="msg_config_update_failed">Could not update config</string>
+    <string name="msg_vpn_permission_denied">VPN permission is required to connect</string>
     <string name="msg_default_profile_name">Profile</string>
     <string name="subscription_unlimited">Unlimited subscription</string>
     <string name="subscription_expired">Subscription expired</string>

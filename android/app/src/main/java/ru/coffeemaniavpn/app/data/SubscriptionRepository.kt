@@ -112,6 +112,7 @@ class SubscriptionRepository(
         if (body.isBlank()) return false
         val trimmed = body.trim()
         if (trimmed.startsWith("vless://", ignoreCase = true)) return false
+        if (trimmed.startsWith("trojan://", ignoreCase = true)) return false
         if (trimmed.startsWith("hy2://", ignoreCase = true)) return false
         if (trimmed.startsWith("hysteria2://", ignoreCase = true)) return false
         if (trimmed.startsWith("[") || trimmed.startsWith("{")) return false

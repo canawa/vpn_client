@@ -5,20 +5,18 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.os.ParcelFileDescriptor
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.util.AppLog
 import ru.coffeemaniavpn.app.vpn.VPNService
 import java.net.InetSocketAddress
 import java.net.Socket
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Пинг мимо VPN: DNS и TCP через физическую сеть клиента (Wi‑Fi / LTE),
  * чтобы RTT отражал реальное местоположение, а не маршрут через туннель.
  */
 internal object PingNetworkBypass {
-    private val ipCache = ConcurrentHashMap<String, String>()
+    private val ipCache = mutableMapOf<String, String>()
 
     @Volatile
     private var physicalNetwork: Network? = null
@@ -39,13 +37,22 @@ internal object PingNetworkBypass {
                 request,
                 object : ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: Network) {
-                        physicalNetwork = network
-                        AppLog.i("PingNetworkBypass onAvailable network=$network")
+                        refreshPhysicalNetwork(cm)
+                        AppLog.i("PingNetworkBypass onAvailable network=$network selected=$physicalNetwork")
+                    }
+
+                    override fun onCapabilitiesChanged(
+                        network: Network,
+                        networkCapabilities: NetworkCapabilities,
+                    ) {
+                        refreshPhysicalNetwork(cm)
                     }
 
                     override fun onLost(network: Network) {
                         if (physicalNetwork == network) {
                             physicalNetwork = null
+                            refreshPhysicalNetwork(cm)
+                            AppLog.i("PingNetworkBypass onLost network=$network selected=$physicalNetwork")
                         }
                     }
                 },
@@ -59,37 +66,72 @@ internal object PingNetworkBypass {
         val trimmed = host.trim()
         if (trimmed.isEmpty()) return null
         if (isIpAddress(trimmed)) return trimmed
-        ipCache[trimmed]?.let { return it }
+        synchronized(ipCache) {
+            ipCache[trimmed]?.let { return it }
+        }
 
         val network = currentPhysicalNetwork()
-        return runCatching {
-            val addresses = if (network != null) {
-                network.getAllByName(trimmed)
-            } else {
-                arrayOf(java.net.InetAddress.getByName(trimmed))
+        val resolved = resolveOnNetwork(trimmed, network)
+            ?: resolveOnNetwork(trimmed, null)?.also {
+                AppLog.i("PingNetworkBypass DNS fallback host=$trimmed ip=$it")
             }
-            addresses.firstOrNull()?.hostAddress?.also { ip -> ipCache[trimmed] = ip }
-        }.getOrNull()
+        if (resolved == null) {
+            AppLog.i("PingNetworkBypass DNS failed host=$trimmed network=$network")
+        }
+        resolved?.let { ip ->
+            synchronized(ipCache) { ipCache[trimmed] = ip }
+        }
+        return resolved
     }
 
     fun tcpConnect(host: String, port: Int, timeoutMs: Int): Int? {
         if (port !in 1..65535) return null
         ensureListening()
         val network = currentPhysicalNetwork()
+        tcpConnectOnNetwork(host, port, timeoutMs, network)?.let { return it }
+        if (network != null) {
+            return tcpConnectOnNetwork(host, port, timeoutMs, null)?.also {
+                AppLog.i("PingNetworkBypass TCP fallback host=$host:$port ms=$it")
+            }
+        }
+        return null
+    }
+
+    private fun resolveOnNetwork(host: String, network: Network?): String? =
+        runCatching {
+            val addresses = if (network != null) {
+                network.getAllByName(host)
+            } else {
+                arrayOf(java.net.InetAddress.getByName(host))
+            }
+            addresses.firstOrNull()?.hostAddress
+        }.getOrNull()
+
+    private fun tcpConnectOnNetwork(
+        host: String,
+        port: Int,
+        timeoutMs: Int,
+        network: Network?,
+    ): Int? {
         val socket = network?.socketFactory?.createSocket() ?: Socket()
-        try {
-            network?.bindSocket(socket)
+        return try {
+            if (network != null) {
+                runCatching { network.bindSocket(socket) }
+                    .onFailure { AppLog.w("PingNetworkBypass bindSocket failed network=$network", it) }
+                    .getOrNull()
+            }
             VPNService.tryProtect(socket)
             val start = System.nanoTime()
             socket.connect(InetSocketAddress(host, port), timeoutMs)
-            return ((System.nanoTime() - start) / 1_000_000L).toInt().coerceAtLeast(1)
+            ((System.nanoTime() - start) / 1_000_000L).toInt().coerceAtLeast(1)
+        } catch (t: Throwable) {
+            null
         } finally {
             runCatching { socket.close() }
         }
     }
 
     private fun currentPhysicalNetwork(): Network? {
-        physicalNetwork?.let { return it }
         val cm = App.connectivity
         refreshPhysicalNetwork(cm)
         return physicalNetwork
