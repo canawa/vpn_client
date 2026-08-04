@@ -53,11 +53,21 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -476,6 +486,44 @@ fun VpnStatus.toConnectUi(): ConnectUiStatus = when (this) {
     VpnStatus.Stopped -> ConnectUiStatus.Off
 }
 
+/** Круг-индикатор выбора: жёлтая заливка + чёрная галочка / тонкое серое кольцо. */
+@Composable
+fun ClevSelectionIndicator(
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    size: Dp = 20.dp,
+) {
+    val colors = coffemaniaColors()
+    Canvas(modifier = modifier.size(size)) {
+        val diameter = this.size.minDimension
+        val radius = diameter / 2f
+        if (selected) {
+            drawCircle(color = colors.yellow, radius = radius)
+            val stroke = diameter * 0.1f
+            val path = Path().apply {
+                moveTo(diameter * 0.27f, diameter * 0.52f)
+                lineTo(diameter * 0.43f, diameter * 0.68f)
+                lineTo(diameter * 0.74f, diameter * 0.35f)
+            }
+            drawPath(
+                path = path,
+                color = Color.Black,
+                style = Stroke(
+                    width = stroke,
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                ),
+            )
+        } else {
+            drawCircle(
+                color = colors.latte.copy(alpha = 0.5f),
+                radius = radius - diameter * 0.045f,
+                style = Stroke(width = diameter * 0.07f),
+            )
+        }
+    }
+}
+
 @Composable
 fun ClevFilterChip(
     label: String,
@@ -635,6 +683,104 @@ fun InfoBarIconButton(
             )
         } else {
             content()
+        }
+    }
+}
+
+private val ClevSwitchThumbColor = Color(0xFFF4F4F5)
+
+/** Плавный pill-переключатель: жёлтый трек и светлый бегунок. */
+@Composable
+fun ClevAnimatedSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val colors = coffemaniaColors()
+    val trackWidth = 42.dp
+    val trackHeight = 24.dp
+    val thumbSize = 20.dp
+    val trackPadding = 2.dp
+
+    val thumbProgress by animateFloatAsState(
+        targetValue = if (checked) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "clevSwitchThumb",
+    )
+    val trackColor by animateColorAsState(
+        targetValue = when {
+            !enabled && checked -> colors.yellow.copy(alpha = 0.45f)
+            !enabled -> colors.latte.copy(alpha = 0.6f)
+            checked -> colors.yellow
+            else -> colors.latte
+        },
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+        label = "clevSwitchTrack",
+    )
+    val thumbColor = if (enabled) ClevSwitchThumbColor else ClevSwitchThumbColor.copy(alpha = 0.65f)
+
+    BoxWithConstraints(
+        modifier = modifier
+            .size(trackWidth, trackHeight)
+            .clip(RoundedCornerShape(percent = 50))
+            .background(trackColor)
+            .semantics { role = Role.Switch }
+            .clickable(enabled = enabled) { onCheckedChange(!checked) },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        val travel = maxWidth - thumbSize - trackPadding * 2
+        Box(
+            modifier = Modifier
+                .padding(trackPadding)
+                .size(thumbSize)
+                .offset(x = travel * thumbProgress)
+                .clip(CircleShape)
+                .background(thumbColor),
+        )
+    }
+}
+
+/** Переключатель + корзина в общей тёмной «капсуле». */
+@Composable
+fun ClevRuleActionGroup(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val colors = coffemaniaColors()
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(colors.surfaceVariant)
+            .padding(start = 5.dp, end = 2.dp, top = 3.dp, bottom = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        ClevAnimatedSwitch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled,
+        )
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onDelete)
+                .padding(5.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_clev_trash),
+                contentDescription = stringResource(R.string.clev_rule_delete),
+                tint = colors.error.copy(alpha = 0.88f),
+                modifier = Modifier.size(21.dp),
+            )
         }
     }
 }

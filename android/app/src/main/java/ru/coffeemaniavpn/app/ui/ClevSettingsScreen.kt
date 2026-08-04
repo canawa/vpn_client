@@ -241,8 +241,10 @@ private fun ClevSegmentedTabs(
             ) {
                 Text(
                     text = label,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontFamily = ClevFontFamily,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.2).sp,
                     color = if (isSelected) Color.Black else colors.espresso,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -278,7 +280,7 @@ private fun ClevThreeWaySegment(
                     .weight(1f)
                     .fillMaxWidth()
                     .fillMaxHeight()
-                    .heightIn(min = 40.dp)
+                    .heightIn(min = 52.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .then(
                         if (isSelected) {
@@ -288,18 +290,20 @@ private fun ClevThreeWaySegment(
                         },
                     )
                     .clickable { onSelect(mode) }
-                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                    .padding(horizontal = 6.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = label,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontFamily = ClevFontFamily,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.2).sp,
                     color = if (isSelected) Color.Black else colors.espresso,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    lineHeight = 12.sp,
+                    lineHeight = 15.sp,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -356,8 +360,9 @@ private fun ClevAppsTab(
             Text(
                 text = stringResource(R.string.clev_app_routing),
                 color = colors.espresso,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
+                fontFamily = ClevFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
             )
 
             ClevThreeWaySegment(
@@ -377,8 +382,10 @@ private fun ClevAppsTab(
                     AppRoutingMode.OnlySelected -> stringResource(R.string.clev_app_hint_only)
                 },
                 color = colors.mocha,
-                fontSize = 11.sp,
-                lineHeight = 14.sp,
+                fontFamily = ClevFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
             )
         }
 
@@ -483,12 +490,7 @@ private fun ClevAppRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Icon(
-            imageVector = if (selected) Icons.Outlined.CheckCircle else Icons.Outlined.Circle,
-            contentDescription = null,
-            tint = if (selected) colors.yellow else colors.latte,
-            modifier = Modifier.size(18.dp),
-        )
+        ClevSelectionIndicator(selected = selected)
     }
 }
 
@@ -609,34 +611,34 @@ private fun ClevRulesTab(
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
         )
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 12.dp),
             ) {
                 Text(
                     text = stringResource(R.string.clev_kill_switch),
                     color = colors.espresso,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 12.dp),
                 )
-                CoffemaniaSwitch(
-                    checked = settings.killSwitchEnabled,
-                    onCheckedChange = { enabled ->
-                        onUpdateSettings { it.copy(killSwitchEnabled = enabled) }
-                    },
+                Text(
+                    text = stringResource(R.string.clev_kill_switch_hint),
+                    color = colors.mocha,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
-            Text(
-                text = stringResource(R.string.clev_kill_switch_hint),
-                color = colors.mocha,
-                fontSize = 11.sp,
-                lineHeight = 14.sp,
-                modifier = Modifier.padding(top = 4.dp),
+            CoffemaniaSwitch(
+                checked = settings.killSwitchEnabled,
+                onCheckedChange = { enabled ->
+                    onUpdateSettings { it.copy(killSwitchEnabled = enabled) }
+                },
             )
         }
 
@@ -726,6 +728,15 @@ private fun ClevRulesTab(
             settings.customRules.forEach { rule ->
                 ClevRuleRow(
                     rule = rule,
+                    onToggle = { enabled ->
+                        onUpdateSettings { current ->
+                            current.copy(
+                                customRules = current.customRules.map {
+                                    if (it.id == rule.id) it.copy(isEnabled = enabled) else it
+                                },
+                            )
+                        }
+                    },
                     onDelete = { onRemoveCustomRule(rule.id) },
                 )
             }
@@ -817,15 +828,17 @@ private fun ClevRuleTargetChip(
 @Composable
 private fun ClevRuleRow(
     rule: RoutingRule,
+    onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit,
 ) {
     val colors = coffemaniaColors()
+    val contentAlpha = if (rule.isEnabled) 1f else 0.45f
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(11.dp))
             .background(colors.cappuccino)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(start = 10.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -836,17 +849,21 @@ private fun ClevRuleRow(
             },
             contentDescription = null,
             tint = colors.mocha,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier
+                .size(18.dp)
+                .alpha(contentAlpha),
         )
         Text(
             text = rule.value,
             color = colors.espresso,
+            fontFamily = ClevFontFamily,
             fontSize = 14.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 8.dp)
+                .alpha(contentAlpha),
         )
         Text(
             text = stringResource(
@@ -860,15 +877,14 @@ private fun ClevRuleRow(
             fontSize = 11.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.alpha(contentAlpha),
         )
-        IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = stringResource(R.string.clev_rule_delete),
-                tint = colors.error,
-                modifier = Modifier.size(20.dp),
-            )
-        }
+        Spacer(modifier = Modifier.width(8.dp))
+        ClevRuleActionGroup(
+            checked = rule.isEnabled,
+            onCheckedChange = onToggle,
+            onDelete = onDelete,
+        )
     }
 }
 

@@ -30,8 +30,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.outlined.Circle
-import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -85,6 +83,7 @@ fun HomeScreen(
     onPasteLinkClick: () -> Unit,
     onOpenSettings: () -> Unit,
     onSelectNode: (String) -> Unit,
+    onConnectToNode: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
@@ -263,6 +262,7 @@ fun HomeScreen(
                         favorite = node.id in state.favoriteNodeIds,
                         isPinging = state.nodePings[node.id] is PingState.Loading,
                         onClick = { onSelectNode(node.id) },
+                        onDoubleClick = { onConnectToNode(node.id) },
                         onToggleFavorite = { onToggleFavorite(node.id) },
                     )
                 }
@@ -458,6 +458,7 @@ private fun QuickServerRow(
     favorite: Boolean,
     isPinging: Boolean,
     onClick: () -> Unit,
+    onDoubleClick: () -> Unit,
     onToggleFavorite: () -> Unit,
 ) {
     val colors = coffemaniaColors()
@@ -474,6 +475,7 @@ private fun QuickServerRow(
             )
             .combinedClickable(
                 onClick = onClick,
+                onDoubleClick = onDoubleClick,
                 onLongClick = onToggleFavorite,
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -503,18 +505,7 @@ private fun QuickServerRow(
                 )
                 else -> Unit
             }
-            SelectionIndicator(selected = selected)
+            ClevSelectionIndicator(selected = selected)
         }
     }
-}
-
-@Composable
-private fun SelectionIndicator(selected: Boolean) {
-    val colors = coffemaniaColors()
-    Icon(
-        imageVector = if (selected) Icons.Outlined.RadioButtonChecked else Icons.Outlined.Circle,
-        contentDescription = null,
-        tint = if (selected) colors.yellow else colors.latte,
-        modifier = Modifier.size(18.dp),
-    )
 }

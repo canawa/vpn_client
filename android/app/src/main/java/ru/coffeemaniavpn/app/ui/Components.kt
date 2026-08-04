@@ -51,8 +51,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -90,25 +88,11 @@ fun CoffemaniaSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Switch(
+    ClevAnimatedSwitch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = modifier,
         enabled = enabled,
-        colors = SwitchDefaults.colors(
-            checkedThumbColor = coffemaniaColors().espresso,
-            checkedTrackColor = coffemaniaColors().yellow,
-            checkedBorderColor = coffemaniaColors().amber,
-            uncheckedThumbColor = coffemaniaColors().milkFoam,
-            uncheckedTrackColor = coffemaniaColors().latte,
-            uncheckedBorderColor = coffemaniaColors().espresso,
-            disabledCheckedThumbColor = coffemaniaColors().espresso.copy(alpha = 0.7f),
-            disabledCheckedTrackColor = coffemaniaColors().yellow.copy(alpha = 0.5f),
-            disabledCheckedBorderColor = coffemaniaColors().amber.copy(alpha = 0.5f),
-            disabledUncheckedThumbColor = coffemaniaColors().cappuccino,
-            disabledUncheckedTrackColor = coffemaniaColors().latte.copy(alpha = 0.7f),
-            disabledUncheckedBorderColor = coffemaniaColors().mocha,
-        ),
     )
 }
 

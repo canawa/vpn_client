@@ -97,6 +97,7 @@ class MainActivity : AppCompatActivity() {
                             state = state,
                             onRefreshSubscription = viewModel::refreshSubscription,
                             onSelectNode = viewModel::selectNode,
+                            onConnectToNode = viewModel::requestConnectToNode,
                             onToggleFavorite = viewModel::toggleFavorite,
                             onConnectClick = ::requestConnect,
                             onDisconnectClick = VpnManager::disconnect,
