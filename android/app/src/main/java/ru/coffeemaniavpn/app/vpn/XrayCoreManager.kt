@@ -5,12 +5,21 @@ import go.Seq
 import libv2ray.CoreCallbackHandler
 import libv2ray.CoreController
 import libv2ray.Libv2ray
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.util.AppLog
 import java.util.concurrent.atomic.AtomicBoolean
 
 object XrayCoreManager {
     private val initialized = AtomicBoolean(false)
     private var coreController: CoreController? = null
+
+    private val HEALTH_CHECK_URLS = listOf(
+        "https://www.gstatic.com/generate_204",
+        "https://cp.cloudflare.com/generate_204",
+        "https://connectivitycheck.gstatic.com/generate_204",
+    )
 
     fun init(context: Context) {
         if (!initialized.compareAndSet(false, true)) return
@@ -72,7 +81,7 @@ object XrayCoreManager {
     }
 
     /** Задержка до URL через текущий прокси-outbound (мс), для проверки после подключения. */
-    fun measureDelay(url: String = "https://www.gstatic.com/generate_204"): Long? {
+    fun measureDelay(url: String = HEALTH_CHECK_URLS.first()): Long? {
         val controller = coreController ?: return null
         if (!controller.isRunning) return null
         return runCatching { controller.measureDelay(url) }
@@ -80,11 +89,26 @@ object XrayCoreManager {
             .getOrNull()
     }
 
+    /** Пробует несколько URL — gstatic иногда недоступен через часть серверов. */
+    fun measureDelayAny(): Long? {
+        for (url in HEALTH_CHECK_URLS) {
+            val delay = measureDelay(url)
+            if (delay != null && delay > 0) return delay
+        }
+        return null
+    }
+
     private object XrayCoreCallback : CoreCallbackHandler {
         override fun startup(): Long = 0
 
         override fun shutdown(): Long {
             AppLog.i("XrayCoreManager shutdown callback")
+            if (VpnManager.status.value == VpnStatus.Started) {
+                AppLog.w("XrayCore unexpected shutdown while VPN started")
+                App.applicationScope.launch(Dispatchers.Main) {
+                    VpnManager.disconnect(userInitiated = false)
+                }
+            }
             return 0
         }
 

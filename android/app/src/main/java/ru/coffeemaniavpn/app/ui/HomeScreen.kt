@@ -204,15 +204,7 @@ fun HomeScreen(
                         state.subscriptionInfo
                             ?.takeIf { it.hasAnnounce }
                             ?.let { info ->
-                                Text(
-                                    text = info.announce,
-                                    color = colors.espresso,
-                                    fontSize = 15.sp,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                                )
+                                SubscriptionAnnounceContent(text = info.announce)
                                 HorizontalDivider(color = colors.latte)
                             }
                         HomeInfoBar(
@@ -375,43 +367,23 @@ private fun HomeInfoBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+            .padding(horizontal = 10.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        InfoBarIconButton(
-            onClick = onRefreshPing,
-            loading = state.isPinging,
-        ) {
-            Icon(
-                Icons.Default.Bolt,
-                contentDescription = null,
-                tint = colors.yellow,
-                modifier = Modifier.size(22.dp),
-            )
-        }
+        InfoBarTrafficCluster(
+            onPingClick = onRefreshPing,
+            pinging = state.isPinging,
+            used = info?.used,
+            total = info?.total,
+            modifier = Modifier.weight(1f),
+        )
 
-        if (info != null) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    Icons.Default.SwapVert,
-                    contentDescription = null,
-                    tint = colors.mocha,
-                    modifier = Modifier.size(14.dp),
-                )
-                Text(
-                    text = formatTrafficInfoLine(info.used, info.total),
-                    color = colors.mocha,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            info.expireCalendarLabel()?.let { expire ->
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            info?.expireCalendarLabel()?.let { expire ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -424,28 +396,26 @@ private fun HomeInfoBar(
                     )
                     Text(
                         text = expire,
-                        color = colors.mocha,
-                        fontSize = 12.sp,
+                        color = colors.espresso,
+                        fontSize = 13.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
-        } else {
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
-        InfoBarIconButton(
-            onClick = onRefreshConfig,
-            enabled = !state.isLoading,
-            loading = state.isLoading,
-        ) {
-            Icon(
-                Icons.Default.Refresh,
-                contentDescription = null,
-                tint = colors.yellow,
-                modifier = Modifier.size(22.dp),
-            )
+            YellowCircleIconButton(
+                onClick = onRefreshConfig,
+                enabled = !state.isLoading,
+                loading = state.isLoading,
+                circleSize = 28.dp,
+            ) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = null,
+                    tint = Color.Black,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
@@ -476,19 +446,19 @@ private fun QuickServerRow(
             .combinedClickable(
                 onClick = onClick,
                 onDoubleClick = onDoubleClick,
-                onLongClick = onToggleFavorite,
             )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ServerListFlag(flag = display.flag, height = 20.dp)
+            ServerListFlag(flag = display.flag, height = 18.dp)
             ServerTitleWithProtocolBadge(
                 title = display.title,
                 protocolLabel = display.protocolLabel,
                 favorite = favorite,
+                onFavoriteClick = onToggleFavorite,
                 modifier = Modifier.weight(1f),
             )
             when {
@@ -501,7 +471,7 @@ private fun QuickServerRow(
                 display.pingText == "—" -> Text(
                     text = "—",
                     color = colors.mocha,
-                    fontSize = 12.sp,
+                    fontSize = 10.sp,
                 )
                 else -> Unit
             }

@@ -10,7 +10,9 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.coffeemaniavpn.app.App
@@ -25,18 +27,24 @@ class BoxService(
 
     private val notification = ServiceNotification(service)
 
+    private var watchdogJob: Job? = null
     private var receiverRegistered = false
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == VpnAction.SERVICE_CLOSE) {
-                requestStop()
+                val userInitiated = intent.getBooleanExtra(VpnAction.EXTRA_USER_INITIATED, true)
+                requestStop(userInitiated)
             }
         }
     }
 
     /** Остановка из уведомления / VpnManager.disconnect / broadcast. */
-    fun requestStop() {
-        VpnManager.markUserDisconnectRequested()
+    fun requestStop(userInitiated: Boolean = true) {
+        if (userInitiated) {
+            VpnManager.markUserDisconnectRequested()
+        } else {
+            VpnManager.userInitiatedDisconnect = false
+        }
         val status = VpnManager.status.value
         if (status == VpnStatus.Started || status == VpnStatus.Starting) {
             stopService()
@@ -92,6 +100,7 @@ class BoxService(
     internal fun onBind(): IBinder? = null
 
     internal fun onDestroy() {
+        cancelWatchdog()
         notification.close()
         val status = VpnManager.status.value
         if (status == VpnStatus.Starting || status == VpnStatus.Started) {
@@ -100,12 +109,13 @@ class BoxService(
             fileDescriptor?.close()
             fileDescriptor = null
             VpnManager.setStatus(VpnStatus.Stopped)
+            VpnManager.onVpnFullyStopped()
         }
     }
 
     internal fun onRevoke() {
-        VpnManager.markUserDisconnectRequested()
-        stopService()
+        AppLog.w("BoxService.onRevoke (system revoked VPN)")
+        requestStop(userInitiated = false)
     }
 
     private suspend fun startService() {
@@ -147,6 +157,7 @@ class BoxService(
         VpnManager.setStatus(VpnStatus.Started)
         AppLog.i("BoxService started xrayRunning=${XrayCoreManager.isRunning()}")
         scheduleProxyHealthCheck()
+        startConnectionWatchdog()
         withContext(Dispatchers.Main) {
             activeNotification = notification
             notification.show(connectedNotificationText(connected = true))
@@ -164,6 +175,7 @@ class BoxService(
 
     @OptIn(DelicateCoroutinesApi::class)
     private fun stopService() {
+        cancelWatchdog()
         if (VpnManager.status.value != VpnStatus.Started &&
             VpnManager.status.value != VpnStatus.Starting
         ) {
@@ -224,7 +236,7 @@ class BoxService(
         GlobalScope.launch(Dispatchers.IO) {
             delay(2_500)
             if (VpnManager.status.value != VpnStatus.Started) return@launch
-            val delayMs = XrayCoreManager.measureDelay()
+            val delayMs = XrayCoreManager.measureDelayAny()
             if (delayMs != null && delayMs > 0) {
                 AppLog.i("BoxService proxy health ok delayMs=$delayMs")
             } else {
@@ -234,7 +246,57 @@ class BoxService(
         }
     }
 
+    /** Периодически проверяет ядро и прокси; при сбоях — авто-переподключение. */
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun startConnectionWatchdog() {
+        cancelWatchdog()
+        watchdogJob = GlobalScope.launch(Dispatchers.IO) {
+            var failures = 0
+            delay(WATCHDOG_INITIAL_DELAY_MS)
+            while (isActive && VpnManager.status.value == VpnStatus.Started) {
+                val healthy = when {
+                    !XrayCoreManager.isRunning() -> {
+                        AppLog.w("BoxService watchdog: xray core not running")
+                        false
+                    }
+                    else -> {
+                        val delayMs = XrayCoreManager.measureDelayAny()
+                        if (delayMs != null && delayMs > 0) {
+                            true
+                        } else {
+                            AppLog.w("BoxService watchdog: proxy health failed")
+                            false
+                        }
+                    }
+                }
+                if (healthy) {
+                    failures = 0
+                } else {
+                    failures++
+                    VpnDiagnostics.snapshot("watchdog-failure-$failures")
+                    if (failures >= WATCHDOG_FAILURE_THRESHOLD) {
+                        AppLog.w("BoxService watchdog: reconnecting after $failures failures")
+                        withContext(Dispatchers.Main) {
+                            VpnManager.disconnect(userInitiated = false)
+                        }
+                        break
+                    }
+                }
+                delay(WATCHDOG_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun cancelWatchdog() {
+        watchdogJob?.cancel()
+        watchdogJob = null
+    }
+
     companion object {
+        private const val WATCHDOG_INITIAL_DELAY_MS = 45_000L
+        private const val WATCHDOG_INTERVAL_MS = 45_000L
+        private const val WATCHDOG_FAILURE_THRESHOLD = 2
+
         @Volatile
         private var activeNotification: ServiceNotification? = null
 
@@ -244,16 +306,19 @@ class BoxService(
             ContextCompat.startForegroundService(App.instance, intent)
         }
 
-        fun stop() {
+        fun stop(userInitiated: Boolean = true) {
             val intent = Intent(App.instance, VPNService::class.java).apply {
                 action = VpnAction.SERVICE_CLOSE
+                putExtra(VpnAction.EXTRA_USER_INITIATED, userInitiated)
             }
             runCatching {
                 App.instance.startService(intent)
             }.onFailure {
                 AppLog.w("BoxService.stop startService failed, fallback broadcast", it)
                 App.instance.sendBroadcast(
-                    Intent(VpnAction.SERVICE_CLOSE).setPackage(App.instance.packageName),
+                    Intent(VpnAction.SERVICE_CLOSE)
+                        .setPackage(App.instance.packageName)
+                        .putExtra(VpnAction.EXTRA_USER_INITIATED, userInitiated),
                 )
             }
         }

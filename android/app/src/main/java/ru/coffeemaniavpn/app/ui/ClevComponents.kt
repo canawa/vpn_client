@@ -37,6 +37,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -74,8 +75,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
@@ -115,12 +117,13 @@ fun YellowCircleIconButton(
     enabled: Boolean = true,
     loading: Boolean = false,
     modifier: Modifier = Modifier,
+    circleSize: Dp = 34.dp,
     content: @Composable () -> Unit,
 ) {
     val colors = coffemaniaColors()
     Box(
         modifier = modifier
-            .size(34.dp)
+            .size(circleSize)
             .clip(CircleShape)
             .background(
                 Brush.linearGradient(listOf(colors.yellow, colors.amber)),
@@ -130,7 +133,7 @@ fun YellowCircleIconButton(
     ) {
         if (loading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(circleSize * 0.47f),
                 strokeWidth = 2.dp,
                 color = Color.Black,
             )
@@ -566,13 +569,13 @@ fun ProtocolLabelBadge(
     Text(
         text = label,
         color = colors.yellow,
-        fontSize = 11.sp,
+        fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         maxLines = 1,
         modifier = modifier
             .clip(shape)
             .background(colors.surfaceVariant, shape)
-            .padding(horizontal = 5.dp, vertical = 1.dp),
+            .padding(horizontal = 4.dp, vertical = 1.dp),
     )
 }
 
@@ -582,53 +585,60 @@ fun ServerTitleWithProtocolBadge(
     title: String,
     protocolLabel: String,
     favorite: Boolean,
+    onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
 
     SubcomposeLayout(modifier = modifier) { constraints ->
-        val gap = 6.dp.roundToPx()
-        val starSize = 12.dp.roundToPx()
-        val badge = subcompose("badge") {
+        val gap = 4.dp.roundToPx()
+        val starSize = 22.dp.roundToPx()
+
+        val starPlaceable = subcompose("star") {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onFavoriteClick)
+                    .semantics { role = Role.Button },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                    contentDescription = stringResource(
+                        if (favorite) R.string.clev_remove_favorite else R.string.clev_add_favorite,
+                    ),
+                    tint = if (favorite) colors.yellow else colors.mocha.copy(alpha = 0.45f),
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }.first().measure(Constraints.fixed(starSize, starSize))
+
+        val badgePlaceable = subcompose("badge") {
             ProtocolLabelBadge(label = protocolLabel)
         }.first().measure(Constraints())
 
-        val starPlaceable = if (favorite) {
-            subcompose("star") {
-                Icon(
-                    Icons.Default.Star,
-                    contentDescription = null,
-                    tint = colors.yellow,
-                    modifier = Modifier.size(12.dp),
-                )
-            }.first().measure(Constraints.fixed(starSize, starSize))
-        } else {
-            null
-        }
-
-        val starSpace = if (starPlaceable != null) starSize + gap else 0
-        val textMaxWidth = (constraints.maxWidth - starSpace - badge.width - gap).coerceAtLeast(0)
-        val text = subcompose("text") {
+        val textMaxWidth = (constraints.maxWidth - starPlaceable.width - badgePlaceable.width - gap * 2)
+            .coerceAtLeast(0)
+        val textPlaceable = subcompose("text") {
             Text(
                 text = title,
                 color = colors.espresso,
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
+                fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }.first().measure(Constraints(maxWidth = textMaxWidth))
 
-        val height = maxOf(text.height, badge.height, starPlaceable?.height ?: 0)
+        val height = maxOf(starPlaceable.height, textPlaceable.height, badgePlaceable.height)
         layout(constraints.maxWidth, height) {
             var x = 0
-            starPlaceable?.let {
-                it.place(x, (height - it.height) / 2)
-                x += starSpace
-            }
-            text.place(x, (height - text.height) / 2)
-            x += text.width + gap
-            badge.place(x, (height - badge.height) / 2)
+            starPlaceable.place(x, (height - starPlaceable.height) / 2)
+            x += starPlaceable.width + gap
+            textPlaceable.place(x, (height - textPlaceable.height) / 2)
+            x += textPlaceable.width + gap
+            badgePlaceable.place(x, (height - badgePlaceable.height) / 2)
         }
     }
 }
@@ -654,7 +664,7 @@ fun PingLabel(
         Text(
             text = stringResource(R.string.clev_ping_ms, ms),
             color = colors.mocha,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
         )
     }
 }
@@ -786,11 +796,112 @@ fun ClevRuleActionGroup(
 }
 
 fun formatTrafficInfoLine(used: Long, total: Long): String {
-    val usedText = formatTrafficBytes(used.coerceAtLeast(0))
+    val usedText = formatTrafficBytesLocalized(used.coerceAtLeast(0))
     return if (total > 0) {
-        "$usedText / ${formatTrafficBytes(total)}"
+        "$usedText / ${formatTrafficBytesLocalized(total)}"
     } else {
         usedText
+    }
+}
+
+/** Левая часть info-bar: жёлтый круг + стрелки + трафик (как на macOS). */
+@Composable
+fun InfoBarTrafficCluster(
+    onPingClick: () -> Unit,
+    pinging: Boolean,
+    used: Long? = null,
+    total: Long? = null,
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(colors.yellow)
+                .clickable(enabled = !pinging, onClick = onPingClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (pinging) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(13.dp),
+                    strokeWidth = 1.5.dp,
+                    color = Color.Black,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = null,
+                    tint = Color.Black,
+                    modifier = Modifier.size(13.dp),
+                )
+            }
+        }
+        if (used != null && total != null) {
+            Icon(
+                imageVector = Icons.Default.SwapVert,
+                contentDescription = null,
+                tint = colors.mocha,
+                modifier = Modifier.size(12.dp),
+            )
+            Text(
+                text = formatTrafficInfoLine(used, total),
+                color = colors.mocha,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** Текст announce из подписки — как на macOS: крупные строки по центру, последняя мельче. */
+@Composable
+fun SubscriptionAnnounceContent(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+    val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+    if (lines.isEmpty()) return
+
+    val mainLines = if (lines.size > 1) lines.dropLast(1) else lines
+    val hintLine = lines.takeIf { it.size > 1 }?.last()
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        mainLines.forEach { line ->
+            Text(
+                text = line,
+                color = colors.espresso,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+            )
+        }
+        hintLine?.let { line ->
+            Text(
+                text = line,
+                color = colors.espresso.copy(alpha = 0.92f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal,
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
     }
 }
 

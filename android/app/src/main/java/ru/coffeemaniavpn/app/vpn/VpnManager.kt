@@ -144,7 +144,7 @@ object VpnManager {
         } else {
             userInitiatedDisconnect = false
         }
-        BoxService.stop()
+        BoxService.stop(userInitiated)
     }
 
     /** Остановка из уведомления, отзыва VPN системой и т.п. — без автопереподключения. */

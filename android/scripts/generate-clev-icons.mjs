@@ -11,10 +11,8 @@ const logoPaths = fs.readFileSync(
   'utf8',
 ).replace(/<svg[^>]*>/, '').replace('</svg>', '');
 
-const BG = '#060408';
-
 function squareSvg(size, { background = null, monochrome = false } = {}) {
-  const pad = size * 0.14;
+  const pad = size * 0.20;
   const logoW = size - pad * 2;
   const logoH = logoW * (415 / 707);
   const x = pad;
@@ -65,11 +63,11 @@ for (const [density, scale] of Object.entries(densities)) {
 
   write(
     path.join(dir, 'ic_launcher.png'),
-    renderPng(squareSvg(launcher, { background: BG }), launcher),
+    renderPng(squareSvg(launcher), launcher),
   );
   write(
     path.join(dir, 'ic_launcher_round.png'),
-    renderPng(squareSvg(launcher, { background: BG }), launcher),
+    renderPng(squareSvg(launcher), launcher),
   );
   write(
     path.join(dir, 'ic_launcher_foreground.png'),
@@ -81,7 +79,7 @@ for (const [density, scale] of Object.entries(densities)) {
   );
   write(
     path.join(dir, 'ic_launcher_background.png'),
-    renderPng(`<svg width="${foreground}" height="${foreground}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="${BG}"/></svg>`, foreground),
+    renderPng(`<svg width="${foreground}" height="${foreground}" xmlns="http://www.w3.org/2000/svg"/>`, foreground),
   );
   write(
     path.join(dir, 'ic_launcher_round_foreground.png'),
@@ -91,7 +89,7 @@ for (const [density, scale] of Object.entries(densities)) {
 
 // Notification / in-app logo
 const notifDir = path.join(resRoot, 'drawable-nodpi');
-write(path.join(notifDir, 'ic_logo.png'), renderPng(squareSvg(128, { background: BG }), 128));
+write(path.join(notifDir, 'ic_logo.png'), renderPng(squareSvg(128), 128));
 write(path.join(notifDir, 'ic_logo_notif.png'), renderPng(squareSvg(96), 96));
 
 console.log('Done.');

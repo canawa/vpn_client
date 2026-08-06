@@ -584,11 +584,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val cacheVersion = preferences.nodesCacheVersion()
         val staleCache = cacheVersion < AppPreferences.NODES_CACHE_VERSION
         val missingRaw = nodes.any { it.rawOutboundJson.isNullOrBlank() }
-        if (!staleCache && !missingRaw) return false
+        val wrongGrpcTransport = nodes.any { node ->
+            node.port == 7443 && node.host.endsWith("lavivas.org") && !node.isGrpc
+        }
+        if (!staleCache && !missingRaw && !wrongGrpcTransport) return false
 
         AppLog.i(
             "refreshStaleNodes cacheVersion=$cacheVersion need=${AppPreferences.NODES_CACHE_VERSION} " +
-                "missingRaw=$missingRaw nodes=${nodes.size}",
+                "missingRaw=$missingRaw wrongGrpc=$wrongGrpcTransport nodes=${nodes.size}",
         )
         autoRefreshSubscriptionSilent()
         return true

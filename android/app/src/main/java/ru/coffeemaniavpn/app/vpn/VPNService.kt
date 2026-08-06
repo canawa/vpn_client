@@ -84,7 +84,8 @@ class VPNService : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         AppLog.i("VPNService.onStartCommand action=${intent?.action}")
         if (intent?.action == VpnAction.SERVICE_CLOSE) {
-            service.requestStop()
+            val userInitiated = intent.getBooleanExtra(VpnAction.EXTRA_USER_INITIATED, true)
+            service.requestStop(userInitiated)
             return START_NOT_STICKY
         }
         return service.onStartCommand()

@@ -17,6 +17,8 @@
     <string name="clev_activate">Activate</string>
     <string name="clev_key_hint">The key is provided with your subscription</string>
     <string name="clev_all">All</string>
+    <string name="clev_add_favorite">Add to favorites</string>
+    <string name="clev_remove_favorite">Remove from favorites</string>
     <string name="clev_my">My</string>
     <string name="clev_auto">⚡ Auto</string>
     <string name="clev_auto_subtitle">Switches automatically by ping</string>

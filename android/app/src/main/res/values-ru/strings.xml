@@ -18,6 +18,8 @@
     <string name="clev_activate">Активировать</string>
     <string name="clev_key_hint">Ключ выдаётся вместе с подпиской</string>
     <string name="clev_all">Все</string>
+    <string name="clev_add_favorite">Добавить в избранное</string>
+    <string name="clev_remove_favorite">Убрать из избранного</string>
     <string name="clev_my">Мои</string>
     <string name="clev_auto">⚡ Авто</string>
     <string name="clev_auto_subtitle">Переключается автоматически по пингу</string>

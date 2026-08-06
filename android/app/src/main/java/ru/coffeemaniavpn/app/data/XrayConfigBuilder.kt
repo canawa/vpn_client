@@ -215,6 +215,7 @@ object XrayConfigBuilder {
                     put("grpcSettings", JSONObject().apply {
                         put("serviceName", node.grpcServiceName?.takeIf { it.isNotBlank() } ?: "grpc")
                         put("multiMode", false)
+                        put("idleTimeout", 120)
                     })
                 }
                 node.isWebSocket -> {
@@ -234,7 +235,15 @@ object XrayConfigBuilder {
                 }
             }
             applyTls(this, node)
+            applySockopt(this)
         }
+    }
+
+    private fun applySockopt(stream: JSONObject) {
+        stream.put("sockopt", JSONObject().apply {
+            put("tcpKeepAliveIdle", 60)
+            put("tcpKeepAliveInterval", 30)
+        })
     }
 
     private fun buildXhttpSettings(node: ProxyNode): JSONObject {
