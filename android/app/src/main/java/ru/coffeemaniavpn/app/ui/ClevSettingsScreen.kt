@@ -28,7 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Circle
@@ -69,8 +68,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Description
@@ -138,22 +138,29 @@ fun ClevSettingsHost(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
-                .padding(top = 16.dp, bottom = 10.dp),
+                .padding(top = 14.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = stringResource(R.string.clev_settings),
                 color = colors.espresso,
                 fontWeight = FontWeight.Bold,
-                fontSize = 17.sp,
+                fontSize = 18.sp,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .background(colors.cappuccino)
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(
                     Icons.Default.Close,
                     contentDescription = null,
-                    tint = colors.mocha,
-                    modifier = Modifier.size(22.dp),
+                    tint = colors.espresso.copy(alpha = 0.72f),
+                    modifier = Modifier.size(13.dp),
                 )
             }
         }
@@ -161,12 +168,9 @@ fun ClevSettingsHost(
         ClevSegmentedTabs(
             selected = tab,
             onSelect = { tab = it },
-            modifier = Modifier.padding(horizontal = 20.dp),
-        )
-
-        HorizontalDivider(
-            color = colors.latte,
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 12.dp),
         )
 
         Box(modifier = Modifier.weight(1f)) {
@@ -214,36 +218,48 @@ private fun ClevSegmentedTabs(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .height(IntrinsicSize.Min)
+            .clip(RoundedCornerShape(10.dp))
             .background(colors.surfaceVariant)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+            .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        tabs.forEach { (value, label) ->
+        tabs.forEachIndexed { index, (value, label) ->
+            if (index > 0) {
+                val prevSelected = selected == tabs[index - 1].first
+                val currSelected = selected == value
+                if (!prevSelected && !currSelected) {
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 1.dp)
+                            .width(1.dp)
+                            .height(18.dp)
+                            .background(colors.latte.copy(alpha = 0.55f)),
+                    )
+                }
+            }
             val isSelected = selected == value
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .heightIn(min = 32.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .then(
                         if (isSelected) {
-                            Modifier.background(Brush.linearGradient(listOf(colors.yellow, colors.amber)))
+                            Modifier.background(colors.yellow)
                         } else {
                             Modifier
                         },
                     )
                     .clickable { onSelect(value) }
-                    .padding(horizontal = 4.dp, vertical = 7.dp),
+                    .padding(horizontal = 6.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = label,
                     fontFamily = ClevFontFamily,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                     letterSpacing = (-0.2).sp,
                     color = if (isSelected) Color.Black else colors.espresso,
                     maxLines = 1,
@@ -267,43 +283,55 @@ private fun ClevThreeWaySegment(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Max)
-            .clip(RoundedCornerShape(8.dp))
+            .heightIn(min = 34.dp)
+            .clip(RoundedCornerShape(10.dp))
             .background(colors.surfaceVariant)
             .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        options.forEach { (mode, label) ->
+        options.forEachIndexed { index, (mode, label) ->
+            if (index > 0) {
+                val prevSelected = selected == options[index - 1].first
+                val currSelected = selected == mode
+                if (!prevSelected && !currSelected) {
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 1.dp)
+                            .width(1.dp)
+                            .height(20.dp)
+                            .background(colors.latte.copy(alpha = 0.55f)),
+                    )
+                }
+            }
             val isSelected = selected == mode
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .fillMaxHeight()
-                    .heightIn(min = 52.dp)
+                    .heightIn(min = 28.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .then(
                         if (isSelected) {
-                            Modifier.background(Brush.linearGradient(listOf(colors.yellow, colors.amber)))
+                            Modifier.background(colors.yellow)
                         } else {
                             Modifier
                         },
                     )
                     .clickable { onSelect(mode) }
-                    .padding(horizontal = 6.dp, vertical = 10.dp),
+                    .padding(horizontal = 5.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = label,
                     fontFamily = ClevFontFamily,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = (-0.2).sp,
+                    fontSize = 11.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    letterSpacing = (-0.25).sp,
                     color = if (isSelected) Color.Black else colors.espresso,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    lineHeight = 15.sp,
+                    lineHeight = 13.sp,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -354,15 +382,15 @@ private fun ClevAppsTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
-                .padding(top = 8.dp, bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(top = 4.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
                 text = stringResource(R.string.clev_app_routing),
                 color = colors.espresso,
                 fontFamily = ClevFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp,
             )
 
             ClevThreeWaySegment(
@@ -383,35 +411,14 @@ private fun ClevAppsTab(
                 },
                 color = colors.mocha,
                 fontFamily = ClevFontFamily,
-                fontWeight = FontWeight.Medium,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
+                fontWeight = FontWeight.Normal,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
             )
         }
 
         when (routingMode) {
-            AppRoutingMode.Off -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.Apps,
-                            contentDescription = null,
-                            tint = colors.latte,
-                            modifier = Modifier.size(40.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.clev_app_pick_mode),
-                            color = colors.mocha,
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 32.dp),
-                        )
-                    }
-                }
-            }
+            AppRoutingMode.Off -> Unit
             else -> {
                 ClevSearchField(
                     value = query,
@@ -907,34 +914,43 @@ private fun ClevSubscriptionTab(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 20.dp)
+                .padding(top = 4.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
                 text = stringResource(R.string.clev_subscription),
                 color = colors.espresso,
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
+                fontSize = 17.sp,
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(11.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(colors.cappuccino)
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = colors.mocha,
-                        modifier = Modifier.size(20.dp),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, colors.mocha.copy(alpha = 0.65f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = colors.espresso,
+                            modifier = Modifier.size(13.dp),
+                        )
+                    }
                     Text(
                         text = if (info?.hasTitle == true) {
                             info.title
@@ -942,75 +958,32 @@ private fun ClevSubscriptionTab(
                             stringResource(R.string.clev_subscription_default_title)
                         },
                         color = colors.espresso,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SwapVert,
-                            contentDescription = null,
-                            tint = colors.mocha,
-                            modifier = Modifier.size(14.dp),
-                        )
-                        Text(
-                            text = if (info != null) {
-                                formatSubscriptionTraffic(info.used, info.total)
-                            } else {
-                                "—"
-                            },
-                            color = colors.mocha,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    val expireLabel = info?.expireCalendarLabel()
-                        ?: info?.expireLabel()?.takeIf { info.expire > 0 }
-                    if (expireLabel != null) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                tint = colors.mocha,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                text = expireLabel,
-                                color = colors.mocha,
-                                fontSize = 12.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
+                SubscriptionStatsPill(
+                    used = info?.used,
+                    expireLabel = info?.expireCalendarLabel()
+                        ?: info?.expireLabel()?.takeIf { info.expire > 0 },
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     SubscriptionActionButton(
+                        modifier = Modifier.weight(1f),
+                        backgroundColor = colors.milkFoam,
                         icon = {
                             if (state.isLoading) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(14.dp),
+                                    strokeWidth = 1.75.dp,
                                     color = colors.yellow,
                                 )
                             } else {
@@ -1018,7 +991,7 @@ private fun ClevSubscriptionTab(
                                     imageVector = Icons.Default.Refresh,
                                     contentDescription = null,
                                     tint = colors.yellow,
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(14.dp),
                                 )
                             }
                         },
@@ -1027,12 +1000,14 @@ private fun ClevSubscriptionTab(
                         enabled = !state.isLoading,
                     )
                     SubscriptionActionButton(
+                        modifier = Modifier.weight(1f),
+                        backgroundColor = colors.milkFoam,
                         icon = {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Logout,
                                 contentDescription = null,
                                 tint = colors.yellow,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(14.dp),
                             )
                         },
                         text = stringResource(R.string.clev_delete_key_logout),
@@ -1118,24 +1093,111 @@ private fun ClevSubscriptionTab(
 }
 
 @Composable
-private fun SubscriptionActionButton(
-    icon: @Composable () -> Unit,
-    text: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
+private fun SubscriptionTrafficArrows(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy((-1).dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.ArrowUpward,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(11.dp),
+        )
+        Icon(
+            imageVector = Icons.Default.ArrowDownward,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(11.dp),
+        )
+    }
+}
+
+@Composable
+private fun SubscriptionStatsPill(
+    used: Long?,
+    expireLabel: String?,
 ) {
     val colors = coffemaniaColors()
     Row(
         modifier = Modifier
-            .widthIn(max = 160.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(50))
+            .background(colors.milkFoam)
+            .border(1.dp, colors.latte.copy(alpha = 0.55f), RoundedCornerShape(50))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            modifier = Modifier.weight(1f),
+        ) {
+            SubscriptionTrafficArrows(tint = colors.mocha)
+            Text(
+                text = if (used != null) {
+                    formatSubscriptionTraffic(used, 0)
+                } else {
+                    "—"
+                },
+                color = colors.mocha,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (expireLabel != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = null,
+                    tint = colors.mocha,
+                    modifier = Modifier.size(12.dp),
+                )
+                Text(
+                    text = expireLabel,
+                    color = colors.mocha,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubscriptionActionButton(
+    icon: @Composable () -> Unit,
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = Color.Transparent,
+    enabled: Boolean = true,
+) {
+    val colors = coffemaniaColors()
+    Row(
+        modifier = modifier
+            .heightIn(min = 40.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(backgroundColor)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 2.dp),
+            .padding(horizontal = 10.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(16.dp),
             contentAlignment = Alignment.Center,
         ) {
             icon()
@@ -1143,8 +1205,9 @@ private fun SubscriptionActionButton(
         Text(
             text = text,
             color = colors.yellow,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp,
+            lineHeight = 13.sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )

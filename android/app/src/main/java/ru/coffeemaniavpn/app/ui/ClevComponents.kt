@@ -36,9 +36,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -75,7 +78,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.Constraints
@@ -489,33 +491,26 @@ fun VpnStatus.toConnectUi(): ConnectUiStatus = when (this) {
     VpnStatus.Stopped -> ConnectUiStatus.Off
 }
 
-/** Круг-индикатор выбора: жёлтая заливка + чёрная галочка / тонкое серое кольцо. */
+/** Круг-индикатор выбора: жёлтое кольцо + жёлтая точка / тонкое серое кольцо. */
 @Composable
 fun ClevSelectionIndicator(
     selected: Boolean,
     modifier: Modifier = Modifier,
-    size: Dp = 20.dp,
+    size: Dp = 18.dp,
 ) {
     val colors = coffemaniaColors()
     Canvas(modifier = modifier.size(size)) {
         val diameter = this.size.minDimension
         val radius = diameter / 2f
         if (selected) {
-            drawCircle(color = colors.yellow, radius = radius)
-            val stroke = diameter * 0.1f
-            val path = Path().apply {
-                moveTo(diameter * 0.27f, diameter * 0.52f)
-                lineTo(diameter * 0.43f, diameter * 0.68f)
-                lineTo(diameter * 0.74f, diameter * 0.35f)
-            }
-            drawPath(
-                path = path,
-                color = Color.Black,
-                style = Stroke(
-                    width = stroke,
-                    cap = StrokeCap.Round,
-                    join = StrokeJoin.Round,
-                ),
+            drawCircle(
+                color = colors.yellow,
+                radius = radius - diameter * 0.04f,
+                style = Stroke(width = diameter * 0.09f),
+            )
+            drawCircle(
+                color = colors.yellow,
+                radius = diameter * 0.22f,
             )
         } else {
             drawCircle(
@@ -579,7 +574,7 @@ fun ProtocolLabelBadge(
     )
 }
 
-/** Название + бейдж протокола вплотную слева (как QuickServerRow в macOS). */
+/** Название + бейдж протокола; жёлтая звезда только если сервер в избранном. */
 @Composable
 fun ServerTitleWithProtocolBadge(
     title: String,
@@ -592,33 +587,37 @@ fun ServerTitleWithProtocolBadge(
 
     SubcomposeLayout(modifier = modifier) { constraints ->
         val gap = 4.dp.roundToPx()
-        val starSize = 22.dp.roundToPx()
 
-        val starPlaceable = subcompose("star") {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = onFavoriteClick)
-                    .semantics { role = Role.Button },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = stringResource(
-                        if (favorite) R.string.clev_remove_favorite else R.string.clev_add_favorite,
-                    ),
-                    tint = if (favorite) colors.yellow else colors.mocha.copy(alpha = 0.45f),
-                    modifier = Modifier.size(12.dp),
-                )
-            }
-        }.first().measure(Constraints.fixed(starSize, starSize))
+        val starPlaceable = if (favorite) {
+            val starSize = 22.dp.roundToPx()
+            subcompose("star") {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onFavoriteClick)
+                        .semantics { role = Role.Button },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = stringResource(R.string.clev_remove_favorite),
+                        tint = colors.yellow,
+                        modifier = Modifier.size(12.dp),
+                    )
+                }
+            }.first().measure(Constraints.fixed(starSize, starSize))
+        } else {
+            null
+        }
 
         val badgePlaceable = subcompose("badge") {
             ProtocolLabelBadge(label = protocolLabel)
         }.first().measure(Constraints())
 
-        val textMaxWidth = (constraints.maxWidth - starPlaceable.width - badgePlaceable.width - gap * 2)
+        val starWidth = starPlaceable?.width ?: 0
+        val gaps = if (starPlaceable != null) gap * 2 else gap
+        val textMaxWidth = (constraints.maxWidth - starWidth - badgePlaceable.width - gaps)
             .coerceAtLeast(0)
         val textPlaceable = subcompose("text") {
             Text(
@@ -631,11 +630,17 @@ fun ServerTitleWithProtocolBadge(
             )
         }.first().measure(Constraints(maxWidth = textMaxWidth))
 
-        val height = maxOf(starPlaceable.height, textPlaceable.height, badgePlaceable.height)
+        val height = maxOf(
+            starPlaceable?.height ?: 0,
+            textPlaceable.height,
+            badgePlaceable.height,
+        )
         layout(constraints.maxWidth, height) {
             var x = 0
-            starPlaceable.place(x, (height - starPlaceable.height) / 2)
-            x += starPlaceable.width + gap
+            starPlaceable?.let {
+                it.place(x, (height - it.height) / 2)
+                x += it.width + gap
+            }
             textPlaceable.place(x, (height - textPlaceable.height) / 2)
             x += textPlaceable.width + gap
             badgePlaceable.place(x, (height - badgePlaceable.height) / 2)
@@ -804,58 +809,168 @@ fun formatTrafficInfoLine(used: Long, total: Long): String {
     }
 }
 
+/** Иконка «пульс» в info-bar — горизонтальная волна, как на macOS. */
+@Composable
+private fun InfoBarPulseIcon(
+    modifier: Modifier = Modifier,
+    color: Color = Color.Black,
+) {
+    Canvas(modifier = modifier) {
+        val stroke = Stroke(
+            width = 1.6.dp.toPx(),
+            cap = StrokeCap.Round,
+            join = StrokeJoin.Round,
+        )
+        val path = Path().apply {
+            val w = size.width
+            val h = size.height
+            val mid = h * 0.52f
+            moveTo(w * 0.06f, mid)
+            cubicTo(w * 0.18f, mid, w * 0.22f, h * 0.22f, w * 0.34f, h * 0.22f)
+            cubicTo(w * 0.46f, h * 0.22f, w * 0.50f, h * 0.82f, w * 0.62f, h * 0.82f)
+            cubicTo(w * 0.74f, h * 0.82f, w * 0.78f, mid, w * 0.94f, mid)
+        }
+        drawPath(path, color, style = stroke)
+    }
+}
+
+/** Пара стрелок ↑↓ для блока трафика. */
+@Composable
+private fun InfoBarTrafficArrows(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy((-1).dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.ArrowUpward,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(11.dp),
+        )
+        Icon(
+            imageVector = Icons.Default.ArrowDownward,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(11.dp),
+        )
+    }
+}
+
+private val InfoBarActionCircleSize = 20.dp
+private val InfoBarActionIconSize = 11.dp
+
+/** Жёлтая круглая кнопка info-bar — плоский жёлтый фон. */
+@Composable
+private fun InfoBarYellowCircleButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val colors = coffemaniaColors()
+    Box(
+        modifier = modifier
+            .size(InfoBarActionCircleSize)
+            .clip(CircleShape)
+            .background(colors.yellow)
+            .clickable(enabled = enabled && !loading, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(InfoBarActionIconSize),
+                strokeWidth = 1.25.dp,
+                color = Color.Black,
+            )
+        } else {
+            content()
+        }
+    }
+}
+
 /** Левая часть info-bar: жёлтый круг + стрелки + трафик (как на macOS). */
 @Composable
 fun InfoBarTrafficCluster(
     onPingClick: () -> Unit,
     pinging: Boolean,
     used: Long? = null,
-    total: Long? = null,
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(colors.yellow)
-                .clickable(enabled = !pinging, onClick = onPingClick),
-            contentAlignment = Alignment.Center,
+        InfoBarYellowCircleButton(
+            onClick = onPingClick,
+            enabled = !pinging,
+            loading = pinging,
         ) {
-            if (pinging) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(13.dp),
-                    strokeWidth = 1.5.dp,
-                    color = Color.Black,
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Bolt,
-                    contentDescription = null,
-                    tint = Color.Black,
-                    modifier = Modifier.size(13.dp),
-                )
-            }
-        }
-        if (used != null && total != null) {
-            Icon(
-                imageVector = Icons.Default.SwapVert,
-                contentDescription = null,
-                tint = colors.mocha,
-                modifier = Modifier.size(12.dp),
+            InfoBarPulseIcon(
+                modifier = Modifier.size(width = 12.dp, height = 8.dp),
+                color = Color.Black,
             )
+        }
+        if (used != null) {
+            InfoBarTrafficArrows(tint = colors.mocha)
             Text(
-                text = formatTrafficInfoLine(used, total),
+                text = formatTrafficBytesLocalized(used.coerceAtLeast(0)),
                 color = colors.mocha,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** Правая часть info-bar: календарь + дата + жёлтый refresh (как на macOS). */
+@Composable
+fun InfoBarExpiryCluster(
+    expireLabel: String?,
+    onRefreshClick: () -> Unit,
+    refreshing: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        if (!expireLabel.isNullOrBlank()) {
+            Icon(
+                imageVector = Icons.Default.CalendarMonth,
+                contentDescription = null,
+                tint = colors.mocha,
+                modifier = Modifier.size(12.dp),
+            )
+            Text(
+                text = expireLabel,
+                color = colors.mocha,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        InfoBarYellowCircleButton(
+            onClick = onRefreshClick,
+            enabled = !refreshing,
+            loading = refreshing,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = null,
+                tint = Color.Black,
+                modifier = Modifier.size(InfoBarActionIconSize),
             )
         }
     }

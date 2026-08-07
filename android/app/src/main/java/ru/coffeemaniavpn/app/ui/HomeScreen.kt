@@ -31,6 +31,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
@@ -362,7 +365,6 @@ private fun HomeInfoBar(
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
 ) {
-    val colors = coffemaniaColors()
     val info = state.subscriptionInfo
     Row(
         modifier = Modifier
@@ -375,48 +377,14 @@ private fun HomeInfoBar(
             onPingClick = onRefreshPing,
             pinging = state.isPinging,
             used = info?.used,
-            total = info?.total,
             modifier = Modifier.weight(1f),
         )
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            info?.expireCalendarLabel()?.let { expire ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(
-                        Icons.Default.CalendarMonth,
-                        contentDescription = null,
-                        tint = colors.mocha,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        text = expire,
-                        color = colors.espresso,
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            YellowCircleIconButton(
-                onClick = onRefreshConfig,
-                enabled = !state.isLoading,
-                loading = state.isLoading,
-                circleSize = 28.dp,
-            ) {
-                Icon(
-                    Icons.Default.Refresh,
-                    contentDescription = null,
-                    tint = Color.Black,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
+        InfoBarExpiryCluster(
+            expireLabel = info?.expireCalendarLabel(),
+            onRefreshClick = onRefreshConfig,
+            refreshing = state.isLoading,
+        )
     }
 }
 
@@ -433,49 +401,80 @@ private fun QuickServerRow(
 ) {
     val colors = coffemaniaColors()
     val shape = RoundedCornerShape(13.dp)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(colors.cappuccino)
-            .border(
-                width = 1.dp,
-                color = if (selected) colors.yellow.copy(alpha = 0.65f) else colors.latte,
-                shape = shape,
-            )
-            .combinedClickable(
-                onClick = onClick,
-                onDoubleClick = onDoubleClick,
-            )
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    var showFavoriteMenu by remember { mutableStateOf(false) }
+    Box {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(colors.cappuccino)
+                .border(
+                    width = 1.dp,
+                    color = if (selected) colors.yellow.copy(alpha = 0.65f) else colors.latte,
+                    shape = shape,
+                )
+                .combinedClickable(
+                    onClick = onClick,
+                    onDoubleClick = onDoubleClick,
+                    onLongClick = {
+                        if (!favorite) showFavoriteMenu = true
+                    },
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            ServerListFlag(flag = display.flag, height = 18.dp)
-            ServerTitleWithProtocolBadge(
-                title = display.title,
-                protocolLabel = display.protocolLabel,
-                favorite = favorite,
-                onFavoriteClick = onToggleFavorite,
-                modifier = Modifier.weight(1f),
-            )
-            when {
-                isPinging -> CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = colors.yellow,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ServerListFlag(flag = display.flag, height = 18.dp)
+                ServerTitleWithProtocolBadge(
+                    title = display.title,
+                    protocolLabel = display.protocolLabel,
+                    favorite = favorite,
+                    onFavoriteClick = onToggleFavorite,
+                    modifier = Modifier.weight(1f),
                 )
-                display.pingMs != null -> PingLabel(ms = display.pingMs)
-                display.pingText == "—" -> Text(
-                    text = "—",
-                    color = colors.mocha,
-                    fontSize = 10.sp,
-                )
-                else -> Unit
+                when {
+                    isPinging -> CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = colors.yellow,
+                    )
+                    display.pingMs != null -> PingLabel(ms = display.pingMs)
+                    else -> Unit
+                }
+                ClevSelectionIndicator(selected = selected)
             }
-            ClevSelectionIndicator(selected = selected)
+        }
+        DropdownMenu(
+            expanded = showFavoriteMenu,
+            onDismissRequest = { showFavoriteMenu = false },
+            offset = DpOffset(12.dp, 0.dp),
+            containerColor = colors.cappuccino,
+            shape = RoundedCornerShape(10.dp),
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.clev_add_favorite),
+                        color = colors.espresso,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                },
+                onClick = {
+                    showFavoriteMenu = false
+                    onToggleFavorite()
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = colors.yellow,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+            )
         }
     }
 }

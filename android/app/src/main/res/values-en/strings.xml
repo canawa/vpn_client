@@ -43,8 +43,8 @@
     <string name="clev_app_mode_off">Off</string>
     <string name="clev_app_mode_bypass">Selected — bypass VPN</string>
     <string name="clev_app_mode_only">Only selected via VPN</string>
-    <string name="clev_app_hint_off">All traffic follows rules from the Rules tab</string>
-    <string name="clev_app_hint_bypass">Selected apps go direct; everything else via VPN</string>
+    <string name="clev_app_hint_off">All traffic follows the mode from the «Rules» tab</string>
+    <string name="clev_app_hint_bypass">Selected apps go direct; everything else — via VPN</string>
     <string name="clev_app_hint_only">Only selected apps use VPN; everything else goes direct</string>
     <string name="clev_search_apps">Search apps</string>
     <string name="clev_apps_loading">Loading apps…</string>
@@ -78,7 +78,7 @@
     <string name="clev_support_url">https://t.me/clevvpn_support</string>
     <string name="clev_traffic_mode_global">All traffic via VPN</string>
     <string name="clev_traffic_mode_smart">Smart mode</string>
-    <string name="clev_traffic_mode_custom">Custom rules only</string>
+    <string name="clev_traffic_mode_custom">Custom rules</string>
     <string name="clev_subscription_expired">Subscription expired</string>
     <string name="clev_ping_ms">%d ms</string>
     <string name="clev_delete_subscription_title">Delete subscription?</string>
