@@ -92,7 +92,7 @@ fun HomeScreen(
     onRefreshConfig: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val hasSubscription = state.subscriptionUrl.isNotBlank() && state.nodes.isNotEmpty()
+    val hasSubscription = state.subscriptionUrl.isNotBlank()
     if (!hasSubscription) {
         ActivationScreen(
             modifier = modifier,
@@ -246,7 +246,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(filteredNodes, key = { it.id }) { node ->

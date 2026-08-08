@@ -574,12 +574,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         maybeRefreshStaleNodes()
     }
 
-    /** Re-fetch subscription when cached nodes predate grpc/rawOutbound support. */
+    /** Re-fetch subscription when cached nodes are missing or predate grpc/rawOutbound support. */
     private suspend fun maybeRefreshStaleNodes(): Boolean {
         val url = preferences.subscriptionUrl.first().trim()
         if (url.isBlank() || url == LOCAL_IMPORT_URL) return false
         val nodes = preferences.nodes.first()
-        if (nodes.isEmpty()) return false
+        if (nodes.isEmpty()) {
+            AppLog.i("refreshStaleNodes: saved url but empty nodes, refetching")
+            isLoading.value = true
+            try {
+                autoRefreshSubscriptionSilent()
+            } finally {
+                isLoading.value = false
+            }
+            return true
+        }
 
         val cacheVersion = preferences.nodesCacheVersion()
         val staleCache = cacheVersion < AppPreferences.NODES_CACHE_VERSION

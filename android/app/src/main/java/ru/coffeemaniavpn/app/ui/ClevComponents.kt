@@ -452,17 +452,21 @@ fun ClevConnectButton(
                             fontWeight = FontWeight.Bold,
                         )
                     } else {
+                        val label = when {
+                            showPing -> stringResource(R.string.clev_checking_ping)
+                            uiStatus == ConnectUiStatus.Busy -> stringResource(R.string.clev_connecting)
+                            else -> stringResource(R.string.clev_start)
+                        }
+                        val isLongLabel = showPing || uiStatus == ConnectUiStatus.Busy
                         Text(
-                            text = when {
-                                showPing -> stringResource(R.string.clev_checking_ping)
-                                uiStatus == ConnectUiStatus.Busy -> stringResource(R.string.clev_connecting)
-                                else -> stringResource(R.string.clev_start)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
+                            text = label,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = if (isLongLabel) size * 0.08f else 0.dp),
                             color = colors.mocha,
-                            fontSize = (size.value * 0.075f).sp,
+                            fontSize = (size.value * if (isLongLabel) 0.055f else 0.075f).sp,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
+                            letterSpacing = if (isLongLabel) 0.sp else 1.sp,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
                         )
@@ -537,7 +541,7 @@ fun ClevFilterChip(
                 if (selected) {
                     Modifier.background(Brush.linearGradient(listOf(colors.yellow, colors.amber)))
                 } else {
-                    Modifier.background(colors.cappuccino)
+                    Modifier
                 },
             )
             .clickable(onClick = onClick)
