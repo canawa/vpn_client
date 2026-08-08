@@ -899,8 +899,8 @@ fun InfoBarTrafficCluster(
                 contentDescription = null,
                 tint = Color.Black,
                 modifier = Modifier
-                    .size(InfoBarActionIconSize + 2.dp)
-                    .rotate(90f),
+                    .size(InfoBarActionIconSize + 5.dp)
+                    .rotate(30f),
             )
         }
         if (used != null) {
