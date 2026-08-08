@@ -6,7 +6,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.data.ConnectionSettingsStore
 import ru.coffeemaniavpn.app.data.ProxyNode
@@ -36,6 +35,7 @@ object VpnManager {
 
     private var connectedSinceMs: Long? = null
     private var elapsedTickerJob: Job? = null
+    private var trafficTickerJob: Job? = null
 
     fun init() {
         VpnAutoReconnect.startNetworkWatcher()
@@ -68,15 +68,20 @@ object VpnManager {
 
     private fun startElapsedTicker() {
         stopElapsedTicker()
-        elapsedTickerJob = App.applicationScope.launch {
-            var primed = false
+        // Отдельно от Main и от queryStats: иначе таймер «замирает» в настройках.
+        elapsedTickerJob = App.applicationScope.launch(Dispatchers.Default) {
             while (connectedSinceMs != null) {
                 val since = connectedSinceMs ?: break
                 _connectionElapsedMs.value = System.currentTimeMillis() - since
-
-                val (uplink, downlink) = withContext(Dispatchers.IO) {
+                delay(1_000)
+            }
+        }
+        trafficTickerJob = App.applicationScope.launch(Dispatchers.IO) {
+            var primed = false
+            while (connectedSinceMs != null) {
+                val (uplink, downlink) = runCatching {
                     XrayCoreManager.queryTrafficDelta()
-                }
+                }.getOrDefault(0L to 0L)
                 if (primed) {
                     val rates = VpnTrafficRates(
                         downlinkBytesPerSec = downlink,
@@ -95,6 +100,8 @@ object VpnManager {
     private fun stopElapsedTicker() {
         elapsedTickerJob?.cancel()
         elapsedTickerJob = null
+        trafficTickerJob?.cancel()
+        trafficTickerJob = null
     }
 
     internal fun setError(message: String?) {

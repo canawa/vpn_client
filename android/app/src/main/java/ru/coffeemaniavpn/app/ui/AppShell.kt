@@ -1,10 +1,9 @@
 package ru.coffeemaniavpn.app.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -80,15 +79,29 @@ fun AppShell(
             )
         },
     ) { padding ->
-        AnimatedContent(
-            targetState = showSettings,
-            transitionSpec = {
-                fadeIn(ClevMotion.settingsEnterSpec) togetherWith fadeOut(ClevMotion.settingsExitSpec)
-            },
-            label = "settingsScreen",
-            modifier = Modifier.padding(padding),
-        ) { settingsVisible ->
-            if (settingsVisible) {
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
+        ) {
+            // Home остаётся в composition под настройками — таймер/трафик не «замирают».
+            HomeScreen(
+                state = state,
+                onConnectClick = onConnectClick,
+                onDisconnectClick = onDisconnectClick,
+                onPasteLinkClick = onPasteLinkClick,
+                onOpenSettings = { showSettings = true },
+                onSelectNode = onSelectNode,
+                onConnectToNode = onConnectToNode,
+                onToggleFavorite = onToggleFavorite,
+                onRefreshPing = onRefreshPing,
+                onRefreshConfig = onRefreshConfig,
+            )
+            AnimatedVisibility(
+                visible = showSettings,
+                enter = fadeIn(ClevMotion.settingsEnterSpec),
+                exit = fadeOut(ClevMotion.settingsExitSpec),
+            ) {
                 ClevSettingsHost(
                     state = state,
                     onClose = { showSettings = false },
@@ -100,19 +113,7 @@ fun AppShell(
                     onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
                     onTrafficRoutingModeChange = onTrafficRoutingModeChange,
                     onLanguageChange = onLanguageChange,
-                )
-            } else {
-                HomeScreen(
-                    state = state,
-                    onConnectClick = onConnectClick,
-                    onDisconnectClick = onDisconnectClick,
-                    onPasteLinkClick = onPasteLinkClick,
-                    onOpenSettings = { showSettings = true },
-                    onSelectNode = onSelectNode,
-                    onConnectToNode = onConnectToNode,
-                    onToggleFavorite = onToggleFavorite,
-                    onRefreshPing = onRefreshPing,
-                    onRefreshConfig = onRefreshConfig,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }

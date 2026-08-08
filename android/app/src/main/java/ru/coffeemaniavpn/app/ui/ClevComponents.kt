@@ -51,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -174,14 +175,16 @@ fun ClevLogoFull(
 @Composable
 fun ClevCard(
     modifier: Modifier = Modifier,
+    cornerRadius: Dp = 16.dp,
     content: @Composable () -> Unit,
 ) {
     val colors = coffemaniaColors()
+    val shape = RoundedCornerShape(cornerRadius)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(shape)
             .background(colors.cappuccino)
-            .border(1.dp, colors.latte, RoundedCornerShape(16.dp)),
+            .border(1.dp, colors.latte, shape),
     ) {
         content()
     }
@@ -568,13 +571,13 @@ fun ProtocolLabelBadge(
     Text(
         text = label,
         color = colors.yellow,
-        fontSize = 10.sp,
+        fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         maxLines = 1,
         modifier = modifier
             .clip(shape)
             .background(colors.surfaceVariant, shape)
-            .padding(horizontal = 4.dp, vertical = 1.dp),
+            .padding(horizontal = 5.dp, vertical = 2.dp),
     )
 }
 
@@ -628,7 +631,7 @@ fun ServerTitleWithProtocolBadge(
                 text = title,
                 color = colors.espresso,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
+                fontSize = 15.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -673,7 +676,7 @@ fun PingLabel(
         Text(
             text = stringResource(R.string.clev_ping_ms, ms),
             color = colors.mocha,
-            fontSize = 10.sp,
+            fontSize = 12.sp,
         )
     }
 }
@@ -813,31 +816,6 @@ fun formatTrafficInfoLine(used: Long, total: Long): String {
     }
 }
 
-/** Иконка «пульс» в info-bar — горизонтальная волна, как на macOS. */
-@Composable
-private fun InfoBarPulseIcon(
-    modifier: Modifier = Modifier,
-    color: Color = Color.Black,
-) {
-    Canvas(modifier = modifier) {
-        val stroke = Stroke(
-            width = 1.6.dp.toPx(),
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round,
-        )
-        val path = Path().apply {
-            val w = size.width
-            val h = size.height
-            val mid = h * 0.52f
-            moveTo(w * 0.06f, mid)
-            cubicTo(w * 0.18f, mid, w * 0.22f, h * 0.22f, w * 0.34f, h * 0.22f)
-            cubicTo(w * 0.46f, h * 0.22f, w * 0.50f, h * 0.82f, w * 0.62f, h * 0.82f)
-            cubicTo(w * 0.74f, h * 0.82f, w * 0.78f, mid, w * 0.94f, mid)
-        }
-        drawPath(path, color, style = stroke)
-    }
-}
-
 /** Пара стрелок ↑↓ для блока трафика. */
 @Composable
 private fun InfoBarTrafficArrows(
@@ -916,9 +894,13 @@ fun InfoBarTrafficCluster(
             enabled = !pinging,
             loading = pinging,
         ) {
-            InfoBarPulseIcon(
-                modifier = Modifier.size(width = 12.dp, height = 8.dp),
-                color = Color.Black,
+            Icon(
+                imageVector = Icons.Filled.Bolt,
+                contentDescription = null,
+                tint = Color.Black,
+                modifier = Modifier
+                    .size(InfoBarActionIconSize + 2.dp)
+                    .rotate(90f),
             )
         }
         if (used != null) {
@@ -985,6 +967,8 @@ fun InfoBarExpiryCluster(
 fun SubscriptionAnnounceContent(
     text: String,
     modifier: Modifier = Modifier,
+    lineSpacing: Dp = 3.dp,
+    hintSpacing: Dp = 2.dp,
 ) {
     val colors = coffemaniaColors()
     val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
@@ -994,11 +978,9 @@ fun SubscriptionAnnounceContent(
     val hintLine = lines.takeIf { it.size > 1 }?.last()
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        verticalArrangement = Arrangement.spacedBy(lineSpacing),
     ) {
         mainLines.forEach { line ->
             Text(
@@ -1018,7 +1000,7 @@ fun SubscriptionAnnounceContent(
                 fontWeight = FontWeight.Normal,
                 textAlign = TextAlign.Center,
                 lineHeight = 16.sp,
-                modifier = Modifier.padding(top = 2.dp),
+                modifier = Modifier.padding(top = hintSpacing),
             )
         }
     }

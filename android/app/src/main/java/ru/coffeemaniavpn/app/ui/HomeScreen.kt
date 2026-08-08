@@ -8,6 +8,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,7 +35,6 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -198,23 +199,51 @@ fun HomeScreen(
                     )
                 }
 
-                ClevCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                ) {
-                    Column {
-                        state.subscriptionInfo
-                            ?.takeIf { it.hasAnnounce }
-                            ?.let { info ->
-                                SubscriptionAnnounceContent(text = info.announce)
-                                HorizontalDivider(color = colors.latte)
-                            }
-                        HomeInfoBar(
-                            state = state,
-                            onRefreshPing = onRefreshPing,
-                            onRefreshConfig = onRefreshConfig,
-                        )
+                // Панель подписки: отступы 1:1 с macOS в процентах ширины панели.
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val screenW = maxWidth
+                    val outerMargin = screenW * 0.05f // 5% от экрана
+                    val panelW = screenW - outerMargin * 2
+                    val corner = panelW * 0.045f // ~4.5% ширины панели
+                    val padX = panelW * 0.05f // 5% внутренний боковой
+                    val padTop = panelW * 0.04f // ≈12% высоты панели
+                    val padBottom = panelW * 0.035f // ≈11% высоты
+                    val lineGap = panelW * 0.008f // ≈2–3% высоты между строками
+                    val sectionGap = panelW * 0.04f // ≈12% высоты до нижнего ряда
+                    val outerVertical = screenW * 0.03f
+
+                    ClevCard(
+                        cornerRadius = corner,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = outerMargin, vertical = outerVertical),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = padX,
+                                    end = padX,
+                                    top = padTop,
+                                    bottom = padBottom,
+                                ),
+                        ) {
+                            state.subscriptionInfo
+                                ?.takeIf { it.hasAnnounce }
+                                ?.let { info ->
+                                    SubscriptionAnnounceContent(
+                                        text = info.announce,
+                                        lineSpacing = lineGap,
+                                        hintSpacing = lineGap * 0.5f,
+                                    )
+                                    Spacer(modifier = Modifier.height(sectionGap))
+                                }
+                            HomeInfoBar(
+                                state = state,
+                                onRefreshPing = onRefreshPing,
+                                onRefreshConfig = onRefreshConfig,
+                            )
+                        }
                     }
                 }
 
@@ -367,9 +396,7 @@ private fun HomeInfoBar(
 ) {
     val info = state.subscriptionInfo
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -406,6 +433,7 @@ private fun QuickServerRow(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = 52.dp)
                 .clip(shape)
                 .background(colors.cappuccino)
                 .border(
@@ -420,13 +448,13 @@ private fun QuickServerRow(
                         if (!favorite) showFavoriteMenu = true
                     },
                 )
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ServerListFlag(flag = display.flag, height = 18.dp)
+                ServerListFlag(flag = display.flag, height = 24.dp)
                 ServerTitleWithProtocolBadge(
                     title = display.title,
                     protocolLabel = display.protocolLabel,
@@ -443,7 +471,7 @@ private fun QuickServerRow(
                     display.pingMs != null -> PingLabel(ms = display.pingMs)
                     else -> Unit
                 }
-                ClevSelectionIndicator(selected = selected)
+                ClevSelectionIndicator(selected = selected, size = 20.dp)
             }
         }
         DropdownMenu(
