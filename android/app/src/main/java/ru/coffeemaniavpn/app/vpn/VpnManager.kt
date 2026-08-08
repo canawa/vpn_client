@@ -48,6 +48,7 @@ object VpnManager {
             else -> Unit
         }
         _status.value = value
+        VpnTileService.requestUpdate(App.instance)
     }
 
     private fun startElapsedTicker() {

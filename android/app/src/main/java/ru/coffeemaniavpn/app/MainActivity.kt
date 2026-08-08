@@ -19,6 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import ru.coffeemaniavpn.app.BuildConfig
 import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.ktx.hasPermission
@@ -30,8 +32,14 @@ import ru.coffeemaniavpn.app.ui.MainViewModel
 import ru.coffeemaniavpn.app.util.AppLog
 import ru.coffeemaniavpn.app.util.LogExporter
 import ru.coffeemaniavpn.app.vpn.VpnManager
+import ru.coffeemaniavpn.app.vpn.VpnQuickConnect
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        const val ACTION_CONNECT_FROM_TILE = "ru.coffeemaniavpn.app.action.CONNECT_FROM_TILE"
+        const val EXTRA_CONNECT_FROM_TILE = "connect_from_tile"
+    }
+
     private val viewModel: MainViewModel by viewModels()
     private var pendingConnectNode: ProxyNode? = null
 
@@ -121,6 +129,7 @@ class MainActivity : ComponentActivity() {
             reportFullyDrawn()
             AppLog.i("MainActivity setContent ok")
             handleDeepLinkIntent(intent)
+            handleTileConnectIntent(intent)
         } catch (t: Throwable) {
             AppLog.e("MainActivity.onCreate failed", t)
             throw t
@@ -136,6 +145,25 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleDeepLinkIntent(intent)
+        handleTileConnectIntent(intent)
+    }
+
+    private fun handleTileConnectIntent(intent: Intent?) {
+        if (intent == null) return
+        val fromTile = intent.action == ACTION_CONNECT_FROM_TILE ||
+            intent.getBooleanExtra(EXTRA_CONNECT_FROM_TILE, false)
+        if (!fromTile) return
+        intent.action = null
+        intent.removeExtra(EXTRA_CONNECT_FROM_TILE)
+        AppLog.i("MainActivity connect from QS tile")
+        lifecycleScope.launch {
+            val node = VpnQuickConnect.loadSelectedNode(this@MainActivity)
+            if (node == null) {
+                toast("Добавьте подписку, чтобы подключиться")
+                return@launch
+            }
+            launchConnect(node)
+        }
     }
 
     private fun handleDeepLinkIntent(intent: Intent?) {
