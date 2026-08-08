@@ -15,8 +15,8 @@ android {
         applicationId = "ru.porozoffvpn.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.0.8"
+        versionCode = 11
+        versionName = "1.0.9"
         buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://porozoffvpn.ru\"")
         buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://porozoffvpn.ru\"")
         buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/porozoffvpn_bot\"")

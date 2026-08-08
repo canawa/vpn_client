@@ -72,6 +72,7 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material3.CircularProgressIndicator
 import ru.coffeemaniavpn.app.data.AppLanguage
@@ -122,6 +123,7 @@ fun ClevSettingsHost(
     onDeleteSubscription: () -> Unit,
     onTrafficRoutingModeChange: (TrafficRoutingMode) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
+    onExportLogs: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
@@ -189,6 +191,7 @@ fun ClevSettingsHost(
                     state = state,
                     onRefresh = onRefreshSubscription,
                     onDelete = onDeleteSubscription,
+                    onExportLogs = onExportLogs,
                 )
                 ClevSettingsTab.Language -> ClevLanguageTab(
                     language = state.appLanguage,
@@ -897,6 +900,7 @@ private fun ClevSubscriptionTab(
     state: MainUiState,
     onRefresh: () -> Unit,
     onDelete: () -> Unit,
+    onExportLogs: () -> Unit,
 ) {
     val colors = coffemaniaColors()
     val context = LocalContext.current
@@ -1027,6 +1031,35 @@ private fun ClevSubscriptionTab(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onExportLogs)
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Description,
+                    contentDescription = null,
+                    tint = colors.mocha,
+                    modifier = Modifier.size(16.dp),
+                )
+                Column {
+                    Text(
+                        text = stringResource(R.string.clev_export_logs),
+                        color = colors.espresso,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = stringResource(R.string.clev_export_logs_hint),
+                        color = colors.mocha,
+                        fontSize = 11.sp,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))

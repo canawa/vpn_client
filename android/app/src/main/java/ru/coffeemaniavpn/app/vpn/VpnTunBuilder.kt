@@ -66,7 +66,14 @@ object VpnTunBuilder {
 
         when (settings.appsMode) {
             SplitTunnelAppsMode.IncludeOnly -> {
-                packages.filter { it != selfPackage }.forEach { pkg ->
+                val allowed = packages.filter { it != selfPackage }
+                if (allowed.isEmpty()) {
+                    // Нет приложений в whitelist — полный туннель (иначе трафик вообще не пойдёт в VPN).
+                    builder.addDisallowedApplication(selfPackage)
+                    AppLog.w("VpnTunBuilder IncludeOnly with empty allow-list → full tunnel")
+                    return
+                }
+                allowed.forEach { pkg ->
                     try {
                         builder.addAllowedApplication(pkg)
                     } catch (e: NameNotFoundException) {

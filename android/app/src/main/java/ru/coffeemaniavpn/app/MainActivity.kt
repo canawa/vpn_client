@@ -29,6 +29,8 @@ import ru.coffeemaniavpn.app.ui.CoffemaniaTheme
 import ru.coffeemaniavpn.app.ui.MainViewModel
 import ru.coffeemaniavpn.app.util.AppLocale
 import ru.coffeemaniavpn.app.util.AppLog
+import ru.coffeemaniavpn.app.util.LogExporter
+import ru.coffeemaniavpn.app.vpn.VpnDiagnostics
 import ru.coffeemaniavpn.app.vpn.VpnManager
 import ru.coffeemaniavpn.app.vpn.VpnQuickConnect
 
@@ -110,6 +112,7 @@ class MainActivity : AppCompatActivity() {
                             onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
                             onTrafficRoutingModeChange = viewModel::setTrafficRoutingMode,
                             onLanguageChange = ::changeLanguage,
+                            onExportLogs = ::shareLogs,
                         )
                     }
                 }
@@ -187,5 +190,18 @@ class MainActivity : AppCompatActivity() {
             VpnManager.connect(node)
             pendingConnectNode = null
         }
+    }
+
+    private fun shareLogs() {
+        VpnDiagnostics.snapshot("user-export")
+        AppLog.i("shareLogs requested")
+        startActivity(
+            Intent.createChooser(
+                LogExporter.createShareIntent(this),
+                getString(R.string.clev_export_logs_chooser),
+            ).apply {
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            },
+        )
     }
 }

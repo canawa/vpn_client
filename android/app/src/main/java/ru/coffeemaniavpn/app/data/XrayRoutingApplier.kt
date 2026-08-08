@@ -85,9 +85,17 @@ object XrayRoutingApplier {
 
         val finalOutbound = when (TrafficRoutingStore.mode) {
             TrafficRoutingMode.GLOBAL -> "proxy"
-            TrafficRoutingMode.CUSTOM -> if (rules.isEmpty()) "proxy" else "direct"
+            TrafficRoutingMode.CUSTOM -> {
+                // Правила «через VPN» = whitelist: остальное direct.
+                // Только «мимо VPN» = blacklist: остальное через proxy.
+                val hasProxyRule = rules.any { it.target == RoutingRuleTarget.Proxy }
+                if (hasProxyRule) "direct" else "proxy"
+            }
         }
         putFinalRule(routing, finalOutbound)
+        AppLog.i(
+            "XrayRoutingApplier customRules=${rules.size} mode=${TrafficRoutingStore.mode} final=$finalOutbound",
+        )
     }
 
     private fun putFinalRule(routing: JSONObject, outboundTag: String) {

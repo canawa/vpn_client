@@ -83,15 +83,19 @@ class KillSwitchVpnService : VpnService() {
             val intent = Intent(context, KillSwitchVpnService::class.java).apply {
                 action = ACTION_ENGAGE
             }
-            context.startService(intent)
+            runCatching { context.startService(intent) }
+                .onFailure { AppLog.w("KillSwitch engage startService failed: ${it.message}") }
         }
 
         fun release(context: android.content.Context) {
+            // TUN закрываем сразу: startService из фона на Android 12+ падает
+            // с BackgroundServiceStartNotAllowedException и рвёт auto-reconnect.
             releaseImmediate()
-            val intent = Intent(context, KillSwitchVpnService::class.java).apply {
-                action = ACTION_RELEASE
+            runCatching {
+                context.stopService(Intent(context, KillSwitchVpnService::class.java))
+            }.onFailure {
+                AppLog.w("KillSwitch stopService failed: ${it.message}")
             }
-            context.startService(intent)
         }
 
         /** Закрывает TUN до запуска основного VPN (Android — один VPN-слот). */

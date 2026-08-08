@@ -51,6 +51,7 @@ fun AppShell(
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     onTrafficRoutingModeChange: (TrafficRoutingMode) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
+    onExportLogs: () -> Unit,
 ) {
     var showSettings by remember { mutableStateOf(false) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
@@ -100,6 +101,7 @@ fun AppShell(
                     onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
                     onTrafficRoutingModeChange = onTrafficRoutingModeChange,
                     onLanguageChange = onLanguageChange,
+                    onExportLogs = onExportLogs,
                 )
             } else {
                 HomeScreen(

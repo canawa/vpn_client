@@ -85,6 +85,11 @@
     <string name="clev_delete_subscription_message">The link and server list will be removed from this device.</string>
     <string name="clev_delete">Delete</string>
     <string name="clev_cancel">Cancel</string>
+    <string name="clev_export_logs">Send logs</string>
+    <string name="clev_export_logs_hint">Helps diagnose connection issues</string>
+    <string name="clev_export_logs_chooser">Send logs via…</string>
+    <string name="clev_export_logs_saved">Logs saved to Downloads: %s</string>
+    <string name="clev_export_logs_failed">Could not save logs</string>
     <string name="msg_invalid_subscription_link">Paste a valid subscription link</string>
     <string name="msg_wait_servers_loading">Wait for servers to load</string>
     <string name="msg_subscription_expired">Subscription expired</string>

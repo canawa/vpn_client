@@ -154,14 +154,41 @@ class BoxService(
             return
         }
 
+        val healthy = waitForProxyHealthy()
+        if (!healthy) {
+            if (VpnManager.status.value != VpnStatus.Stopping) {
+                stopServiceWithError("Сервер не отвечает через прокси. Попробуйте другой.")
+            }
+            return
+        }
+
         VpnManager.setStatus(VpnStatus.Started)
         AppLog.i("BoxService started xrayRunning=${XrayCoreManager.isRunning()}")
-        scheduleProxyHealthCheck()
         startConnectionWatchdog()
         withContext(Dispatchers.Main) {
             activeNotification = notification
             notification.show(connectedNotificationText(connected = true))
         }
+    }
+
+    /** Несколько попыток measureDelay — grpc/handshake может занять пару секунд. */
+    private suspend fun waitForProxyHealthy(): Boolean {
+        for (attempt in 0 until HEALTH_ATTEMPTS) {
+            delay(if (attempt == 0) HEALTH_FIRST_DELAY_MS else HEALTH_RETRY_DELAY_MS)
+            if (VpnManager.status.value == VpnStatus.Stopping) return false
+            if (!XrayCoreManager.isRunning()) {
+                AppLog.w("BoxService proxy health: core not running attempt=${attempt + 1}")
+                continue
+            }
+            val delayMs = XrayCoreManager.measureDelayAny()
+            if (delayMs != null && delayMs > 0) {
+                AppLog.i("BoxService proxy health ok delayMs=$delayMs attempt=${attempt + 1}")
+                return true
+            }
+            AppLog.w("BoxService proxy health failed attempt=${attempt + 1}")
+        }
+        VpnDiagnostics.snapshot("proxy-health-failed")
+        return false
     }
 
     private fun resetForRestart() {
@@ -232,22 +259,6 @@ class BoxService(
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    private fun scheduleProxyHealthCheck() {
-        GlobalScope.launch(Dispatchers.IO) {
-            delay(2_500)
-            if (VpnManager.status.value != VpnStatus.Started) return@launch
-            val delayMs = XrayCoreManager.measureDelayAny()
-            if (delayMs != null && delayMs > 0) {
-                AppLog.i("BoxService proxy health ok delayMs=$delayMs")
-            } else {
-                AppLog.w("BoxService proxy health failed (no response through proxy)")
-                VpnDiagnostics.snapshot("proxy-health-failed")
-            }
-        }
-    }
-
-    /** Периодически проверяет ядро и прокси; при сбоях — авто-переподключение. */
-    @OptIn(DelicateCoroutinesApi::class)
     private fun startConnectionWatchdog() {
         cancelWatchdog()
         watchdogJob = GlobalScope.launch(Dispatchers.IO) {
@@ -293,8 +304,11 @@ class BoxService(
     }
 
     companion object {
-        private const val WATCHDOG_INITIAL_DELAY_MS = 45_000L
-        private const val WATCHDOG_INTERVAL_MS = 45_000L
+        private const val HEALTH_ATTEMPTS = 4
+        private const val HEALTH_FIRST_DELAY_MS = 1_500L
+        private const val HEALTH_RETRY_DELAY_MS = 1_200L
+        private const val WATCHDOG_INITIAL_DELAY_MS = 30_000L
+        private const val WATCHDOG_INTERVAL_MS = 30_000L
         private const val WATCHDOG_FAILURE_THRESHOLD = 2
 
         @Volatile

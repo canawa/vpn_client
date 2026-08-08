@@ -86,6 +86,11 @@
     <string name="clev_delete_subscription_message">Ссылка и список серверов будут удалены с устройства.</string>
     <string name="clev_delete">Удалить</string>
     <string name="clev_cancel">Отмена</string>
+    <string name="clev_export_logs">Отправить логи</string>
+    <string name="clev_export_logs_hint">Поможет найти ошибку подключения</string>
+    <string name="clev_export_logs_chooser">Отправить логи через…</string>
+    <string name="clev_export_logs_saved">Логи сохранены в Загрузки: %s</string>
+    <string name="clev_export_logs_failed">Не удалось сохранить логи</string>
     <string name="msg_invalid_subscription_link">Вставьте верную ссылку подписки</string>
     <string name="msg_wait_servers_loading">Дождитесь загрузки серверов</string>
     <string name="msg_subscription_expired">Подписка истекла</string>
