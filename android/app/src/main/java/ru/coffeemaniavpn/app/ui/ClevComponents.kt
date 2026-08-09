@@ -396,84 +396,138 @@ fun ClevConnectButton(
             }
         }
 
+        // Кнопка: утопленный 3D-колодец (свет сверху-слева).
         Box(
             modifier = Modifier
                 .size(size)
-                .shadow(12.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.5f))
-                .clip(CircleShape)
-                .background(
-                    Brush.verticalGradient(listOf(Color(0xFF30303A), Color(0xFF121217))),
-                )
-                .border(1.dp, Color.White.copy(alpha = 0.06f), CircleShape),
+                .shadow(14.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.55f))
+                .clip(CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            val plateYellow = Color(0xFFFAC300)
-            val plateAmber = Color(0xFFE39A00)
-            val plateDark1 = Color(0xFF24242E)
-            val plateDark2 = Color(0xFF0C0C11)
-            val plateCenter = lerp(plateDark1, plateYellow, plateOnProgress)
-            val plateEdge = lerp(plateDark2, plateAmber, plateOnProgress)
+            val plateYellow = Color(0xFFFFF0A0)
+            val plateAmber = Color(0xFFFFD54F)
+            val bezelHi = lerp(Color(0xFF4A4A54), Color(0xFFFFF8D6), plateOnProgress * 0.85f)
+            val bezelLo = lerp(Color(0xFF141418), Color(0xFFF0B429), plateOnProgress * 0.9f)
+            val wellTop = lerp(Color(0xFF07070A), Color(0xFFD4A017), plateOnProgress * 0.75f)
+            val wellBot = lerp(Color(0xFF22222C), Color(0xFFFFE082), plateOnProgress * 0.9f)
+            val floorHi = lerp(Color(0xFF2C2C36), plateYellow, plateOnProgress)
+            val floorLo = lerp(Color(0xFF16161C), plateAmber, plateOnProgress)
+            val insetShadowAlpha = 0.55f * (1f - plateOnProgress * 0.55f)
+            val rimGlowAlpha = 0.06f + plateOnProgress * 0.10f
 
-            Box(
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val d = this.size.minDimension
+                val r = d / 2f
+
+                // Скос обода: свет сверху-слева → тень снизу-справа
+                drawCircle(
+                    brush = Brush.linearGradient(
+                        colors = listOf(bezelHi, bezelLo),
+                        start = Offset(0f, 0f),
+                        end = Offset(d, d),
+                    ),
+                )
+
+                // Стенка колодца: тёмный верх = «углубление вниз»
+                val wellInset = d * 0.055f
+                drawCircle(
+                    brush = Brush.linearGradient(
+                        colors = listOf(wellTop, wellBot),
+                        start = Offset(d * 0.15f, 0f),
+                        end = Offset(d * 0.85f, d),
+                    ),
+                    radius = r - wellInset,
+                )
+
+                // Inner-shadow по верхней кромке (слабее на жёлтом, чтобы не «грязнить»)
+                drawArc(
+                    brush = Brush.sweepGradient(
+                        0.0f to Color.Transparent,
+                        0.35f to Color.Black.copy(alpha = insetShadowAlpha),
+                        0.55f to Color.Black.copy(alpha = insetShadowAlpha),
+                        0.75f to Color.Transparent,
+                        1.0f to Color.Transparent,
+                    ),
+                    startAngle = 0f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    topLeft = Offset(wellInset, wellInset),
+                    size = Size(d - wellInset * 2f, d - wellInset * 2f),
+                    style = Stroke(width = d * 0.07f),
+                )
+
+                // Пол — блик сверху-слева
+                val floorInset = d * 0.13f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(floorHi, floorLo),
+                        center = Offset(d * 0.38f, d * 0.34f),
+                        radius = r - floorInset * 0.55f,
+                    ),
+                    radius = r - floorInset,
+                )
+
+                // Мягкий блик на нижнем правом ободе
+                drawArc(
+                    color = Color.White.copy(alpha = rimGlowAlpha),
+                    startAngle = 20f,
+                    sweepAngle = 70f,
+                    useCenter = false,
+                    style = Stroke(width = d * 0.035f, cap = StrokeCap.Round),
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .size(size * 0.74f)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(plateCenter, plateEdge),
-                            center = Offset(0.5f, 0.42f),
-                        ),
-                    )
-                    .border(1.5.dp, Color.Black.copy(alpha = 0.45f), CircleShape),
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .padding(horizontal = size * 0.08f),
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.PowerSettingsNew,
-                        contentDescription = null,
-                        tint = when {
-                            uiStatus == ConnectUiStatus.On -> Color.Black.copy(alpha = 0.75f)
-                            showPing || uiStatus == ConnectUiStatus.Busy -> colors.logoYellow
-                            else -> colors.mocha
-                        },
-                        modifier = Modifier.size(size * 0.22f),
+                Icon(
+                    imageVector = Icons.Default.PowerSettingsNew,
+                    contentDescription = null,
+                    tint = when {
+                        uiStatus == ConnectUiStatus.On -> Color.Black.copy(alpha = 0.75f)
+                        showPing || uiStatus == ConnectUiStatus.Busy -> colors.logoYellow
+                        else -> colors.mocha
+                    },
+                    modifier = Modifier.size(size * 0.22f),
+                )
+                Spacer(modifier = Modifier.height(if (uiStatus == ConnectUiStatus.On) 7.dp else 6.dp))
+                if (uiStatus == ConnectUiStatus.On) {
+                    Text(
+                        text = stringResource(R.string.clev_connected),
+                        color = Color.Black.copy(alpha = 0.45f),
+                        fontSize = (size.value * 0.058f).sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 3.sp,
                     )
-                    Spacer(Modifier.height(if (uiStatus == ConnectUiStatus.On) 7.dp else 6.dp))
-                    if (uiStatus == ConnectUiStatus.On) {
-                        Text(
-                            text = stringResource(R.string.clev_connected),
-                            color = Color.Black.copy(alpha = 0.45f),
-                            fontSize = (size.value * 0.058f).sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 3.sp,
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = formatSession(connectionElapsedMs),
-                            color = Color.Black.copy(alpha = 0.7f),
-                            fontSize = (size.value * 0.11f).sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    } else {
-                        val label = when {
-                            showPing -> stringResource(R.string.clev_checking_ping)
-                            uiStatus == ConnectUiStatus.Busy -> stringResource(R.string.clev_connecting)
-                            else -> stringResource(R.string.clev_start)
-                        }
-                        val isLongLabel = showPing || uiStatus == ConnectUiStatus.Busy
-                        Text(
-                            text = label,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = if (isLongLabel) size * 0.08f else 0.dp),
-                            color = colors.mocha,
-                            fontSize = (size.value * if (isLongLabel) 0.055f else 0.075f).sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = if (isLongLabel) 0.sp else 1.sp,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                        )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = formatSession(connectionElapsedMs),
+                        color = Color.Black.copy(alpha = 0.7f),
+                        fontSize = (size.value * 0.11f).sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                } else {
+                    val label = when {
+                        showPing -> stringResource(R.string.clev_checking_ping)
+                        uiStatus == ConnectUiStatus.Busy -> stringResource(R.string.clev_connecting)
+                        else -> stringResource(R.string.clev_start)
                     }
+                    val isLongLabel = showPing || uiStatus == ConnectUiStatus.Busy
+                    Text(
+                        text = label,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = if (isLongLabel) size * 0.02f else 0.dp),
+                        color = colors.mocha,
+                        fontSize = (size.value * if (isLongLabel) 0.055f else 0.075f).sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = if (isLongLabel) 0.sp else 1.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                    )
                 }
             }
         }
