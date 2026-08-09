@@ -380,11 +380,22 @@ fun ClevConnectButton(
             }
 
             if (showRingSpinner) {
+                val spinnerColors = if (showPing) {
+                    listOf(
+                        Color.Transparent,
+                        Color(0xFFFAC300).copy(alpha = 0.25f),
+                        Color(0xFFFAC300),
+                    )
+                } else {
+                    listOf(
+                        Color.Transparent,
+                        Color(0xFFE39A00).copy(alpha = 0.5f),
+                        Color.White,
+                    )
+                }
                 rotate(spin) {
                     drawArc(
-                        brush = Brush.sweepGradient(
-                            listOf(Color.Transparent, Color(0xFFE39A00).copy(alpha = 0.5f), Color.White),
-                        ),
+                        brush = Brush.sweepGradient(spinnerColors),
                         startAngle = -90f,
                         sweepAngle = 72f,
                         useCenter = false,
@@ -404,16 +415,16 @@ fun ClevConnectButton(
                 .clip(CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            val plateYellow = Color(0xFFFFF0A0)
-            val plateAmber = Color(0xFFFFD54F)
-            val bezelHi = lerp(Color(0xFF4A4A54), Color(0xFFFFF8D6), plateOnProgress * 0.85f)
-            val bezelLo = lerp(Color(0xFF141418), Color(0xFFF0B429), plateOnProgress * 0.9f)
-            val wellTop = lerp(Color(0xFF07070A), Color(0xFFD4A017), plateOnProgress * 0.75f)
-            val wellBot = lerp(Color(0xFF22222C), Color(0xFFFFE082), plateOnProgress * 0.9f)
+            val plateYellow = Color(0xFFF5C400)
+            val plateAmber = Color(0xFFE8A200)
+            val bezelHi = lerp(Color(0xFF4A4A54), Color(0xFFFFE082), plateOnProgress * 0.7f)
+            val bezelLo = lerp(Color(0xFF141418), Color(0xFFD48900), plateOnProgress * 0.85f)
+            val wellTop = lerp(Color(0xFF07070A), Color(0xFFA87400), plateOnProgress * 0.7f)
+            val wellBot = lerp(Color(0xFF22222C), Color(0xFFE8B020), plateOnProgress * 0.85f)
             val floorHi = lerp(Color(0xFF2C2C36), plateYellow, plateOnProgress)
             val floorLo = lerp(Color(0xFF16161C), plateAmber, plateOnProgress)
-            val insetShadowAlpha = 0.55f * (1f - plateOnProgress * 0.55f)
-            val rimGlowAlpha = 0.06f + plateOnProgress * 0.10f
+            val insetShadowAlpha = 0.55f * (1f - plateOnProgress * 0.35f)
+            val rimGlowAlpha = 0.06f + plateOnProgress * 0.06f
 
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val d = this.size.minDimension
