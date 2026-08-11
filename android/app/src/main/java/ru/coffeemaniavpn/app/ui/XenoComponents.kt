@@ -544,35 +544,52 @@ fun XenoDashedButton(
     modifier: Modifier = Modifier,
     leadingAccent: String? = "?",
 ) {
-    val colors = coffemaniaColors()
-    val shape = RoundedCornerShape(16.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
-            .clip(shape)
+            .height(47.dp)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
+            // 0.5dp часто пропадает на dpi — рисуем ≥1px, визуально как тонкий stroke
+            val strokeWidth = maxOf(0.5.dp.toPx(), 1f)
+            val dash = 4.dp.toPx()
+            val inset = strokeWidth / 2f
             drawRoundRect(
-                color = colors.latte,
-                style = Stroke(
-                    width = 1.5.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f),
+                color = Color(0xFF6E6E6E),
+                topLeft = androidx.compose.ui.geometry.Offset(inset, inset),
+                size = androidx.compose.ui.geometry.Size(
+                    size.width - strokeWidth,
+                    size.height - strokeWidth,
                 ),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx()),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(14.dp.toPx()),
+                style = Stroke(
+                    width = strokeWidth,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash), 0f),
+                ),
             )
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             leadingAccent?.let {
-                Text(text = it, color = colors.primary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = it,
+                    color = Color(0xFF00E091),
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                )
             }
-            Text(text = text, color = colors.mocha, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(
+                text = text,
+                color = Color(0xFF9A9A9A),
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 13.sp,
+            )
         }
     }
 }
