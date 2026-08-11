@@ -26,6 +26,19 @@ data class SubscriptionInfo(
 ) {
     val used: Long get() = (upload + download).coerceAtLeast(0)
     val isUnlimitedTraffic: Boolean get() = total <= 0
+
+    /** План ≥ 450 ГБ отображаем как «безлимит». */
+    fun isDisplayUnlimitedTraffic(): Boolean =
+        isUnlimitedTraffic || total >= UNLIMITED_DISPLAY_THRESHOLD_BYTES
+
+    fun displayTrafficTotalLabel(): String {
+        val resources = runCatching { App.instance.resources }.getOrNull()
+        if (isDisplayUnlimitedTraffic()) {
+            return resources?.getString(R.string.subscription_traffic_unlimited)
+                ?: "безлимит"
+        }
+        return if (total > 0) formatTrafficBytes(total) else "∞"
+    }
     val usageFraction: Float
         get() = if (total > 0) (used.toFloat() / total.toFloat()).coerceIn(0f, 1f) else 0f
 
@@ -90,6 +103,8 @@ data class SubscriptionFetchResult(
     val nodes: List<ProxyNode>,
     val info: SubscriptionInfo?,
 )
+
+private const val UNLIMITED_DISPLAY_THRESHOLD_BYTES = 450L * 1024 * 1024 * 1024
 
 object SubscriptionInfoParser {
     fun parseFromResponse(

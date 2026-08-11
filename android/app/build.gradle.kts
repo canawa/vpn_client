@@ -12,15 +12,15 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "ru.porozoffvpn.app"
+        applicationId = "ru.coffeemaniavpn.clev"
         minSdk = 26
         targetSdk = 36
         versionCode = 11
         versionName = "1.0.9"
-        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://porozoffvpn.ru\"")
-        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://porozoffvpn.ru\"")
-        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/porozoffvpn_bot\"")
-        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/porozoffvpn_bot\"")
+        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://cl.xenovpn.top\"")
+        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://cl.xenovpn.top\"")
+        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/VPN_xenobot\"")
+        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/VPN_xenobot\"")
     }
 
     signingConfigs {

@@ -262,6 +262,16 @@ class AppPreferences(private val context: Context) {
         }
     }
 
+    val hasAcceptedConsent: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[KEY_CONSENT_ACCEPTED] ?: false }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun setConsentAccepted(accepted: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_CONSENT_ACCEPTED] = accepted
+        }
+    }
+
     val appLanguage: Flow<AppLanguage> = context.dataStore.data
         .map { prefs -> AppLanguage.fromStored(prefs[KEY_APP_LANGUAGE]) }
         .flowOn(Dispatchers.IO)
@@ -349,5 +359,6 @@ class AppPreferences(private val context: Context) {
         private val KEY_HOME_FILTER_ORDER = stringPreferencesKey("home_filter_order")
         private val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
         private val KEY_TRAFFIC_ROUTING_MODE = stringPreferencesKey("traffic_routing_mode")
+        private val KEY_CONSENT_ACCEPTED = booleanPreferencesKey("consent_accepted")
     }
 }

@@ -10,26 +10,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.LocalTextStyle
 
 /**
- * Палитра ClevVPN: чёрный фон + жёлтый акцент (как Theme.swift).
+ * Палитра XENO VPN (Figma): чёрный фон + бирюзовый акцент.
  * API coffemaniaColors() сохранён для совместимости вызовов.
  */
 object CoffemaniaColors {
-    val Background = Color(0xFF0B0B0D)
-    val Surface = Color(0xFF16161A)
-    val SurfaceLight = Color(0xFF1F1F25)
-    val Stroke = Color(0xFF2A2A31)
+    val Background = Color(0xFF0A0A0A)
+    val Surface = Color(0xFF141414)
+    val SurfaceLight = Color(0xFF1A1A1A)
+    val Stroke = Color(0xFF252525)
 
-    val Yellow = Color(0xFFFFC400)
-    val Amber = Color(0xFFD18700)
-    val LogoYellow = Color(0xFFFAC300)
-    val LogoAmber = Color(0xFFE39A00)
+    val Yellow = Color(0xFF00E5A0)
+    val Amber = Color(0xFF00B884)
+    val LogoYellow = Color(0xFF00E5A0)
+    val LogoAmber = Color(0xFF00B884)
 
-    val TextPrimary = Color(0xFFF2F2F5)
-    val TextSecondary = Color(0xFF9A9AA3)
+    val TextPrimary = Color(0xFFFFFFFF)
+    val TextSecondary = Color(0xFF6E6E6E)
 
-    val Green = Color(0xFF30D158)
-    val Orange = Color(0xFFFF9F0A)
-    val Red = Color(0xFFFF453A)
+    val Green = Color(0xFF00E5A0)
+    val Orange = Color(0xFFFFB020)
+    val Red = Color(0xFFFF5252)
 
     val YellowGradient = Brush.linearGradient(listOf(Yellow, Amber))
 
@@ -79,9 +79,10 @@ object CoffemaniaColors {
     val ConnectDisabledIcon = TextSecondary
 
     fun pingColor(latencyMs: Int): Color = when {
-        latencyMs < 120 -> PingGood
-        latencyMs < 300 -> PingMedium
-        else -> PingBad
+        latencyMs < 80 -> Yellow
+        latencyMs < 150 -> Green
+        latencyMs < 300 -> Orange
+        else -> Red
     }
 }
 

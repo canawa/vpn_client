@@ -38,6 +38,8 @@ import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 import ru.coffeemaniavpn.app.data.SubscriptionInfo
 import ru.coffeemaniavpn.app.data.SubscriptionParser
 import ru.coffeemaniavpn.app.data.SubscriptionRepository
+import ru.coffeemaniavpn.app.data.LoadBalancer
+import ru.coffeemaniavpn.app.data.SubscriptionUrlValidator
 import ru.coffeemaniavpn.app.data.TrafficRoutingMode
 import org.json.JSONObject
 import ru.coffeemaniavpn.app.deeplink.DeepLinkAction
@@ -74,6 +76,9 @@ data class MainUiState(
     val homeFilterOrder: List<String> = HomeFilterOrder.DEFAULT,
     val appLanguage: AppLanguage = AppLanguage.DEFAULT,
     val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
+    val hasAcceptedConsent: Boolean = false,
+    val clipboardSubscriptionUrl: String? = null,
+    val showForeignSubscriptionPrompt: Boolean = false,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -96,6 +101,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val message = MutableStateFlow<String?>(null)
     private val error = MutableStateFlow<String?>(null)
     private val startupCrash = MutableStateFlow<String?>(null)
+    private val clipboardSubscriptionUrl = MutableStateFlow<String?>(null)
+    private val showForeignSubscriptionPrompt = MutableStateFlow(false)
     private var subscriptionAutoUpdateJob: Job? = null
     private var pendingConnectNodeId: String? = null
 
@@ -143,8 +150,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 preferences.appLanguage,
                 preferences.trafficRoutingMode,
                 preferences.homeFilterOrder,
-            ) { language, routingMode, filterOrder ->
-                Triple(language, routingMode, filterOrder)
+                preferences.hasAcceptedConsent,
+            ) { language, routingMode, filterOrder, consentAccepted ->
+                Quad(language, routingMode, filterOrder, consentAccepted)
             },
         ) { connectionSettings, autoUpdateInterval, lastUpdatedAt, favorites, langRouting ->
             SettingsUiState(
@@ -155,13 +163,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 appLanguage = langRouting.first,
                 trafficRoutingMode = langRouting.second,
                 homeFilterOrder = langRouting.third,
+                hasAcceptedConsent = langRouting.fourth,
             )
         },
-        startupCrash,
-    ) { savedData, vpnData, localData, settingsData, crash ->
+        combine(startupCrash, clipboardSubscriptionUrl, showForeignSubscriptionPrompt) { crash, clip, foreign ->
+            Triple(crash, clip, foreign)
+        },
+    ) { savedData, vpnData, localData, settingsData, extras ->
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, downlinkBps, uplinkBps, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
+        val (crash, clipUrl, foreignPrompt) = extras
 
         MainUiState(
             subscriptionUrl = inputUrl.trim().ifBlank { savedUrl.trim() },
@@ -185,6 +197,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             homeFilterOrder = settingsData.homeFilterOrder,
             appLanguage = settingsData.appLanguage,
             trafficRoutingMode = settingsData.trafficRoutingMode,
+            hasAcceptedConsent = settingsData.hasAcceptedConsent,
+            clipboardSubscriptionUrl = clipUrl,
+            showForeignSubscriptionPrompt = foreignPrompt,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -245,7 +260,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (status != VpnStatus.Stopped) return@collect
                 val nodeId = pendingConnectNodeId ?: return@collect
                 pendingConnectNodeId = null
-                val node = uiState.value.nodes.find { it.id == nodeId } ?: return@collect
+                val node = if (nodeId == LoadBalancer.AUTO_NODE_ID) {
+                    resolveConnectNode()
+                } else {
+                    uiState.value.nodes.find { it.id == nodeId }
+                } ?: return@collect
                 _connectRequests.emit(node)
             }
         }
@@ -256,7 +275,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             restoreSubscriptionSession()
             VpnAutoReconnect.tryReconnectOnResume()
             maybeAutoRefreshSubscriptionOnResume()
+            checkClipboardForSubscription()
         }
+    }
+
+    fun acceptConsent() {
+        viewModelScope.launch(Dispatchers.IO) {
+            preferences.setConsentAccepted(true)
+        }
+    }
+
+    fun checkClipboardForSubscription() {
+        if (uiState.value.subscriptionUrl.isNotBlank()) return
+        val text = getApplication<Application>().readClipboardText()?.trim().orEmpty()
+        if (text.isBlank() || !SubscriptionUrlValidator.looksLikeSubscriptionUrl(text)) return
+        clipboardSubscriptionUrl.value = text
+    }
+
+    fun acceptClipboardSubscription() {
+        val url = clipboardSubscriptionUrl.value ?: return
+        clipboardSubscriptionUrl.value = null
+        importSubscriptionUrl(url)
+    }
+
+    fun dismissClipboardSubscription() {
+        clipboardSubscriptionUrl.value = null
+    }
+
+    fun dismissForeignSubscriptionPrompt() {
+        showForeignSubscriptionPrompt.value = false
+    }
+
+    fun importSubscriptionUrl(url: String) = addSubscriptionUrl(url)
+
+    private fun addSubscriptionUrl(url: String) {
+        if (!SubscriptionUrlValidator.isOurSubscription(url)) {
+            showForeignSubscriptionPrompt.value = true
+            error.value = appStr(R.string.msg_subscription_not_ours)
+            return
+        }
+        subscriptionUrlInput.value = url.trim()
+        message.value = appStr(R.string.msg_link_pasted)
+        refreshConfig(showUrlRequiredError = false)
     }
 
     fun setSubscriptionAutoUpdateInterval(interval: SubscriptionAutoUpdateInterval) {
@@ -489,10 +549,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             error.value = invalidSubscriptionLink()
             return
         }
-        subscriptionUrlInput.value = text
-        message.value = appStr(R.string.msg_link_pasted)
+        if (!SubscriptionUrlValidator.looksLikeSubscriptionUrl(text)) {
+            error.value = invalidSubscriptionLink()
+            return
+        }
+        addSubscriptionUrl(text)
         AppLog.i("pasteSubscriptionFromClipboard urlLen=${text.length}")
-        refreshConfig(showUrlRequiredError = false)
     }
 
     fun deleteSubscription() {
@@ -686,9 +748,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         clearMessages()
         if (!prepareConnect()) return
 
+        if (nodeId == LoadBalancer.AUTO_NODE_ID) {
+            selectAutoBalancer()
+            val node = resolveConnectNode() ?: return
+            emitConnectRequest(node)
+            return
+        }
+
         val node = uiState.value.nodes.find { it.id == nodeId } ?: return
         selectNode(nodeId)
+        emitConnectRequest(node, nodeId)
+    }
 
+    private fun emitConnectRequest(node: ProxyNode, nodeId: String = node.id) {
         when (VpnManager.status.value) {
             VpnStatus.Stopped -> {
                 viewModelScope.launch { _connectRequests.emit(node) }
@@ -799,9 +871,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun selectedNode(): ProxyNode? {
+    fun selectedNode(): ProxyNode? = resolveConnectNode()
+
+    fun resolveConnectNode(): ProxyNode? {
         val state = uiState.value
+        if (state.selectedNodeId == LoadBalancer.AUTO_NODE_ID) {
+            return LoadBalancer.pickBest(state.nodes, state.nodePings)
+        }
         return state.nodes.find { it.id == state.selectedNodeId }
+    }
+
+    fun selectAutoBalancer() {
+        viewModelScope.launch {
+            preferences.setSelectedNodeId(LoadBalancer.AUTO_NODE_ID)
+        }
+    }
+
+    fun refreshServersAndPing() {
+        refreshConfig(showUrlRequiredError = false) { success ->
+            if (success) pingAllNodes()
+        }
     }
 
     private data class VpnUiState(
@@ -836,5 +925,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val homeFilterOrder: List<String> = HomeFilterOrder.DEFAULT,
         val appLanguage: AppLanguage = AppLanguage.DEFAULT,
         val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
+        val hasAcceptedConsent: Boolean = false,
+    )
+
+    private data class Quad<A, B, C, D>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D,
     )
 }

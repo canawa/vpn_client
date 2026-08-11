@@ -10,7 +10,7 @@ After any meaningful change under `android/` (Kotlin, resources, Gradle):
 
 1. Run `cd android; .\gradlew installRelease` (or `installDebug` if release signing fails).
 2. If a device is connected (`adb devices`), launch the app:
-   `adb shell am start -n ru.porozoffvpn.app/ru.coffeemaniavpn.app.MainActivity`
+   `adb shell am start -n ru.coffeemaniavpn.clev/ru.coffeemaniavpn.app.MainActivity`
 3. Do this in the same turn as the code change — do not wait for the user to ask.
 
 If no emulator/device is available, report that and still compile when possible.

@@ -1,85 +1,30 @@
 package ru.coffeemaniavpn.app.ui
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import ru.coffeemaniavpn.app.R
-import ru.coffeemaniavpn.app.data.HomeFilterOrder
-import ru.coffeemaniavpn.app.data.PingState
+import ru.coffeemaniavpn.app.data.LoadBalancer
+import ru.coffeemaniavpn.app.data.formatTrafficRate
 import ru.coffeemaniavpn.app.vpn.VpnStatus
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
-
-@Composable
-private fun ServerCategory.label(): String = stringResource(
-    when (this) {
-        ServerCategory.BYPASS -> R.string.clev_cat_bypass
-        ServerCategory.AUTO -> R.string.clev_auto
-        ServerCategory.SPEED -> R.string.clev_cat_speed
-        ServerCategory.YOUTUBE -> R.string.clev_cat_youtube
-        ServerCategory.GAMING -> R.string.clev_cat_gaming
-    },
-)
-
-@Composable
-private fun homeFilterLabel(id: String): String = when (id) {
-    HomeFilterOrder.ALL_ID -> stringResource(R.string.clev_all)
-    else -> ServerCategory.entries.find { it.name == id }?.label() ?: id
-}
 
 @Composable
 fun HomeScreen(
@@ -87,34 +32,41 @@ fun HomeScreen(
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onPasteLinkClick: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onSelectNode: (String) -> Unit,
-    onConnectToNode: (String) -> Unit,
-    onToggleFavorite: (String) -> Unit,
-    onPingNode: (String) -> Unit,
-    onRefreshPing: () -> Unit,
-    onRefreshConfig: () -> Unit,
-    onReorderFilters: (List<String>) -> Unit,
+    onImportUrl: (String) -> Unit,
+    onOpenServers: () -> Unit,
+    onOpenWebsite: () -> Unit,
+    onAcceptClipboard: () -> Unit,
+    onDismissClipboard: () -> Unit,
+    onDismissForeignPrompt: () -> Unit,
+    onBuyTelegram: () -> Unit,
+    onBuyWebsite: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hasSubscription = state.subscriptionUrl.isNotBlank()
     if (!hasSubscription) {
-        ActivationScreen(
+        XenoActivationFlow(
             modifier = modifier,
             isLoading = state.isLoading,
             error = state.error,
+            clipboardUrl = state.clipboardSubscriptionUrl,
+            showForeignPrompt = state.showForeignSubscriptionPrompt,
             onPasteLinkClick = onPasteLinkClick,
+            onAcceptClipboard = onAcceptClipboard,
+            onDismissClipboard = onDismissClipboard,
+            onDismissForeignPrompt = onDismissForeignPrompt,
+            onBuyTelegram = onBuyTelegram,
+            onBuyWebsite = onBuyWebsite,
+            onImportUrl = onImportUrl,
         )
         return
     }
 
     val colors = coffemaniaColors()
-    val subscriptionExpired = state.subscriptionInfo?.isExpired() == true
     val isConnected = state.vpnStatus == VpnStatus.Started
-    val canConnect = !subscriptionExpired
+    val subscriptionExpired = state.subscriptionInfo?.isExpired() == true
     val connectEnabled = when {
         subscriptionExpired -> isConnected
-        else -> isConnected || canConnect
+        else -> true
     }
     val glow = when {
         isConnected -> ConnectUiStatus.On
@@ -123,79 +75,75 @@ fun HomeScreen(
         else -> ConnectUiStatus.Off
     }
 
-    var filter by remember { mutableStateOf<HomeFilter>(HomeFilter.All) }
-    var filterOrder by remember { mutableStateOf(state.homeFilterOrder) }
-    var isReorderingFilters by remember { mutableStateOf(false) }
-    LaunchedEffect(state.homeFilterOrder) {
-        if (!isReorderingFilters) {
-            filterOrder = state.homeFilterOrder
-        }
-    }
-
-    val filteredNodes = remember(state.nodes, state.favoriteNodeIds, filter) {
-        val nodes = when (val f = filter) {
-            HomeFilter.All -> state.nodes
-            is HomeFilter.Category -> state.nodes.filter { f.category.matches(it.name) }
-        }
-        nodes.sortedWith { a, b ->
-            val aFav = a.id in state.favoriteNodeIds
-            val bFav = b.id in state.favoriteNodeIds
-            when {
-                aFav && !bFav -> -1
-                !aFav && bFav -> 1
-                else -> 0
-            }
-        }
-    }
-
-    val filterListState = rememberLazyListState()
-    val reorderableFilterState = rememberReorderableLazyListState(filterListState) { from, to ->
-        filterOrder = filterOrder.toMutableList().apply {
-            add(to.index, removeAt(from.index))
-        }
-    }
+    val serverDisplay = selectedServerDisplay(state)
+    val flagCode = FlagUtils.resolveCountryCodeOrDefault(serverDisplay.flag)
 
     Box(modifier = modifier.fillMaxSize().background(colors.milkFoam)) {
         StatusGlow(status = glow)
-        Column(modifier = Modifier.fillMaxSize()) {
-            Column(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .padding(top = 4.dp),
-                ) {
-                    ClevLogoFull(
-                        logoHeight = 22.dp,
-                        modifier = Modifier.align(Alignment.Center),
-                    )
-                    IconButton(
-                        onClick = onOpenSettings,
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                    ) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.clev_settings),
-                            tint = colors.mocha,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
+                XenoLogoMark(inCapsule = true, modifier = Modifier.clickable(onClick = onOpenWebsite))
+                XenoGridIconButton(onClick = onOpenWebsite)
+            }
 
-                ClevConnectButton(
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                XenoConnectButton(
                     vpnStatus = state.vpnStatus,
-                    connectionElapsedMs = state.connectionElapsedMs,
                     enabled = connectEnabled,
-                    isPinging = state.isPinging && !isConnected,
                     onClick = {
                         if (isConnected) onDisconnectClick() else onConnectClick()
                     },
-                    size = 140.dp,
-                    modifier = Modifier.padding(top = 2.dp),
+                    size = 168.dp,
                 )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Text(
+                    text = when {
+                        isConnected -> stringResource(R.string.xeno_status_connected)
+                        state.vpnStatus == VpnStatus.Starting -> stringResource(R.string.clev_connecting)
+                        else -> stringResource(R.string.xeno_status_disconnected)
+                    }.uppercase(),
+                    color = if (isConnected) colors.primary else ColorGraySoft,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    letterSpacing = 2.sp,
+                    fontFamily = FontFamily.Monospace,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = when {
+                        isConnected && state.connectionElapsedMs > 0 ->
+                            formatSessionXeno(state.connectionElapsedMs)
+                        isConnected -> stringResource(R.string.xeno_tap_disconnect)
+                        else -> stringResource(R.string.xeno_tap_connect)
+                    },
+                    color = if (isConnected) colors.espresso else colors.mocha,
+                    fontSize = if (isConnected) 16.sp else 13.sp,
+                    fontFamily = if (isConnected) FontFamily.Monospace else FontFamily.Default,
+                    textAlign = TextAlign.Center,
+                    letterSpacing = if (isConnected) 1.sp else 0.sp,
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+                XenoSquareDashes(active = isConnected)
 
                 state.error?.takeIf { it.isNotBlank() }?.let { err ->
                     Text(
@@ -203,364 +151,105 @@ fun HomeScreen(
                         color = colors.error,
                         fontSize = 11.sp,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-                    )
-                }
-
-                if (subscriptionExpired) {
-                    Text(
-                        text = stringResource(R.string.clev_subscription_expired),
-                        color = colors.error,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-
-                // Компактная панель подписки — больше места под список серверов.
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val screenW = maxWidth
-                    val outerMargin = screenW * 0.05f
-                    val panelW = screenW - outerMargin * 2
-                    val corner = panelW * 0.035f
-                    val padX = panelW * 0.04f
-                    val padTop = panelW * 0.022f
-                    val padBottom = panelW * 0.02f
-                    val lineGap = panelW * 0.004f
-                    val sectionGap = panelW * 0.018f
-                    val outerVertical = screenW * 0.012f
-
-                    ClevCard(
-                        cornerRadius = corner,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = outerMargin, vertical = outerVertical),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    start = padX,
-                                    end = padX,
-                                    top = padTop,
-                                    bottom = padBottom,
-                                ),
-                        ) {
-                            state.subscriptionInfo
-                                ?.takeIf { it.hasAnnounce }
-                                ?.let { info ->
-                                    SubscriptionAnnounceContent(
-                                        text = info.announce,
-                                        lineSpacing = lineGap,
-                                        hintSpacing = lineGap * 0.5f,
-                                        compact = true,
-                                    )
-                                    Spacer(modifier = Modifier.height(sectionGap))
-                                }
-                            HomeInfoBar(
-                                state = state,
-                                onRefreshPing = onRefreshPing,
-                                onRefreshConfig = onRefreshConfig,
-                            )
-                        }
-                    }
-                }
-
-                LazyRow(
-                    state = filterListState,
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(filterOrder, key = { it }) { id ->
-                        ReorderableItem(reorderableFilterState, key = id) { isDragging ->
-                            val interactionSource = remember { MutableInteractionSource() }
-                            ClevFilterChip(
-                                label = homeFilterLabel(id),
-                                selected = when (val f = filter) {
-                                    HomeFilter.All -> id == HomeFilterOrder.ALL_ID
-                                    is HomeFilter.Category -> id == f.category.name
-                                },
-                                onClick = {
-                                    homeFilterFromId(id)?.let { filter = it }
-                                },
-                                modifier = Modifier
-                                    .zIndex(if (isDragging) 1f else 0f)
-                                    .graphicsLayer {
-                                        val scale = if (isDragging) 1.06f else 1f
-                                        scaleX = scale
-                                        scaleY = scale
-                                    }
-                                    .longPressDraggableHandle(
-                                        interactionSource = interactionSource,
-                                        onDragStarted = { isReorderingFilters = true },
-                                        onDragStopped = {
-                                            isReorderingFilters = false
-                                            onReorderFilters(filterOrder)
-                                        },
-                                    ),
-                            )
-                        }
-                    }
-                }
-            }
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(filteredNodes, key = { it.id }) { node ->
-                    val display = ServerDisplayMapper.map(node, state.nodePings[node.id])
-                    QuickServerRow(
-                        display = display,
-                        selected = state.selectedNodeId == node.id,
-                        favorite = node.id in state.favoriteNodeIds,
-                        isPinging = state.nodePings[node.id] is PingState.Loading,
-                        onClick = { onSelectNode(node.id) },
-                        onDoubleClick = { onConnectToNode(node.id) },
-                        onToggleFavorite = { onToggleFavorite(node.id) },
-                        onPing = { onPingNode(node.id) },
+                            .padding(top = 10.dp)
+                            .padding(horizontal = 12.dp),
                     )
                 }
             }
+
+            XenoServerCard(
+                flagCode = flagCode,
+                title = serverDisplay.title,
+                subtitle = serverDisplay.subtitle.ifBlank { serverDisplay.title },
+                onClick = onOpenServers,
+                pingMs = serverDisplay.pingMs,
+                connected = isConnected,
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            XenoSubscriptionCard(
+                info = state.subscriptionInfo,
+                hasSubscription = hasSubscription,
+            )
+            if (isConnected) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    Text(
+                        text = "↓ ${formatTrafficRate(state.downlinkBytesPerSec)}",
+                        color = colors.espresso,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp,
+                    )
+                    Text(
+                        text = "↑ ${formatTrafficRate(state.uplinkBytesPerSec)}",
+                        color = colors.espresso,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp,
+                    )
+                }
+            } else if (hasSubscription && !subscriptionExpired) {
+                Spacer(modifier = Modifier.height(12.dp))
+                XenoOutlineButton(
+                    text = stringResource(R.string.xeno_test_connection),
+                    onClick = onConnectClick,
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
 
+private val ColorGraySoft = androidx.compose.ui.graphics.Color(0xFFB0B0B0)
+
 @Composable
-fun ActivationScreen(
-    isLoading: Boolean,
-    error: String?,
-    onPasteLinkClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = coffemaniaColors()
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.milkFoam)
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(modifier = Modifier.weight(1f))
-        ClevLogo(height = 72.dp)
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = buildAnnotatedString {
-                append("Clev")
-                addStyle(
-                    SpanStyle(
-                        color = colors.espresso,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 34.sp,
-                    ),
-                    0,
-                    4,
-                )
-                append("VPN")
-                addStyle(
-                    SpanStyle(
-                        color = colors.yellow,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 34.sp,
-                    ),
-                    4,
-                    7,
-                )
-            },
+private fun selectedServerDisplay(state: MainUiState): ServerDisplay {
+    val selectedId = state.selectedNodeId
+    return when {
+        selectedId == LoadBalancer.AUTO_NODE_ID -> ServerDisplay(
+            flag = FlagUtils.DEFAULT_FLAG_EMOJI,
+            title = stringResource(R.string.xeno_auto),
+            subtitle = stringResource(R.string.xeno_auto_subtitle),
+            protocolLabel = "",
+            pingText = "",
+            pingMs = null,
         )
-        Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = stringResource(R.string.clev_tagline),
-            color = colors.mocha,
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(28.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(Brush.linearGradient(listOf(colors.yellow, colors.amber)))
-                .clickable(enabled = !isLoading, onClick = onPasteLinkClick)
-                .padding(vertical = 16.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    color = Color.Black,
-                    strokeWidth = 2.dp,
+        else -> {
+            val node = state.nodes.find { it.id == selectedId } ?: state.nodes.firstOrNull()
+            if (node == null) {
+                ServerDisplay(
+                    flag = FlagUtils.DEFAULT_FLAG_EMOJI,
+                    title = stringResource(R.string.xeno_no_server),
+                    subtitle = stringResource(R.string.xeno_import_for_servers),
+                    protocolLabel = "",
+                    pingText = "",
+                    pingMs = null,
                 )
             } else {
-                Text(
-                    text = stringResource(R.string.clev_paste_clipboard),
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                )
-            }
-        }
-        error?.let {
-            Text(
-                text = it,
-                color = colors.error,
-                fontSize = 13.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 12.dp),
-            )
-        }
-        Spacer(modifier = Modifier.weight(1f))
-        Text(
-            text = stringResource(R.string.clev_key_hint),
-            color = colors.mocha,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(bottom = 16.dp),
-        )
-    }
-}
-
-@Composable
-private fun HomeInfoBar(
-    state: MainUiState,
-    onRefreshPing: () -> Unit,
-    onRefreshConfig: () -> Unit,
-) {
-    val info = state.subscriptionInfo
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        InfoBarTrafficCluster(
-            onPingClick = onRefreshPing,
-            pinging = state.isPinging,
-            used = info?.used,
-            modifier = Modifier.weight(1f),
-        )
-
-        InfoBarExpiryCluster(
-            expireLabel = info?.expireCalendarLabel(),
-            onRefreshClick = onRefreshConfig,
-            refreshing = state.isLoading,
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun QuickServerRow(
-    display: ServerDisplay,
-    selected: Boolean,
-    favorite: Boolean,
-    isPinging: Boolean,
-    onClick: () -> Unit,
-    onDoubleClick: () -> Unit,
-    onToggleFavorite: () -> Unit,
-    onPing: () -> Unit,
-) {
-    val colors = coffemaniaColors()
-    val shape = RoundedCornerShape(13.dp)
-    var showMenu by remember { mutableStateOf(false) }
-    Box {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 52.dp)
-                .clip(shape)
-                .background(colors.cappuccino)
-                .border(
-                    width = 1.dp,
-                    color = if (selected) colors.yellow.copy(alpha = 0.65f) else colors.latte,
-                    shape = shape,
-                )
-                .combinedClickable(
-                    onClick = onClick,
-                    onDoubleClick = onDoubleClick,
-                    onLongClick = { showMenu = true },
-                )
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ServerListFlag(flag = display.flag, height = 24.dp)
-                ServerTitleWithProtocolBadge(
-                    title = display.title,
-                    protocolLabel = display.protocolLabel,
-                    favorite = favorite,
-                    onFavoriteClick = onToggleFavorite,
-                    modifier = Modifier.weight(1f),
-                )
-                when {
-                    isPinging -> CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = colors.yellow,
-                    )
-                    display.pingMs != null -> PingLabel(ms = display.pingMs)
-                    else -> Unit
+                ServerDisplayMapper.map(node, state.nodePings[node.id]).let { d ->
+                    val subtitle = d.group?.takeIf { it.isNotBlank() }
+                        ?: d.subtitle.ifBlank { node.host }
+                    d.copy(subtitle = subtitle)
                 }
-                ClevSelectionIndicator(selected = selected, size = 20.dp)
             }
         }
-        DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = { showMenu = false },
-            offset = DpOffset(12.dp, 0.dp),
-            containerColor = colors.cappuccino,
-            shape = RoundedCornerShape(10.dp),
-        ) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = stringResource(
-                            if (favorite) R.string.clev_remove_favorite else R.string.clev_add_favorite,
-                        ),
-                        color = colors.espresso,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                },
-                onClick = {
-                    showMenu = false
-                    onToggleFavorite()
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.Star,
-                        contentDescription = null,
-                        tint = colors.yellow,
-                        modifier = Modifier.size(16.dp),
-                    )
-                },
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = stringResource(R.string.clev_ping_server),
-                        color = colors.espresso,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                },
-                onClick = {
-                    showMenu = false
-                    onPing()
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.Bolt,
-                        contentDescription = null,
-                        tint = colors.yellow,
-                        modifier = Modifier.size(16.dp),
-                    )
-                },
-            )
-        }
+    }
+}
+
+private fun formatSessionXeno(elapsedMs: Long): String {
+    val totalSec = (elapsedMs / 1000).coerceAtLeast(0)
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    val s = totalSec % 60
+    return "%02d : %02d : %02d".format(h, m, s)
+}
+
+fun openExternalUrl(context: android.content.Context, url: String) {
+    runCatching {
+        context.startActivity(
+            android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)),
+        )
     }
 }

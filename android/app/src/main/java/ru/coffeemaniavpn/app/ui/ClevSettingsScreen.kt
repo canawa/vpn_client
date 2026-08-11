@@ -61,7 +61,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import ru.coffeemaniavpn.app.R
+import ru.coffeemaniavpn.app.BuildConfig
+import ru.coffeemaniavpn.app.data.SubscriptionUrlValidator
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
@@ -82,8 +83,14 @@ import ru.coffeemaniavpn.app.data.RoutingRuleTarget
 import ru.coffeemaniavpn.app.data.InstalledAppsLoader
 import ru.coffeemaniavpn.app.data.SplitTunnelAppsMode
 import ru.coffeemaniavpn.app.data.TrafficRoutingMode
+import androidx.compose.material.icons.filled.ContentCopy
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import libv2ray.Libv2ray
+import ru.coffeemaniavpn.app.R
 
 enum class ClevSettingsTab {
     Apps,
@@ -120,6 +127,7 @@ fun ClevSettingsHost(
     onRemoveCustomRule: (String) -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
+    onPasteNewLink: () -> Unit,
     onTrafficRoutingModeChange: (TrafficRoutingMode) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
     modifier: Modifier = Modifier,
@@ -189,6 +197,7 @@ fun ClevSettingsHost(
                     state = state,
                     onRefresh = onRefreshSubscription,
                     onDelete = onDeleteSubscription,
+                    onPasteNewLink = onPasteNewLink,
                 )
                 ClevSettingsTab.Language -> ClevLanguageTab(
                     language = state.appLanguage,
@@ -337,7 +346,7 @@ private fun ClevThreeWaySegment(
 }
 
 @Composable
-private fun ClevAppsTab(
+fun ClevAppsTab(
     settings: ConnectionSettingsState,
     onSave: (ConnectionSettingsState) -> Unit,
 ) {
@@ -559,7 +568,7 @@ private fun ClevSearchField(
 }
 
 @Composable
-private fun ClevRulesTab(
+fun ClevRulesTab(
     settings: ConnectionSettingsState,
     routingMode: TrafficRoutingMode,
     onUpdateSettings: ((ConnectionSettingsState) -> ConnectionSettingsState) -> Unit,
@@ -897,6 +906,7 @@ private fun ClevSubscriptionTab(
     state: MainUiState,
     onRefresh: () -> Unit,
     onDelete: () -> Unit,
+    onPasteNewLink: () -> Unit,
 ) {
     val colors = coffemaniaColors()
     val context = LocalContext.current
@@ -904,6 +914,12 @@ private fun ClevSubscriptionTab(
     val supportUrl = info?.supportURL?.takeIf { it.isNotBlank() }
         ?: stringResource(R.string.clev_support_url)
     val supportBlue = Color(0xFF0A84FF)
+    var copied by remember { mutableStateOf(false) }
+    val cabinetUrl = SubscriptionUrlValidator.websiteUrl("settings_cabinet")
+    val telegramUrl = SubscriptionUrlValidator.telegramBotUrl("settings_bot")
+    val coreVersion = remember {
+        runCatching { Libv2ray.checkVersionX() }.getOrDefault("—")
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -1000,6 +1016,92 @@ private fun ClevSubscriptionTab(
                         backgroundColor = colors.milkFoam,
                         icon = {
                             Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = null,
+                                tint = colors.yellow,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        },
+                        text = if (copied) {
+                            stringResource(R.string.settings_copied)
+                        } else {
+                            stringResource(R.string.settings_copy_subscription)
+                        },
+                        onClick = {
+                            val url = state.subscriptionUrl.trim()
+                            if (url.isNotBlank()) {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("subscription", url))
+                                copied = true
+                            }
+                        },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SubscriptionActionButton(
+                        modifier = Modifier.weight(1f),
+                        backgroundColor = colors.milkFoam,
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = null,
+                                tint = colors.yellow,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        },
+                        text = stringResource(R.string.settings_personal_cabinet),
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(cabinetUrl)))
+                        },
+                    )
+                    SubscriptionActionButton(
+                        modifier = Modifier.weight(1f),
+                        backgroundColor = colors.milkFoam,
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = colors.yellow,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        },
+                        text = stringResource(R.string.settings_telegram_bot),
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(telegramUrl)))
+                        },
+                    )
+                }
+
+                SubscriptionActionButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = colors.milkFoam,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            tint = colors.yellow,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    },
+                    text = stringResource(R.string.clev_paste_new_link),
+                    onClick = onPasteNewLink,
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SubscriptionActionButton(
+                        modifier = Modifier.weight(1f),
+                        backgroundColor = colors.milkFoam,
+                        icon = {
+                            Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Logout,
                                 contentDescription = null,
                                 tint = colors.yellow,
@@ -1008,6 +1110,22 @@ private fun ClevSubscriptionTab(
                         },
                         text = stringResource(R.string.clev_delete_key_logout),
                         onClick = onDelete,
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = "${stringResource(R.string.settings_app_version)}: ${BuildConfig.VERSION_NAME}",
+                        color = colors.mocha,
+                        fontSize = 11.sp,
+                    )
+                    Text(
+                        text = "${stringResource(R.string.settings_core_version)}: $coreVersion",
+                        color = colors.mocha,
+                        fontSize = 11.sp,
                     )
                 }
             }

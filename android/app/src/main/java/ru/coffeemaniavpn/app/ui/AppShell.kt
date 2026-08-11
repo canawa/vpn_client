@@ -1,17 +1,12 @@
 package ru.coffeemaniavpn.app.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -20,21 +15,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.RoutingRuleTarget
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
+import ru.coffeemaniavpn.app.data.SubscriptionUrlValidator
 import ru.coffeemaniavpn.app.data.TrafficRoutingMode
 
 @Composable
 fun AppShell(
     state: MainUiState,
+    onAcceptConsent: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onSelectNode: (String) -> Unit,
+    onSelectAutoBalancer: () -> Unit,
     onConnectToNode: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
     onPingNode: (String) -> Unit,
@@ -42,8 +42,13 @@ fun AppShell(
     onDisconnectClick: () -> Unit,
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
+    onRefreshServersAndPing: () -> Unit,
     onPasteLinkClick: () -> Unit,
-    onReorderFilters: (List<String>) -> Unit,
+    onImportUrl: (String) -> Unit,
+    onAcceptClipboard: () -> Unit,
+    onDismissClipboard: () -> Unit,
+    onDismissForeignPrompt: () -> Unit,
+    onPasteNewLink: () -> Unit,
     onDeleteSubscriptionClick: () -> Unit,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
     onUpdateConnectionSettings: ((ConnectionSettingsState) -> ConnectionSettingsState) -> Unit,
@@ -53,32 +58,38 @@ fun AppShell(
     onTrafficRoutingModeChange: (TrafficRoutingMode) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
 ) {
-    var showSettings by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var tab by rememberSaveable { mutableStateOf(XenoTab.Home) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
 
-    val canNavigateBack = showDeleteSubscriptionConfirm || showSettings
+    fun openWebsite() = openExternalUrl(context, SubscriptionUrlValidator.websiteUrl("home_logo"))
+    fun openTelegram() = openExternalUrl(context, SubscriptionUrlValidator.telegramBotUrl("activation"))
 
-    fun navigateBack() {
-        when {
-            showDeleteSubscriptionConfirm -> showDeleteSubscriptionConfirm = false
-            showSettings -> showSettings = false
-        }
+    if (!state.hasAcceptedConsent) {
+        ConsentScreen(
+            onAccept = onAcceptConsent,
+            onOpenPrivacyPolicy = { openExternalUrl(context, consentPrivacyUrl()) },
+            onOpenTerms = { openExternalUrl(context, consentTermsUrl()) },
+            modifier = Modifier.fillMaxSize(),
+        )
+        return
     }
 
-    BackHandler(enabled = canNavigateBack) {
-        navigateBack()
+    BackHandler(enabled = showDeleteSubscriptionConfirm) {
+        showDeleteSubscriptionConfirm = false
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = coffemaniaColors().milkFoam,
         contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars),
-            )
+        bottomBar = {
+            if (state.subscriptionUrl.isNotBlank()) {
+                XenoBottomNav(
+                    selected = tab,
+                    onSelect = { tab = it },
+                )
+            }
         },
     ) { padding ->
         Box(
@@ -86,35 +97,40 @@ fun AppShell(
                 .padding(padding)
                 .fillMaxSize(),
         ) {
-            // Home остаётся в composition под настройками — таймер/трафик не «замирают».
-            HomeScreen(
-                state = state,
-                onConnectClick = onConnectClick,
-                onDisconnectClick = onDisconnectClick,
-                onPasteLinkClick = onPasteLinkClick,
-                onOpenSettings = { showSettings = true },
-                onSelectNode = onSelectNode,
-                onConnectToNode = onConnectToNode,
-                onToggleFavorite = onToggleFavorite,
-                onPingNode = onPingNode,
-                onRefreshPing = onRefreshPing,
-                onRefreshConfig = onRefreshConfig,
-                onReorderFilters = onReorderFilters,
-            )
-            AnimatedVisibility(
-                visible = showSettings,
-                enter = fadeIn(ClevMotion.settingsEnterSpec),
-                exit = fadeOut(ClevMotion.settingsExitSpec),
-            ) {
-                ClevSettingsHost(
+            when (tab) {
+                XenoTab.Home -> HomeScreen(
                     state = state,
-                    onClose = { showSettings = false },
-                    onSaveConnectionSettings = onSaveConnectionSettings,
+                    onConnectClick = onConnectClick,
+                    onDisconnectClick = onDisconnectClick,
+                    onPasteLinkClick = onPasteLinkClick,
+                    onImportUrl = onImportUrl,
+                    onOpenServers = { tab = XenoTab.Servers },
+                    onOpenWebsite = ::openWebsite,
+                    onAcceptClipboard = onAcceptClipboard,
+                    onDismissClipboard = onDismissClipboard,
+                    onDismissForeignPrompt = onDismissForeignPrompt,
+                    onBuyTelegram = ::openTelegram,
+                    onBuyWebsite = ::openWebsite,
+                )
+                XenoTab.Servers -> XenoServersScreen(
+                    state = state,
+                    onSelectNode = onSelectNode,
+                    onSelectAutoBalancer = onSelectAutoBalancer,
+                    onConnectToNode = onConnectToNode,
+                    onToggleFavorite = onToggleFavorite,
+                    onPingNode = onPingNode,
+                    onRefreshAll = onRefreshServersAndPing,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                XenoTab.Settings -> XenoSettingsScreen(
+                    state = state,
                     onUpdateConnectionSettings = onUpdateConnectionSettings,
                     onAddCustomRule = onAddCustomRule,
                     onRemoveCustomRule = onRemoveCustomRule,
-                    onRefreshSubscription = onRefreshSubscription,
-                    onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
+                    onReplaceSubscription = {
+                        onDeleteSubscriptionClick()
+                        onPasteNewLink()
+                    },
                     onTrafficRoutingModeChange = onTrafficRoutingModeChange,
                     onLanguageChange = onLanguageChange,
                     modifier = Modifier.fillMaxSize(),
@@ -132,7 +148,7 @@ fun AppShell(
                 TextButton(
                     onClick = {
                         showDeleteSubscriptionConfirm = false
-                        showSettings = false
+                        tab = XenoTab.Home
                         onDeleteSubscriptionClick()
                     },
                 ) {
