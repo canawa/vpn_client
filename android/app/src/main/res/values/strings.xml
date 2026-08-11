@@ -20,6 +20,7 @@
     <string name="clev_all">Все</string>
     <string name="clev_add_favorite">Добавить в избранное</string>
     <string name="clev_remove_favorite">Убрать из избранного</string>
+    <string name="clev_ping_server">Пропинговать</string>
     <string name="clev_my">Мои</string>
     <string name="clev_auto">⚡ Авто</string>
     <string name="clev_auto_subtitle">Переключается автоматически по пингу</string>
@@ -109,4 +110,13 @@
     <string name="devices_count_unknown">Устройств: —</string>
     <string name="devices_count_unlimited">Устройств: ∞</string>
     <string name="devices_count">Устройств: %1$d</string>
+    <string name="widget_description">ClevVPN — подключение и выбор сервера</string>
+    <string name="widget_description_small">ClevVPN — кнопка и текущий сервер</string>
+    <string name="widget_label_large">ClevVPN</string>
+    <string name="widget_label_small">ClevVPN · кнопка</string>
+    <string name="widget_connect">Подключить VPN</string>
+    <string name="widget_connect_short">ПОДКЛ.</string>
+    <string name="widget_prev">Предыдущие серверы</string>
+    <string name="widget_next">Следующие серверы</string>
+    <string name="widget_empty">Нет серверов — откройте приложение</string>
 </resources>

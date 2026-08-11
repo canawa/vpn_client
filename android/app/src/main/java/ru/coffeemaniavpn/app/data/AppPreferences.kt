@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import ru.coffeemaniavpn.app.util.AppLog
+import ru.coffeemaniavpn.app.widget.VpnHomeWidgetUpdater
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "coffemania_vpn")
 
@@ -90,6 +91,7 @@ class AppPreferences(private val context: Context) {
                 prefs[KEY_SELECTED_NODE_ID] = selectedNodeId
             }
         }
+        VpnHomeWidgetUpdater.updateAll(context)
     }
 
     suspend fun setSelectedNodeId(nodeId: String) {
@@ -97,6 +99,7 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[KEY_SELECTED_NODE_ID] = nodeId
         }
+        VpnHomeWidgetUpdater.updateAll(context)
     }
 
     suspend fun clearSubscription() {
@@ -109,6 +112,7 @@ class AppPreferences(private val context: Context) {
             prefs.remove(KEY_SUB_LAST_AUTO_REFRESH_MS)
             prefs.remove(KEY_NODES_CACHE_VERSION)
         }
+        VpnHomeWidgetUpdater.updateAll(context)
     }
 
     suspend fun clearNodes() {
@@ -118,6 +122,7 @@ class AppPreferences(private val context: Context) {
             prefs.remove(KEY_SELECTED_NODE_ID)
             prefs.remove(KEY_SUBSCRIPTION_INFO)
         }
+        VpnHomeWidgetUpdater.updateAll(context)
     }
 
     val routingProfile: Flow<String?> = context.dataStore.data
@@ -236,6 +241,27 @@ class AppPreferences(private val context: Context) {
         )
     }
 
+    val homeFilterOrder: Flow<List<String>> = context.dataStore.data
+        .map { prefs ->
+            val raw = prefs[KEY_HOME_FILTER_ORDER].orEmpty()
+            val stored = if (raw.isBlank()) {
+                emptyList()
+            } else {
+                runCatching {
+                    json.decodeFromString<List<String>>(raw)
+                }.getOrDefault(emptyList())
+            }
+            HomeFilterOrder.normalize(stored)
+        }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun setHomeFilterOrder(order: List<String>) {
+        val normalized = HomeFilterOrder.normalize(order)
+        context.dataStore.edit { prefs ->
+            prefs[KEY_HOME_FILTER_ORDER] = json.encodeToString(normalized)
+        }
+    }
+
     val appLanguage: Flow<AppLanguage> = context.dataStore.data
         .map { prefs -> AppLanguage.fromStored(prefs[KEY_APP_LANGUAGE]) }
         .flowOn(Dispatchers.IO)
@@ -320,6 +346,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_SUB_AUTO_UPDATE_HOURS = intPreferencesKey("sub_auto_update_hours")
         private val KEY_SUB_LAST_AUTO_REFRESH_MS = longPreferencesKey("sub_last_auto_refresh_ms")
         private val KEY_FAVORITE_NODE_IDS = stringPreferencesKey("favorite_node_ids")
+        private val KEY_HOME_FILTER_ORDER = stringPreferencesKey("home_filter_order")
         private val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
         private val KEY_TRAFFIC_ROUTING_MODE = stringPreferencesKey("traffic_routing_mode")
     }

@@ -11,6 +11,7 @@ import ru.coffeemaniavpn.app.data.ConnectionSettingsStore
 import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.data.XrayConfigBuilder
 import ru.coffeemaniavpn.app.util.AppLog
+import ru.coffeemaniavpn.app.widget.VpnHomeWidgetUpdater
 
 data class VpnTrafficRates(
     val downlinkBytesPerSec: Long = 0L,
@@ -64,6 +65,9 @@ object VpnManager {
             else -> Unit
         }
         _status.value = value
+        if (previous != value) {
+            runCatching { VpnHomeWidgetUpdater.updateAll(App.instance) }
+        }
     }
 
     private fun startElapsedTicker() {

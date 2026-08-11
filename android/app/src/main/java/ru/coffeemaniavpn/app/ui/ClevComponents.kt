@@ -1034,6 +1034,7 @@ fun SubscriptionAnnounceContent(
     modifier: Modifier = Modifier,
     lineSpacing: Dp = 3.dp,
     hintSpacing: Dp = 2.dp,
+    compact: Boolean = false,
 ) {
     val colors = coffemaniaColors()
     val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
@@ -1041,6 +1042,10 @@ fun SubscriptionAnnounceContent(
 
     val mainLines = if (lines.size > 1) lines.dropLast(1) else lines
     val hintLine = lines.takeIf { it.size > 1 }?.last()
+    val mainSize = if (compact) 12.sp else 15.sp
+    val mainLineHeight = if (compact) 15.sp else 20.sp
+    val hintSize = if (compact) 10.sp else 12.sp
+    val hintLineHeight = if (compact) 13.sp else 16.sp
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -1051,20 +1056,20 @@ fun SubscriptionAnnounceContent(
             Text(
                 text = line,
                 color = colors.espresso,
-                fontSize = 15.sp,
+                fontSize = mainSize,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
-                lineHeight = 20.sp,
+                lineHeight = mainLineHeight,
             )
         }
         hintLine?.let { line ->
             Text(
                 text = line,
                 color = colors.espresso.copy(alpha = 0.92f),
-                fontSize = 12.sp,
+                fontSize = hintSize,
                 fontWeight = FontWeight.Normal,
                 textAlign = TextAlign.Center,
-                lineHeight = 16.sp,
+                lineHeight = hintLineHeight,
                 modifier = Modifier.padding(top = hintSpacing),
             )
         }

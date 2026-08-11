@@ -5,7 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,17 +21,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -39,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,25 +46,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import ru.coffeemaniavpn.app.R
+import ru.coffeemaniavpn.app.data.HomeFilterOrder
 import ru.coffeemaniavpn.app.data.PingState
 import ru.coffeemaniavpn.app.vpn.VpnStatus
-
-/** Фильтры: All / категория. */
-private sealed interface HomeFilter {
-    data object All : HomeFilter
-    data class Category(val category: ServerCategory) : HomeFilter
-}
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 private fun ServerCategory.label(): String = stringResource(
@@ -80,6 +76,12 @@ private fun ServerCategory.label(): String = stringResource(
 )
 
 @Composable
+private fun homeFilterLabel(id: String): String = when (id) {
+    HomeFilterOrder.ALL_ID -> stringResource(R.string.clev_all)
+    else -> ServerCategory.entries.find { it.name == id }?.label() ?: id
+}
+
+@Composable
 fun HomeScreen(
     state: MainUiState,
     onConnectClick: () -> Unit,
@@ -89,8 +91,10 @@ fun HomeScreen(
     onSelectNode: (String) -> Unit,
     onConnectToNode: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
+    onPingNode: (String) -> Unit,
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
+    onReorderFilters: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hasSubscription = state.subscriptionUrl.isNotBlank()
@@ -120,6 +124,13 @@ fun HomeScreen(
     }
 
     var filter by remember { mutableStateOf<HomeFilter>(HomeFilter.All) }
+    var filterOrder by remember { mutableStateOf(state.homeFilterOrder) }
+    var isReorderingFilters by remember { mutableStateOf(false) }
+    LaunchedEffect(state.homeFilterOrder) {
+        if (!isReorderingFilters) {
+            filterOrder = state.homeFilterOrder
+        }
+    }
 
     val filteredNodes = remember(state.nodes, state.favoriteNodeIds, filter) {
         val nodes = when (val f = filter) {
@@ -134,6 +145,13 @@ fun HomeScreen(
                 !aFav && bFav -> 1
                 else -> 0
             }
+        }
+    }
+
+    val filterListState = rememberLazyListState()
+    val reorderableFilterState = rememberReorderableLazyListState(filterListState) { from, to ->
+        filterOrder = filterOrder.toMutableList().apply {
+            add(to.index, removeAt(from.index))
         }
     }
 
@@ -175,8 +193,8 @@ fun HomeScreen(
                     onClick = {
                         if (isConnected) onDisconnectClick() else onConnectClick()
                     },
-                    size = 196.dp,
-                    modifier = Modifier.padding(top = 6.dp),
+                    size = 140.dp,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
 
                 state.error?.takeIf { it.isNotBlank() }?.let { err ->
@@ -199,18 +217,18 @@ fun HomeScreen(
                     )
                 }
 
-                // Панель подписки: отступы 1:1 с macOS в процентах ширины панели.
+                // Компактная панель подписки — больше места под список серверов.
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                     val screenW = maxWidth
-                    val outerMargin = screenW * 0.05f // 5% от экрана
+                    val outerMargin = screenW * 0.05f
                     val panelW = screenW - outerMargin * 2
-                    val corner = panelW * 0.045f // ~4.5% ширины панели
-                    val padX = panelW * 0.05f // 5% внутренний боковой
-                    val padTop = panelW * 0.04f // ≈12% высоты панели
-                    val padBottom = panelW * 0.035f // ≈11% высоты
-                    val lineGap = panelW * 0.008f // ≈2–3% высоты между строками
-                    val sectionGap = panelW * 0.04f // ≈12% высоты до нижнего ряда
-                    val outerVertical = screenW * 0.03f
+                    val corner = panelW * 0.035f
+                    val padX = panelW * 0.04f
+                    val padTop = panelW * 0.022f
+                    val padBottom = panelW * 0.02f
+                    val lineGap = panelW * 0.004f
+                    val sectionGap = panelW * 0.018f
+                    val outerVertical = screenW * 0.012f
 
                     ClevCard(
                         cornerRadius = corner,
@@ -235,6 +253,7 @@ fun HomeScreen(
                                         text = info.announce,
                                         lineSpacing = lineGap,
                                         hintSpacing = lineGap * 0.5f,
+                                        compact = true,
                                     )
                                     Spacer(modifier = Modifier.height(sectionGap))
                                 }
@@ -247,27 +266,42 @@ fun HomeScreen(
                     }
                 }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 5.dp),
+                LazyRow(
+                    state = filterListState,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ClevFilterChip(
-                        label = stringResource(R.string.clev_all),
-                        selected = filter is HomeFilter.All,
-                        onClick = { filter = HomeFilter.All },
-                    )
-                    ServerCategory.ALL
-                        .filter { it != ServerCategory.AUTO }
-                        .forEach { category ->
+                    items(filterOrder, key = { it }) { id ->
+                        ReorderableItem(reorderableFilterState, key = id) { isDragging ->
+                            val interactionSource = remember { MutableInteractionSource() }
                             ClevFilterChip(
-                                label = category.label(),
-                                selected = filter == HomeFilter.Category(category),
-                                onClick = { filter = HomeFilter.Category(category) },
+                                label = homeFilterLabel(id),
+                                selected = when (val f = filter) {
+                                    HomeFilter.All -> id == HomeFilterOrder.ALL_ID
+                                    is HomeFilter.Category -> id == f.category.name
+                                },
+                                onClick = {
+                                    homeFilterFromId(id)?.let { filter = it }
+                                },
+                                modifier = Modifier
+                                    .zIndex(if (isDragging) 1f else 0f)
+                                    .graphicsLayer {
+                                        val scale = if (isDragging) 1.06f else 1f
+                                        scaleX = scale
+                                        scaleY = scale
+                                    }
+                                    .longPressDraggableHandle(
+                                        interactionSource = interactionSource,
+                                        onDragStarted = { isReorderingFilters = true },
+                                        onDragStopped = {
+                                            isReorderingFilters = false
+                                            onReorderFilters(filterOrder)
+                                        },
+                                    ),
                             )
                         }
+                    }
                 }
             }
 
@@ -275,7 +309,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(filteredNodes, key = { it.id }) { node ->
@@ -288,6 +322,7 @@ fun HomeScreen(
                         onClick = { onSelectNode(node.id) },
                         onDoubleClick = { onConnectToNode(node.id) },
                         onToggleFavorite = { onToggleFavorite(node.id) },
+                        onPing = { onPingNode(node.id) },
                     )
                 }
             }
@@ -425,10 +460,11 @@ private fun QuickServerRow(
     onClick: () -> Unit,
     onDoubleClick: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onPing: () -> Unit,
 ) {
     val colors = coffemaniaColors()
     val shape = RoundedCornerShape(13.dp)
-    var showFavoriteMenu by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
     Box {
         Box(
             modifier = Modifier
@@ -444,9 +480,7 @@ private fun QuickServerRow(
                 .combinedClickable(
                     onClick = onClick,
                     onDoubleClick = onDoubleClick,
-                    onLongClick = {
-                        if (!favorite) showFavoriteMenu = true
-                    },
+                    onLongClick = { showMenu = true },
                 )
                 .padding(horizontal = 12.dp, vertical = 12.dp),
         ) {
@@ -475,8 +509,8 @@ private fun QuickServerRow(
             }
         }
         DropdownMenu(
-            expanded = showFavoriteMenu,
-            onDismissRequest = { showFavoriteMenu = false },
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
             offset = DpOffset(12.dp, 0.dp),
             containerColor = colors.cappuccino,
             shape = RoundedCornerShape(10.dp),
@@ -484,19 +518,43 @@ private fun QuickServerRow(
             DropdownMenuItem(
                 text = {
                     Text(
-                        text = stringResource(R.string.clev_add_favorite),
+                        text = stringResource(
+                            if (favorite) R.string.clev_remove_favorite else R.string.clev_add_favorite,
+                        ),
                         color = colors.espresso,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                     )
                 },
                 onClick = {
-                    showFavoriteMenu = false
+                    showMenu = false
                     onToggleFavorite()
                 },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = colors.yellow,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.clev_ping_server),
+                        color = colors.espresso,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                },
+                onClick = {
+                    showMenu = false
+                    onPing()
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.Bolt,
                         contentDescription = null,
                         tint = colors.yellow,
                         modifier = Modifier.size(16.dp),

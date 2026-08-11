@@ -80,5 +80,35 @@
                 android:name="android.service.quicksettings.TOGGLEABLE_TILE"
                 android:value="true" />
         </service>
+
+        <receiver
+            android:name=".widget.VpnHomeWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_label_large">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="ru.coffeemaniavpn.app.widget.ACTION_TOGGLE" />
+                <action android:name="ru.coffeemaniavpn.app.widget.ACTION_SELECT" />
+                <action android:name="ru.coffeemaniavpn.app.widget.ACTION_PREV" />
+                <action android:name="ru.coffeemaniavpn.app.widget.ACTION_NEXT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vpn_home_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.VpnHomeWidgetSmallProvider"
+            android:exported="true"
+            android:label="@string/widget_label_small">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="ru.coffeemaniavpn.app.widget.ACTION_TOGGLE" />
+                <action android:name="ru.coffeemaniavpn.app.widget.ACTION_OPEN_APP" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vpn_home_widget_small_info" />
+        </receiver>
     </application>
 </manifest>

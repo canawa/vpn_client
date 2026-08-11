@@ -26,6 +26,7 @@ import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.AppPreferences
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
+import ru.coffeemaniavpn.app.data.HomeFilterOrder
 import ru.coffeemaniavpn.app.data.PingState
 import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.data.RoutingRule
@@ -70,6 +71,7 @@ data class MainUiState(
     val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval =
         SubscriptionAutoUpdateInterval.DEFAULT,
     val favoriteNodeIds: Set<String> = emptySet(),
+    val homeFilterOrder: List<String> = HomeFilterOrder.DEFAULT,
     val appLanguage: AppLanguage = AppLanguage.DEFAULT,
     val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
 )
@@ -140,8 +142,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             combine(
                 preferences.appLanguage,
                 preferences.trafficRoutingMode,
-            ) { language, routingMode ->
-                language to routingMode
+                preferences.homeFilterOrder,
+            ) { language, routingMode, filterOrder ->
+                Triple(language, routingMode, filterOrder)
             },
         ) { connectionSettings, autoUpdateInterval, lastUpdatedAt, favorites, langRouting ->
             SettingsUiState(
@@ -151,6 +154,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 favoriteNodeIds = favorites,
                 appLanguage = langRouting.first,
                 trafficRoutingMode = langRouting.second,
+                homeFilterOrder = langRouting.third,
             )
         },
         startupCrash,
@@ -178,6 +182,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             connectionSettings = settingsData.connectionSettings,
             subscriptionAutoUpdateInterval = settingsData.subscriptionAutoUpdateInterval,
             favoriteNodeIds = settingsData.favoriteNodeIds,
+            homeFilterOrder = settingsData.homeFilterOrder,
             appLanguage = settingsData.appLanguage,
             trafficRoutingMode = settingsData.trafficRoutingMode,
         )
@@ -291,6 +296,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun pingAllNodes() {
         pingAllNodes(uiState.value.nodes)
+    }
+
+    fun pingNode(nodeId: String) {
+        val node = uiState.value.nodes.find { it.id == nodeId } ?: return
+        viewModelScope.launch {
+            nodePings.value = nodePings.value + (nodeId to PingState.Loading)
+            try {
+                withContext(Dispatchers.IO) {
+                    ServerPinger.pingAll(listOf(node)) { id, state ->
+                        nodePings.value = nodePings.value + (id to state)
+                    }
+                }
+            } catch (_: CancellationException) {
+                // ignored
+            } finally {
+                if (nodePings.value[nodeId] is PingState.Loading) {
+                    nodePings.value = nodePings.value + (nodeId to PingState.Unreachable)
+                }
+            }
+        }
     }
 
     private var pingJob: Job? = null
@@ -631,6 +656,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setHomeFilterOrder(order: List<String>) {
+        viewModelScope.launch {
+            preferences.setHomeFilterOrder(order)
+        }
+    }
+
     fun persistAppLanguage(language: AppLanguage) {
         viewModelScope.launch(Dispatchers.IO) {
             preferences.setAppLanguage(language)
@@ -802,6 +833,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
         val subscriptionLastUpdatedAtMs: Long,
         val favoriteNodeIds: Set<String> = emptySet(),
+        val homeFilterOrder: List<String> = HomeFilterOrder.DEFAULT,
         val appLanguage: AppLanguage = AppLanguage.DEFAULT,
         val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
     )

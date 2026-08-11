@@ -98,6 +98,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("sh.calvin.reorderable:reorderable:2.4.3")
     implementation("io.coil-kt:coil-svg:2.7.0")
 
     testImplementation("junit:junit:4.13.2")
