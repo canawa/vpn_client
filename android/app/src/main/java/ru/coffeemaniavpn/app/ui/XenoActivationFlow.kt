@@ -9,16 +9,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,6 +52,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
@@ -697,51 +701,51 @@ private fun XenoStepsSiteScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.milkFoam)
-            .verticalScroll(rememberScrollState())
-            .padding(start = 22.dp, end = 22.dp, top = 48.dp, bottom = 40.dp),
+            .background(colors.milkFoam),
+        contentPadding = PaddingValues(start = 22.dp, end = 22.dp, top = 48.dp, bottom = 40.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clickable(onClick = onBack),
-                contentAlignment = Alignment.CenterStart,
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = colors.espresso)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = colors.espresso)
+                }
+                Text(
+                    text = stringResource(R.string.xeno_steps_site_title),
+                    color = colors.espresso,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                )
             }
+        }
+
+        item { Spacer(modifier = Modifier.height(10.dp)) }
+
+        item {
             Text(
-                text = stringResource(R.string.xeno_steps_site_title),
-                color = colors.espresso,
+                text = stringResource(R.string.xeno_steps_site_subtitle),
+                color = Color(0xFF7A7F78),
                 fontFamily = InterFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                fontSize = 13.sp,
+                lineHeight = 19.5.sp,
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        item { Spacer(modifier = Modifier.height(16.dp)) }
 
-        Text(
-            text = stringResource(R.string.xeno_steps_site_subtitle),
-            color = Color(0xFF7A7F78),
-            fontFamily = InterFontFamily,
-            fontWeight = FontWeight.Normal,
-            fontSize = 13.sp,
-            lineHeight = 19.5.sp,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+        item {
             XenoSiteStep(
                 number = 1,
                 active = true,
@@ -750,6 +754,9 @@ private fun XenoStepsSiteScreen(
                 body = stringResource(R.string.xeno_steps_site_1_body),
                 imageRes = null,
             )
+        }
+        item { Spacer(modifier = Modifier.height(14.dp)) }
+        item {
             XenoSiteStep(
                 number = 2,
                 active = false,
@@ -758,6 +765,9 @@ private fun XenoStepsSiteScreen(
                 body = stringResource(R.string.xeno_steps_site_2_body),
                 imageRes = R.drawable.xeno_site_step_email,
             )
+        }
+        item { Spacer(modifier = Modifier.height(14.dp)) }
+        item {
             XenoSiteStep(
                 number = 3,
                 active = false,
@@ -766,6 +776,9 @@ private fun XenoStepsSiteScreen(
                 body = stringResource(R.string.xeno_steps_site_3_body),
                 imageRes = R.drawable.xeno_site_step_order,
             )
+        }
+        item { Spacer(modifier = Modifier.height(14.dp)) }
+        item {
             XenoSiteStep(
                 number = 4,
                 active = false,
@@ -776,57 +789,68 @@ private fun XenoStepsSiteScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        item { Spacer(modifier = Modifier.height(20.dp)) }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .clip(RoundedCornerShape(13.dp))
-                .background(Color(0xFF00E091))
-                .clickable(onClick = onOpenCabinet)
-                .padding(vertical = 15.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(Color(0xFF00E091))
+                    .clickable(onClick = onOpenCabinet)
+                    .padding(vertical = 15.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Canvas(modifier = Modifier.size(16.dp)) {
-                    val stroke = 1.5.dp.toPx()
-                    drawCircle(
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        val stroke = 1.5.dp.toPx()
+                        drawCircle(
+                            color = Color.Black,
+                            radius = size.minDimension / 2f - stroke / 2f,
+                            style = Stroke(width = stroke),
+                        )
+                        drawCircle(
+                            color = Color.Black,
+                            radius = 2.5.dp.toPx(),
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.xeno_steps_open_cabinet),
                         color = Color.Black,
-                        radius = size.minDimension / 2f - stroke / 2f,
-                        style = Stroke(width = stroke),
-                    )
-                    drawCircle(
-                        color = Color.Black,
-                        radius = 2.5.dp.toPx(),
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
                     )
                 }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(34.dp),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
-                    text = stringResource(R.string.xeno_steps_open_cabinet),
-                    color = Color.Black,
+                    text = stringResource(R.string.xeno_steps_site_footer),
+                    color = Color(0xFF7A7F78),
                     fontFamily = InterFontFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 12.5.sp,
+                    lineHeight = 17.5.sp, // 140% of 12.5
+                    letterSpacing = 0.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(346.dp),
                 )
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.xeno_steps_site_footer),
-            color = Color(0xFF7A7F78),
-            fontFamily = InterFontFamily,
-            fontWeight = FontWeight.Normal,
-            fontSize = 12.5.sp,
-            lineHeight = 17.5.sp,
-            letterSpacing = 0.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(34.dp),
-        )
     }
 }
 
@@ -841,20 +865,16 @@ private fun XenoSiteStep(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .width(24.dp)
-                .fillMaxHeight(),
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.width(24.dp),
         ) {
             Box(
                 modifier = Modifier
                     .size(24.dp)
-                    .align(Alignment.TopCenter)
                     .clip(CircleShape)
                     .background(if (active) Color(0xFF00E091) else Color(0xFF2A2A2A)),
                 contentAlignment = Alignment.Center,
@@ -868,12 +888,11 @@ private fun XenoSiteStep(
                 )
             }
             if (showLine) {
+                Spacer(modifier = Modifier.height(4.dp))
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 28.dp)
                         .width(1.5.dp)
-                        .fillMaxHeight()
+                        .height(20.dp)
                         .background(Color(0xFF2A2A2A)),
                 )
             }
@@ -883,8 +902,15 @@ private fun XenoSiteStep(
                 text = title,
                 color = Color.White,
                 fontFamily = InterFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.5.sp,
+                lineHeight = 14.5.sp,
+                letterSpacing = 0.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .width(306.dp)
+                    .height(18.dp),
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -892,8 +918,12 @@ private fun XenoSiteStep(
                 color = Color(0xFF7A7F78),
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.Normal,
-                fontSize = 12.sp,
-                lineHeight = 16.8.sp,
+                fontSize = 12.5.sp,
+                lineHeight = 18.125.sp, // 145% of 12.5
+                letterSpacing = 0.sp,
+                modifier = Modifier
+                    .width(306.dp)
+                    .heightIn(min = 36.dp),
             )
             if (imageRes != null) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -923,59 +953,151 @@ private fun XenoImportScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
+    val fieldShape = RoundedCornerShape(13.dp)
+    val buttonShape = RoundedCornerShape(999.dp)
+    val canImport = !isLoading && url.isNotBlank()
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(colors.milkFoam)
-            .padding(horizontal = 20.dp),
+            .padding(start = 22.dp, end = 22.dp, top = 48.dp, bottom = 40.dp),
     ) {
         Row(
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = colors.espresso)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clickable(onClick = onBack),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = colors.espresso)
             }
             Text(
                 text = stringResource(R.string.xeno_import_title),
                 color = colors.espresso,
+                fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 18.sp,
+                fontSize = 16.sp,
             )
         }
+
         Spacer(modifier = Modifier.height(24.dp))
+
         BasicTextField(
             value = url,
             onValueChange = onUrlChange,
-            textStyle = androidx.compose.ui.text.TextStyle(color = colors.espresso, fontSize = 14.sp),
-            cursorBrush = SolidColor(colors.primary),
+            enabled = !isLoading,
+            textStyle = androidx.compose.ui.text.TextStyle(
+                color = Color.White,
+                fontSize = 14.5.sp,
+                fontFamily = InterFontFamily,
+            ),
+            cursorBrush = SolidColor(Color(0xFF00E091)),
             modifier = Modifier
                 .fillMaxWidth()
-                .background(colors.cappuccino, RoundedCornerShape(12.dp))
-                .border(1.dp, colors.latte, RoundedCornerShape(12.dp))
-                .padding(16.dp),
+                .height(48.dp)
+                .clip(fieldShape)
+                .background(Color(0xFF141414))
+                .border(1.dp, Color(0xFF2A2A2A), fieldShape)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             decorationBox = { inner ->
-                Box {
+                Box(contentAlignment = Alignment.CenterStart) {
                     if (url.isBlank()) {
-                        Text(stringResource(R.string.xeno_import_hint), color = colors.mocha, fontSize = 14.sp)
+                        Text(
+                            text = stringResource(R.string.xeno_import_hint),
+                            color = Color(0xFF7A7F78),
+                            fontFamily = InterFontFamily,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 14.5.sp,
+                        )
                     }
                     inner()
                 }
             },
         )
+
         Spacer(modifier = Modifier.height(12.dp))
-        XenoOutlineButton(text = stringResource(R.string.xeno_import_clipboard), onClick = onPasteFromClipboard)
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(buttonShape)
+                .background(Color(0xFF141414))
+                .border(1.dp, Color(0xFF2A2A2A), buttonShape)
+                .clickable(enabled = !isLoading, onClick = onPasteFromClipboard),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = stringResource(R.string.xeno_import_clipboard),
+                color = Color(0xFF00E091),
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+            )
+        }
+
         Spacer(modifier = Modifier.height(12.dp))
-        XenoPrimaryButton(
-            text = stringResource(R.string.xeno_import_action),
-            onClick = onImport,
-            enabled = !isLoading && url.isNotBlank(),
-        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(buttonShape)
+                .background(
+                    if (canImport) Color(0xFF00E091) else Color(0xFF00E091).copy(alpha = 0.4f),
+                )
+                .clickable(enabled = canImport, onClick = onImport),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = Color.Black,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.xeno_import_action),
+                    color = Color.Black,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                )
+            }
+        }
+
         error?.let {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = it,
+                color = colors.error,
+                fontFamily = InterFontFamily,
+                fontSize = 13.sp,
+                lineHeight = 18.85.sp,
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = it, color = colors.error, fontSize = 13.sp)
-            Spacer(modifier = Modifier.height(12.dp))
-            XenoOutlineButton(text = stringResource(R.string.xeno_import_telegram), onClick = onSubscribeTelegram)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(buttonShape)
+                    .background(Color(0xFF141414))
+                    .border(1.dp, Color(0xFF2A2A2A), buttonShape)
+                    .clickable(onClick = onSubscribeTelegram),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.xeno_import_telegram),
+                    color = Color(0xFF00E091),
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                )
+            }
         }
     }
 }

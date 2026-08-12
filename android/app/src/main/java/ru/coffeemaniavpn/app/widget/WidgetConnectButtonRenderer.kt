@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit
 object WidgetConnectButtonRenderer {
     /** Диаметр пластины (large / small). */
     const val PLATE_DP = 72f
+    /** Та же отрисовка, что large; меньше пластина, чтобы влезать в 3×1. */
     const val PLATE_DP_SMALL = 56f
     private const val REF_PLATE_DP = 150f
     private const val REF_RING_PAD_DP = 36f

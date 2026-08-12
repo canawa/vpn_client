@@ -233,4 +233,7 @@
     <string name="xeno_domain_rules_hint">Домены, IP и подсети</string>
     <string name="xeno_add_rule">Добавить правило</string>
     <string name="xeno_ready_lists">Готовые списки</string>
+    <string name="widget_preview_server_1">United Kingdom</string>
+    <string name="widget_preview_server_3">Germany</string>
+    <string name="widget_preview_server_small">United Kingdom</string>
 </resources>

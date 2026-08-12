@@ -245,6 +245,10 @@ object VpnHomeWidgetUpdater {
             openAppPendingIntent(context),
         )
         views.setOnClickPendingIntent(
+            R.id.widget_small_logo,
+            openAppPendingIntent(context),
+        )
+        views.setOnClickPendingIntent(
             R.id.widget_small_root,
             openAppPendingIntent(context),
         )
@@ -256,6 +260,10 @@ object VpnHomeWidgetUpdater {
                 anim = VpnHomeWidgetAnimator.state,
                 plateDp = WidgetConnectButtonRenderer.PLATE_DP_SMALL,
             ),
+        )
+        views.setImageViewBitmap(
+            R.id.widget_small_logo_text,
+            WidgetBrandLogoTextRenderer.render(context, textSizeSp = 12f),
         )
 
         if (node == null) {
@@ -286,6 +294,10 @@ object VpnHomeWidgetUpdater {
         val elapsedMs = VpnManager.connectionElapsedMs.value
 
         val views = RemoteViews(context.packageName, R.layout.widget_vpn_large)
+        views.setImageViewBitmap(
+            R.id.widget_logo_text,
+            WidgetBrandLogoTextRenderer.render(context, textSizeSp = 16f),
+        )
 
         views.setOnClickPendingIntent(
             R.id.widget_connect,

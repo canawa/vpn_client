@@ -636,17 +636,17 @@ fun ProtocolLabelBadge(
     Text(
         text = label,
         color = colors.yellow,
-        fontSize = 11.sp,
+        fontSize = 9.sp,
         fontWeight = FontWeight.Bold,
         maxLines = 1,
         modifier = modifier
             .clip(shape)
             .background(colors.surfaceVariant, shape)
-            .padding(horizontal = 5.dp, vertical = 2.dp),
+            .padding(horizontal = 4.dp, vertical = 1.dp),
     )
 }
 
-/** Название + бейдж протокола; жёлтая звезда только если сервер в избранном. */
+/** Название + бейдж протокола под ним; жёлтая звезда только если сервер в избранном. */
 @Composable
 fun ServerTitleWithProtocolBadge(
     title: String,
@@ -657,41 +657,33 @@ fun ServerTitleWithProtocolBadge(
 ) {
     val colors = coffemaniaColors()
 
-    SubcomposeLayout(modifier = modifier) { constraints ->
-        val gap = 4.dp.roundToPx()
-
-        val starPlaceable = if (favorite) {
-            val starSize = 22.dp.roundToPx()
-            subcompose("star") {
-                Box(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onFavoriteClick)
-                        .semantics { role = Role.Button },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Star,
-                        contentDescription = stringResource(R.string.clev_remove_favorite),
-                        tint = colors.yellow,
-                        modifier = Modifier.size(12.dp),
-                    )
-                }
-            }.first().measure(Constraints.fixed(starSize, starSize))
-        } else {
-            null
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (favorite) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 1.dp)
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onFavoriteClick)
+                    .semantics { role = Role.Button },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = stringResource(R.string.clev_remove_favorite),
+                    tint = colors.yellow,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
         }
-
-        val badgePlaceable = subcompose("badge") {
-            ProtocolLabelBadge(label = protocolLabel)
-        }.first().measure(Constraints())
-
-        val starWidth = starPlaceable?.width ?: 0
-        val gaps = if (starPlaceable != null) gap * 2 else gap
-        val textMaxWidth = (constraints.maxWidth - starWidth - badgePlaceable.width - gaps)
-            .coerceAtLeast(0)
-        val textPlaceable = subcompose("text") {
+        Column(
+            modifier = Modifier.weight(1f, fill = false),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
                 text = title,
                 color = colors.espresso,
@@ -700,22 +692,7 @@ fun ServerTitleWithProtocolBadge(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        }.first().measure(Constraints(maxWidth = textMaxWidth))
-
-        val height = maxOf(
-            starPlaceable?.height ?: 0,
-            textPlaceable.height,
-            badgePlaceable.height,
-        )
-        layout(constraints.maxWidth, height) {
-            var x = 0
-            starPlaceable?.let {
-                it.place(x, (height - it.height) / 2)
-                x += it.width + gap
-            }
-            textPlaceable.place(x, (height - textPlaceable.height) / 2)
-            x += textPlaceable.width + gap
-            badgePlaceable.place(x, (height - badgePlaceable.height) / 2)
+            ProtocolLabelBadge(label = protocolLabel)
         }
     }
 }

@@ -10,26 +10,43 @@
 
     <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_marginEnd="10dp"
-        android:gravity="center_horizontal"
+        android:gravity="center"
         android:orientation="vertical">
 
-        <ImageView
+        <LinearLayout
             android:id="@+id/widget_logo"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginBottom="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
             android:clickable="true"
-            android:contentDescription="@string/app_name"
             android:focusable="true"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_logo" />
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_logo" />
+
+            <ImageView
+                android:id="@+id/widget_logo_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="-10dp"
+                android:adjustViewBounds="true"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter" />
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/widget_connect"
-            android:layout_width="104dp"
-            android:layout_height="104dp"
+            android:layout_width="116dp"
+            android:layout_height="116dp"
+            android:layout_gravity="center_horizontal"
             android:clickable="true"
             android:contentDescription="@string/widget_connect"
             android:focusable="true"
