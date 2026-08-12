@@ -1,5 +1,6 @@
 package ru.coffeemaniavpn.app.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,14 +27,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.Canvas
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,24 +51,22 @@ fun XenoLogoMark(
     compact: Boolean = false,
     inCapsule: Boolean = false,
 ) {
-    val colors = coffemaniaColors()
-    val square = if (compact) 10.dp else 12.dp
-    val offset = if (compact) 3.dp else 4.dp
+    val useCompact = compact || inCapsule
+    val square = if (useCompact) 10.dp else 12.dp
+    val offset = if (useCompact) 3.dp else 4.dp
     val markSize = square + offset
     val content = @Composable {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (useCompact) 7.dp else 8.dp),
         ) {
             Box(modifier = Modifier.size(markSize)) {
-                // Тёмный квадрат: top 4 / left 4
                 Box(
                     modifier = Modifier
                         .padding(top = offset, start = offset)
                         .size(square)
                         .background(Color(0xFF04342C)),
                 )
-                // Яркий квадрат чуть выше и левее (0, 0)
                 Box(
                     modifier = Modifier
                         .size(square)
@@ -74,10 +75,10 @@ fun XenoLogoMark(
             }
             Text(
                 text = "XENO",
-                color = colors.espresso,
+                color = Color.White,
                 fontWeight = FontWeight.Medium,
-                fontSize = if (compact) 14.sp else 22.sp,
-                lineHeight = if (compact) 14.sp else 22.sp,
+                fontSize = if (useCompact) 15.sp else 22.sp,
+                lineHeight = if (useCompact) 15.sp else 22.sp,
                 letterSpacing = 2.sp,
                 fontFamily = JetBrainsMonoFamily,
             )
@@ -86,10 +87,12 @@ fun XenoLogoMark(
     if (inCapsule) {
         Box(
             modifier = modifier
+                .height(40.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(colors.cappuccino)
-                .border(1.dp, colors.latte, RoundedCornerShape(12.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .background(Color(0xFF141414))
+                .border(1.dp, Color(0xFF252525), RoundedCornerShape(12.dp))
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.CenterStart,
         ) { content() }
     } else {
         Box(modifier = modifier) { content() }
@@ -101,24 +104,23 @@ fun XenoGridIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = coffemaniaColors()
     Box(
         modifier = modifier
             .size(40.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(colors.cappuccino)
-            .border(1.dp, colors.latte, RoundedCornerShape(12.dp))
+            .background(Color(0xFF141414))
+            .border(1.dp, Color(0xFF252525), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(colors.primary))
-                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(colors.primary.copy(alpha = 0.45f)))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF00E091)))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF00E091).copy(alpha = 0.4f)))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(colors.primary.copy(alpha = 0.45f)))
-                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(colors.primary.copy(alpha = 0.45f)))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF00E091).copy(alpha = 0.4f)))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF00E091).copy(alpha = 0.4f)))
             }
         }
     }
@@ -163,21 +165,44 @@ fun XenoBottomNav(
     onSelect: (XenoTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = coffemaniaColors()
-    Row(
+    val shape = RoundedCornerShape(30.dp)
+    // Figma: 177×60, r=30, border #FFFFFF1F, glass bg, shadow 0 14 30 -8 #00000073
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 56.dp, vertical = 10.dp)
-            .clip(RoundedCornerShape(999.dp))
-            .background(Color(0xFF151515))
-            .border(1.dp, colors.latte, RoundedCornerShape(999.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(bottom = 12.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        XenoNavItem(Icons.Default.Shield, selected == XenoTab.Home) { onSelect(XenoTab.Home) }
-        XenoNavItem(Icons.Default.Language, selected == XenoTab.Servers) { onSelect(XenoTab.Servers) }
-        XenoNavItem(Icons.Default.Tune, selected == XenoTab.Settings) { onSelect(XenoTab.Settings) }
+        Row(
+            modifier = Modifier
+                .width(177.dp)
+                .height(60.dp)
+                .shadow(
+                    elevation = 14.dp,
+                    shape = shape,
+                    clip = false,
+                    ambientColor = Color(0x73000000),
+                    spotColor = Color(0x73000000),
+                )
+                .clip(shape)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x8C0E1513), // rgba(14, 21, 19, 0.55)
+                            Color(0x8C0E1513),
+                        ),
+                    ),
+                )
+                .background(Color(0x0DFFFFFF)) // rgba(255,255,255,0.05)
+                .border(1.dp, Color(0x1FFFFFFF), shape)
+                .padding(horizontal = 6.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            XenoNavItem(Icons.Default.Shield, selected == XenoTab.Home) { onSelect(XenoTab.Home) }
+            XenoNavItem(Icons.Default.Language, selected == XenoTab.Servers) { onSelect(XenoTab.Servers) }
+            XenoNavItem(Icons.Default.Tune, selected == XenoTab.Settings) { onSelect(XenoTab.Settings) }
+        }
     }
 }
 
@@ -187,16 +212,18 @@ private fun XenoNavItem(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val colors = coffemaniaColors()
+    // Figma selected (shield): 46×38, r=14, bg #00D4A829, border #00D4A880
+    val shape = RoundedCornerShape(14.dp)
     Box(
         modifier = Modifier
-            .size(46.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .width(46.dp)
+            .height(38.dp)
+            .clip(shape)
             .then(
                 if (selected) {
                     Modifier
-                        .background(colors.cappuccino)
-                        .border(1.5.dp, colors.primary, RoundedCornerShape(14.dp))
+                        .background(Color(0x2900D4A8))
+                        .border(1.dp, Color(0x8000D4A8), shape)
                 } else {
                     Modifier
                 },
@@ -207,8 +234,8 @@ private fun XenoNavItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (selected) colors.primary else colors.mocha,
-            modifier = Modifier.size(22.dp),
+            tint = if (selected) Color(0xFF00D4A8) else Color(0xFF7A7F78),
+            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -220,16 +247,15 @@ fun XenoCard(
     borderColor: Color? = null,
     content: @Composable () -> Unit,
 ) {
-    val colors = coffemaniaColors()
     val shape = RoundedCornerShape(16.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(colors.cappuccino)
-            .border(1.dp, borderColor ?: colors.latte, shape)
+            .background(Color(0xFF141414))
+            .border(1.dp, borderColor ?: Color(0xFF252525), shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(16.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
     ) { content() }
 }
 
@@ -240,21 +266,50 @@ fun XenoStatusBadge(
     filled: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val colors = coffemaniaColors()
-    Text(
-        text = text.uppercase(),
-        color = if (filled) Color.Black else if (active) colors.primary else colors.mocha,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 0.8.sp,
+    // Figma: 52×20, r11, pad 4/8, bg #00D4A829, border #00D4A880
+    val shape = RoundedCornerShape(11.dp)
+    Box(
         modifier = modifier
-            .clip(RoundedCornerShape(999.dp))
+            .width(52.dp)
+            .height(20.dp)
+            .clip(shape)
             .then(
-                if (filled) Modifier.background(colors.primary)
-                else Modifier.border(1.dp, if (active) colors.primary else colors.latte, RoundedCornerShape(999.dp)),
+                if (filled) {
+                    Modifier.background(Color(0xFF00E091))
+                } else {
+                    Modifier
+                        .background(
+                            if (active) Color(0x2900D4A8) else Color.Transparent,
+                        )
+                        .border(
+                            1.dp,
+                            if (active) Color(0x8000D4A8) else Color(0xFF252525),
+                            shape,
+                        )
+                },
             )
             .padding(horizontal = 8.dp, vertical = 4.dp),
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text.uppercase(),
+            color = when {
+                filled -> Color.Black
+                active -> Color(0xFF00D4A8)
+                else -> Color(0xFF7A7F78)
+            },
+            fontFamily = JetBrainsMonoFamily,
+            fontWeight = FontWeight.Normal,
+            fontSize = 9.sp,
+            lineHeight = 9.sp,
+            letterSpacing = 0.54.sp, // 6% of 9
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .width(36.dp)
+                .height(12.dp),
+        )
+    }
 }
 
 @Composable
@@ -262,18 +317,18 @@ fun XenoCountryTile(
     code: String,
     modifier: Modifier = Modifier,
 ) {
-    val colors = coffemaniaColors()
     Box(
         modifier = modifier
-            .size(44.dp)
+            .size(42.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF102820))
-            .border(1.dp, colors.primary.copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
+            .background(Color(0xFF04342C))
+            .border(1.dp, Color(0xFF00E091).copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = code.uppercase().take(2),
-            color = colors.primary,
+            color = Color(0xFF00E091),
+            fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 13.sp,
         )
@@ -291,7 +346,8 @@ fun XenoSignalBars(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        val heights = listOf(6.dp, 9.dp, 12.dp, 15.dp)
+        // Figma: 3 bars
+        val heights = listOf(6.dp, 10.dp, 14.dp)
         heights.forEachIndexed { index, h ->
             Box(
                 modifier = Modifier
@@ -314,8 +370,19 @@ fun XenoServerCard(
     pingMs: Int? = null,
     connected: Boolean = false,
 ) {
-    val colors = coffemaniaColors()
-    XenoCard(modifier = modifier, onClick = onClick) {
+    // Figma: 345×78, r=18, bg #121A17, border #222B28
+    val shape = RoundedCornerShape(18.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(78.dp)
+            .clip(shape)
+            .background(Color(0xFF121A17))
+            .border(1.dp, Color(0xFF222B28), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -324,16 +391,26 @@ fun XenoServerCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    color = colors.espresso,
+                    color = Color(0xFFF2F5F4),
+                    fontFamily = InterFontFamily,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
+                    lineHeight = 15.sp,
+                    letterSpacing = 0.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .width(90.dp)
+                        .height(18.dp),
                 )
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = subtitle,
-                    color = colors.mocha,
-                    fontSize = 12.sp,
+                    color = Color(0xFF7A7F78),
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 12.5.sp,
+                    lineHeight = 16.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -345,25 +422,35 @@ fun XenoServerCard(
                 ) {
                     XenoSignalBars(
                         strength = when {
-                            pingMs < 50 -> 4
-                            pingMs < 100 -> 3
-                            pingMs < 180 -> 2
+                            pingMs < 50 -> 3
+                            pingMs < 100 -> 2
                             else -> 1
                         },
-                        color = colors.primary,
+                        color = Color(0xFF00D4A8),
                     )
                     Text(
                         text = "$pingMs ms",
-                        color = colors.primary,
+                        color = Color(0xFF00D4A8),
+                        fontFamily = InterFontFamily,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 13.sp,
                     )
                 }
             } else {
                 Column(horizontalAlignment = Alignment.End) {
-                    Box(Modifier.width(14.dp).height(2.dp).background(colors.mocha))
+                    Box(
+                        modifier = Modifier
+                            .width(14.dp)
+                            .height(2.dp)
+                            .background(Color(0xFF7A7F78)),
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "select", color = colors.mocha, fontSize = 11.sp)
+                    Text(
+                        text = "select",
+                        color = Color(0xFF7A7F78),
+                        fontFamily = InterFontFamily,
+                        fontSize = 11.sp,
+                    )
                 }
             }
         }
@@ -376,9 +463,21 @@ fun XenoSubscriptionCard(
     hasSubscription: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val colors = coffemaniaColors()
-    XenoCard(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    // Figma: 345×96, r=18, bg #121A17, border #222B28
+    val shape = RoundedCornerShape(18.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(96.dp)
+            .clip(shape)
+            .background(Color(0xFF121A17))
+            .border(1.dp, Color(0xFF222B28), shape)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -386,7 +485,8 @@ fun XenoSubscriptionCard(
             ) {
                 Text(
                     text = "SUBSCRIPTION",
-                    color = colors.mocha,
+                    color = Color(0xFF7A7F78),
+                    fontFamily = InterFontFamily,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 1.sp,
@@ -398,7 +498,8 @@ fun XenoSubscriptionCard(
             if (!hasSubscription || info == null) {
                 Text(
                     text = "Не импортирована",
-                    color = colors.espresso,
+                    color = Color.White,
+                    fontFamily = InterFontFamily,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 18.sp,
                 )
@@ -410,8 +511,9 @@ fun XenoSubscriptionCard(
                 ) {
                     if (info.isDisplayUnlimitedTraffic()) {
                         Text(
-                            text = "безлимит",
-                            color = colors.espresso,
+                            text = "Безлимит",
+                            color = Color.White,
+                            fontFamily = InterFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 28.sp,
                         )
@@ -422,36 +524,60 @@ fun XenoSubscriptionCard(
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = parts.getOrElse(0) { label },
-                                color = colors.espresso,
+                                color = Color.White,
+                                fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 28.sp,
+                                lineHeight = 28.sp,
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 text = (parts.getOrNull(1) ?: "GB") + " left",
-                                color = colors.mocha,
+                                color = Color(0xFF7A7F78),
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Normal,
                                 fontSize = 14.sp,
-                                modifier = Modifier.padding(bottom = 4.dp),
+                                modifier = Modifier.padding(bottom = 3.dp),
                             )
                         }
                     } else {
                         Text(
                             text = formatTrafficBytes(info.used),
-                            color = colors.espresso,
+                            color = Color.White,
+                            fontFamily = InterFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 28.sp,
                         )
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        info.expireCalendarLabel()?.let { date ->
-                            Text(text = "Expires $date", color = colors.mocha, fontSize = 11.sp)
+                        xenoShortExpireDate(info)?.let { date ->
+                            Text(
+                                text = "Expires $date",
+                                color = Color(0xFF6B7672),
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 12.sp,
+                                lineHeight = 12.sp,
+                                letterSpacing = 0.sp,
+                                textAlign = TextAlign.Right,
+                                modifier = Modifier
+                                    .width(183.dp)
+                                    .height(15.dp),
+                            )
                         }
-                        info.expireLabel()?.let { remaining ->
+                        xenoDaysLeftLabel(info)?.let { remaining ->
                             Text(
                                 text = remaining,
-                                color = colors.primary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF00D4A8),
+                                fontFamily = JetBrainsMonoFamily,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 11.sp,
+                                lineHeight = 11.sp,
+                                letterSpacing = 0.22.sp, // 2% of 11
+                                textAlign = TextAlign.Right,
+                                modifier = Modifier
+                                    .width(183.dp)
+                                    .height(15.dp),
                             )
                         }
                     }
@@ -461,16 +587,33 @@ fun XenoSubscriptionCard(
                         progress = { 1f - info.usageFraction },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = colors.primary,
-                        trackColor = colors.latte,
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(999.dp)),
+                        color = Color(0xFF00D4A8),
+                        trackColor = Color(0xFF222B28),
                         strokeCap = StrokeCap.Round,
                     )
+                } else {
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
             }
         }
     }
+}
+
+private fun xenoShortExpireDate(info: SubscriptionInfo): String? {
+    if (info.expire <= 0) return null
+    return java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.ENGLISH)
+        .format(java.util.Date(info.expire * 1_000L))
+}
+
+private fun xenoDaysLeftLabel(info: SubscriptionInfo): String? {
+    if (info.expire <= 0) return null
+    val nowSec = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
+    val remainingSec = info.expire - nowSec
+    if (remainingSec <= 0) return null
+    val days = (remainingSec + 86_399L) / 86_400L
+    return if (days == 1L) "1 day left" else "$days days left"
 }
 
 @Composable
@@ -534,7 +677,26 @@ fun XenoOutlineButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    XenoPrimaryButton(text = text, onClick = onClick, modifier = modifier, filled = false)
+    val shape = RoundedCornerShape(999.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(shape)
+            .background(Color.Transparent)
+            .border(1.dp, Color(0xFF2A2A2A), shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text.uppercase(),
+            color = Color(0xFF00E091),
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            letterSpacing = 1.2.sp,
+        )
+    }
 }
 
 @Composable

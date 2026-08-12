@@ -42,15 +42,18 @@ fun XenoConnectButton(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    size: Dp = 168.dp,
+    size: Dp = 176.dp,
 ) {
-    val colors = coffemaniaColors()
     val connected = vpnStatus == VpnStatus.Started
     val busy = vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping
-    val accent = if (enabled && (connected || busy)) colors.primary else colors.mocha
-    val plate = if (connected) colors.cappuccino else colors.surfaceVariant
-    val ringColor = if (connected) colors.primary else colors.latte
-    val squareColor = if (connected) colors.primary else Color(0xFF3A3A3A)
+    val accent = when {
+        !enabled -> Color(0xFF7A7F78)
+        connected || busy -> Color(0xFF00E091)
+        else -> Color(0xFF7A7F78)
+    }
+    val plate = if (connected) Color(0xFF141414) else Color(0xFF1A1A1A)
+    val ringColor = if (connected) Color(0xFF00E091) else Color(0xFF2A2A2A)
+    val squareColor = if (connected) Color(0xFF00E091) else Color(0xFF3A3A3A)
 
     val spin by rememberInfiniteTransition(label = "xenoSpin").animateFloat(
         initialValue = 0f,
@@ -80,7 +83,7 @@ fun XenoConnectButton(
             val square = outerR * 0.055f
             val orbit = outerR - square * 1.6f
             val count = 28
-            val highlightCount = if (connected) 10 else if (busy) 6 else 0
+            val highlightCount = if (busy) 6 else 0
             val baseAngle = if (busy) Math.toRadians(spin.toDouble()) else -Math.PI / 2
 
             for (i in 0 until count) {
@@ -88,7 +91,8 @@ fun XenoConnectButton(
                 val x = cx + (orbit * cos(angle)).toFloat()
                 val y = cy + (orbit * sin(angle)).toFloat()
                 val lit = when {
-                    connected -> i < highlightCount || i > count - 3
+                    // Connected: full teal square ring (Figma)
+                    connected -> true
                     busy -> {
                         val phase = ((i + (spin / 360f * count).toInt()) % count)
                         phase < highlightCount
@@ -96,7 +100,11 @@ fun XenoConnectButton(
                     else -> false
                 }
                 drawRoundRect(
-                    color = if (lit) squareColor else squareColor.copy(alpha = if (connected) 0.25f else 0.55f),
+                    color = when {
+                        lit -> squareColor
+                        connected -> squareColor.copy(alpha = 0.25f)
+                        else -> squareColor.copy(alpha = 0.7f)
+                    },
                     topLeft = Offset(x - square / 2f, y - square / 2f),
                     size = Size(square, square),
                     cornerRadius = CornerRadius(square * 0.2f, square * 0.2f),
@@ -135,18 +143,17 @@ fun XenoSquareDashes(
     modifier: Modifier = Modifier,
     count: Int = 9,
 ) {
-    val colors = coffemaniaColors()
-    val tint = if (active) colors.primary else Color(0xFF3A3A3A)
+    val tint = if (active) Color(0xFF00E091) else Color(0xFF3A3A3A)
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         repeat(count) {
             Box(
                 modifier = Modifier
-                    .size(6.dp)
-                    .clip(RoundedCornerShape(1.5.dp))
+                    .size(5.dp)
+                    .clip(RoundedCornerShape(1.dp))
                     .background(tint),
             )
         }

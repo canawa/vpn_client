@@ -1,6 +1,7 @@
 package ru.coffeemaniavpn.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,14 +12,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
@@ -68,22 +73,14 @@ fun HomeScreen(
         subscriptionExpired -> isConnected
         else -> true
     }
-    val glow = when {
-        isConnected -> ConnectUiStatus.On
-        state.vpnStatus == VpnStatus.Starting || state.vpnStatus == VpnStatus.Stopping ->
-            ConnectUiStatus.Busy
-        else -> ConnectUiStatus.Off
-    }
-
     val serverDisplay = selectedServerDisplay(state)
     val flagCode = FlagUtils.resolveCountryCodeOrDefault(serverDisplay.flag)
 
-    Box(modifier = modifier.fillMaxSize().background(colors.milkFoam)) {
-        StatusGlow(status = glow)
+    Box(modifier = modifier.fillMaxSize().background(Color(0xFF0A0D0C))) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 22.dp),
         ) {
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -108,7 +105,7 @@ fun HomeScreen(
                     onClick = {
                         if (isConnected) onDisconnectClick() else onConnectClick()
                     },
-                    size = 168.dp,
+                    size = 176.dp,
                 )
 
                 Spacer(modifier = Modifier.height(18.dp))
@@ -119,11 +116,16 @@ fun HomeScreen(
                         state.vpnStatus == VpnStatus.Starting -> stringResource(R.string.clev_connecting)
                         else -> stringResource(R.string.xeno_status_disconnected)
                     }.uppercase(),
-                    color = if (isConnected) colors.primary else ColorGraySoft,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    letterSpacing = 2.sp,
-                    fontFamily = FontFamily.Monospace,
+                    color = if (isConnected) Color(0xFF00D4A8) else Color(0xFF6B7672),
+                    fontFamily = BebasNeueFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 30.sp,
+                    lineHeight = 30.sp,
+                    letterSpacing = 1.8.sp, // 6% of 30
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -135,20 +137,33 @@ fun HomeScreen(
                         isConnected -> stringResource(R.string.xeno_tap_disconnect)
                         else -> stringResource(R.string.xeno_tap_connect)
                     },
-                    color = if (isConnected) colors.espresso else colors.mocha,
-                    fontSize = if (isConnected) 16.sp else 13.sp,
-                    fontFamily = if (isConnected) FontFamily.Monospace else FontFamily.Default,
-                    textAlign = TextAlign.Center,
+                    color = if (isConnected) Color.White else Color(0xFF566460),
+                    fontFamily = if (isConnected) JetBrainsMonoFamily else InterFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = if (isConnected) 16.sp else 12.sp,
+                    lineHeight = if (isConnected) 16.sp else 12.sp,
                     letterSpacing = if (isConnected) 1.sp else 0.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = if (isConnected) {
+                        Modifier
+                    } else {
+                        Modifier
+                            .fillMaxWidth()
+                            .height(15.dp)
+                    },
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
-                XenoSquareDashes(active = isConnected)
+                XenoSquareDashes(
+                    active = isConnected,
+                    count = if (isConnected) 10 else 9,
+                )
 
                 state.error?.takeIf { it.isNotBlank() }?.let { err ->
                     Text(
                         text = err,
                         color = colors.error,
+                        fontFamily = InterFontFamily,
                         fontSize = 11.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -172,37 +187,65 @@ fun HomeScreen(
                 hasSubscription = hasSubscription,
             )
             if (isConnected) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
                     Text(
                         text = "↓ ${formatTrafficRate(state.downlinkBytesPerSec)}",
-                        color = colors.espresso,
-                        fontFamily = FontFamily.Monospace,
+                        color = Color.White,
+                        fontFamily = JetBrainsMonoFamily,
                         fontSize = 13.sp,
                     )
                     Text(
                         text = "↑ ${formatTrafficRate(state.uplinkBytesPerSec)}",
-                        color = colors.espresso,
-                        fontFamily = FontFamily.Monospace,
+                        color = Color.White,
+                        fontFamily = JetBrainsMonoFamily,
                         fontSize = 13.sp,
                     )
                 }
             } else if (hasSubscription && !subscriptionExpired) {
                 Spacer(modifier = Modifier.height(12.dp))
-                XenoOutlineButton(
-                    text = stringResource(R.string.xeno_test_connection),
-                    onClick = onConnectClick,
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // Figma: 155×34, r=12, pad 11/18, bg #141B18, border #222B28
+                    val shape = RoundedCornerShape(12.dp)
+                    Box(
+                        modifier = Modifier
+                            .width(155.dp)
+                            .height(34.dp)
+                            .clip(shape)
+                            .background(Color(0xFF141B18))
+                            .border(1.dp, Color(0xFF222B28), shape)
+                            .clickable(onClick = onConnectClick)
+                            .padding(horizontal = 18.dp, vertical = 11.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "TEST CONNECTION",
+                            color = Color(0xFF00D4A8),
+                            fontFamily = JetBrainsMonoFamily,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp,
+                            lineHeight = 12.sp,
+                            letterSpacing = 0.72.sp, // 6% of 12
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Visible,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }
-
-private val ColorGraySoft = androidx.compose.ui.graphics.Color(0xFFB0B0B0)
 
 @Composable
 private fun selectedServerDisplay(state: MainUiState): ServerDisplay {
