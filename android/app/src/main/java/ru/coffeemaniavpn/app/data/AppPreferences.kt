@@ -211,6 +211,8 @@ class AppPreferences(private val context: Context) {
             prefs[KEY_SPLIT_APPS_MODE] = settings.appsMode.name
             prefs[KEY_SPLIT_APP_PACKAGES] = json.encodeToString(settings.appPackages.toList())
             prefs[KEY_KILL_SWITCH_ENABLED] = settings.killSwitchEnabled
+            prefs[KEY_PRESET_RU_DIRECT] = settings.presetRuDirect
+            prefs[KEY_PRESET_ADS_BLOCK] = settings.presetAdsBlock
         }
         ConnectionSettingsStore.update(settings)
     }
@@ -259,16 +261,6 @@ class AppPreferences(private val context: Context) {
         val normalized = HomeFilterOrder.normalize(order)
         context.dataStore.edit { prefs ->
             prefs[KEY_HOME_FILTER_ORDER] = json.encodeToString(normalized)
-        }
-    }
-
-    val hasAcceptedConsent: Flow<Boolean> = context.dataStore.data
-        .map { prefs -> prefs[KEY_CONSENT_ACCEPTED] ?: false }
-        .flowOn(Dispatchers.IO)
-
-    suspend fun setConsentAccepted(accepted: Boolean) {
-        context.dataStore.edit { prefs ->
-            prefs[KEY_CONSENT_ACCEPTED] = accepted
         }
     }
 
@@ -330,6 +322,8 @@ class AppPreferences(private val context: Context) {
             appsMode = appsMode,
             appPackages = packages,
             killSwitchEnabled = this[KEY_KILL_SWITCH_ENABLED] ?: false,
+            presetRuDirect = this[KEY_PRESET_RU_DIRECT] ?: true,
+            presetAdsBlock = this[KEY_PRESET_ADS_BLOCK] ?: false,
         )
     }
 
@@ -352,6 +346,8 @@ class AppPreferences(private val context: Context) {
         private val KEY_SPLIT_APPS_MODE = stringPreferencesKey("split_apps_mode")
         private val KEY_SPLIT_APP_PACKAGES = stringPreferencesKey("split_app_packages")
         private val KEY_KILL_SWITCH_ENABLED = booleanPreferencesKey("kill_switch_enabled")
+        private val KEY_PRESET_RU_DIRECT = booleanPreferencesKey("preset_ru_direct")
+        private val KEY_PRESET_ADS_BLOCK = booleanPreferencesKey("preset_ads_block")
         private val KEY_APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
         private val KEY_SUB_AUTO_UPDATE_HOURS = intPreferencesKey("sub_auto_update_hours")
         private val KEY_SUB_LAST_AUTO_REFRESH_MS = longPreferencesKey("sub_last_auto_refresh_ms")
@@ -359,6 +355,5 @@ class AppPreferences(private val context: Context) {
         private val KEY_HOME_FILTER_ORDER = stringPreferencesKey("home_filter_order")
         private val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
         private val KEY_TRAFFIC_ROUTING_MODE = stringPreferencesKey("traffic_routing_mode")
-        private val KEY_CONSENT_ACCEPTED = booleanPreferencesKey("consent_accepted")
     }
 }

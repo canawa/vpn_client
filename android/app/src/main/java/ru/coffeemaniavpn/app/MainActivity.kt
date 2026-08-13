@@ -93,7 +93,6 @@ class MainActivity : AppCompatActivity() {
 
                         AppShell(
                             state = state,
-                            onAcceptConsent = viewModel::acceptConsent,
                             onRefreshSubscription = viewModel::refreshSubscription,
                             onSelectNode = viewModel::selectNode,
                             onSelectAutoBalancer = viewModel::selectAutoBalancer,
@@ -115,6 +114,7 @@ class MainActivity : AppCompatActivity() {
                             onSaveConnectionSettings = viewModel::saveConnectionSettings,
                             onUpdateConnectionSettings = viewModel::updateConnectionSettings,
                             onAddCustomRule = viewModel::addCustomRule,
+                            onAddCustomRules = viewModel::addCustomRules,
                             onRemoveCustomRule = viewModel::removeCustomRule,
                             onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
                             onTrafficRoutingModeChange = viewModel::setTrafficRoutingMode,

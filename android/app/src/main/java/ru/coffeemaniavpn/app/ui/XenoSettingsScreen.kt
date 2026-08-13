@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Add
@@ -84,6 +86,7 @@ fun XenoSettingsScreen(
     state: MainUiState,
     onUpdateConnectionSettings: ((ConnectionSettingsState) -> ConnectionSettingsState) -> Unit,
     onAddCustomRule: (String, RoutingRuleTarget) -> Unit,
+    onAddCustomRules: (List<String>, RoutingRuleTarget) -> Unit,
     onRemoveCustomRule: (String) -> Unit,
     onReplaceSubscription: () -> Unit,
     onTrafficRoutingModeChange: (TrafficRoutingMode) -> Unit,
@@ -91,6 +94,10 @@ fun XenoSettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     var page by remember { mutableStateOf(XenoSettingsPage.Main) }
+
+    BackHandler(enabled = page != XenoSettingsPage.Main) {
+        page = XenoSettingsPage.Main
+    }
 
     when (page) {
         XenoSettingsPage.Main -> XenoSettingsMain(
@@ -108,6 +115,7 @@ fun XenoSettingsScreen(
             onBack = { page = XenoSettingsPage.Main },
             onUpdateConnectionSettings = onUpdateConnectionSettings,
             onAddCustomRule = onAddCustomRule,
+            onAddCustomRules = onAddCustomRules,
             onRemoveCustomRule = onRemoveCustomRule,
             onTrafficRoutingModeChange = onTrafficRoutingModeChange,
         )
@@ -182,11 +190,8 @@ private fun XenoSettingsMain(
                 )
             }
 
-            XenoSettingsSection(
-                title = stringResource(R.string.xeno_settings_connection),
-                cardHeight = 171.dp,
-            ) {
-                XenoSettingsToggleRow(
+            XenoSettingsSection(title = stringResource(R.string.xeno_settings_connection)) {
+                XenoSettingsNavToggleRow(
                     title = stringResource(R.string.xeno_smart_routing),
                     subtitle = stringResource(R.string.xeno_smart_routing_hint, activeRules),
                     icon = Icons.AutoMirrored.Outlined.AltRoute,
@@ -196,7 +201,7 @@ private fun XenoSettingsMain(
                             if (enabled) TrafficRoutingMode.CUSTOM else TrafficRoutingMode.GLOBAL,
                         )
                     },
-                    onClick = onOpenRouting,
+                    onOpen = onOpenRouting,
                 )
                 XenoSettingsDivider()
                 XenoSettingsValueRow(
@@ -450,6 +455,62 @@ private fun XenoSettingsToggleRow(
                     fontSize = 12.sp,
                 )
             }
+        }
+        ClevAnimatedSwitch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
+    }
+}
+
+/** Left side opens the page; switch only toggles — avoids nested clickable conflicts. */
+@Composable
+private fun XenoSettingsNavToggleRow(
+    title: String,
+    subtitle: String?,
+    icon: ImageVector,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    onOpen: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onOpen),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            XenoSettingsRowIcon(icon)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = XenoText,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 15.sp,
+                )
+                subtitle?.let {
+                    Text(
+                        text = it,
+                        color = XenoMuted,
+                        fontFamily = InterFontFamily,
+                        fontSize = 12.sp,
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = XenoMuted,
+                modifier = Modifier.size(20.dp),
+            )
         }
         ClevAnimatedSwitch(
             checked = checked,

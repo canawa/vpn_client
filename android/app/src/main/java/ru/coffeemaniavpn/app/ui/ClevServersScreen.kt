@@ -39,7 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
-import ru.coffeemaniavpn.app.data.LoadBalancer
 import ru.coffeemaniavpn.app.data.PingState
 
 /** Figma: number Inter Medium 14 / #00D4A8 + "ms" Inter Medium 10 / #6B7672 */
@@ -104,7 +103,7 @@ private fun XenoPingValue(
 fun XenoServersScreen(
     state: MainUiState,
     onSelectNode: (String) -> Unit,
-    onSelectAutoBalancer: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") onSelectAutoBalancer: () -> Unit,
     onConnectToNode: (String) -> Unit,
     @Suppress("UNUSED_PARAMETER") onToggleFavorite: (String) -> Unit,
     @Suppress("UNUSED_PARAMETER") onPingNode: (String) -> Unit,
@@ -131,10 +130,6 @@ fun XenoServersScreen(
                 it.host.contains(query, ignoreCase = true)
         }
     }
-
-    val bestPing = filteredNodes
-        .mapNotNull { (state.nodePings[it.id] as? PingState.Result)?.latencyMs }
-        .minOrNull()
 
     Column(
         modifier = modifier
@@ -165,29 +160,6 @@ fun XenoServersScreen(
                         value = query,
                         onValueChange = { query = it },
                         placeholder = stringResource(R.string.xeno_search_location),
-                    )
-                }
-
-                item {
-                    XenoAutoCard(
-                        selected = state.selectedNodeId == LoadBalancer.AUTO_NODE_ID,
-                        bestPingMs = bestPing,
-                        onClick = onSelectAutoBalancer,
-                        onDoubleClick = {
-                            onSelectAutoBalancer()
-                            onConnectToNode(LoadBalancer.AUTO_NODE_ID)
-                        },
-                    )
-                }
-
-                item {
-                    Text(
-                        text = stringResource(R.string.xeno_locations).uppercase(),
-                        color = colors.mocha,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                     )
                 }
 
@@ -265,61 +237,6 @@ private fun XenoSearchField(
                 inner()
             },
         )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun XenoAutoCard(
-    selected: Boolean,
-    bestPingMs: Int?,
-    onClick: () -> Unit,
-    onDoubleClick: () -> Unit,
-) {
-    val colors = coffemaniaColors()
-    val shape = RoundedCornerShape(16.dp)
-    val border = if (selected) Color(0xFF00D4A8) else Color(0xFF00D4A8).copy(alpha = 0.45f)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(Color(0xFF0F2A22))
-            .border(1.dp, border, shape)
-            .combinedClickable(onClick = onClick, onDoubleClick = onDoubleClick)
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(Color(0xFF163B30)),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.xeno_auto),
-                color = Color(0xFF00D4A8),
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-            )
-            Text(
-                text = stringResource(R.string.xeno_auto_subtitle),
-                color = Color(0xFF6B7672),
-                fontSize = 12.sp,
-            )
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            XenoPingValue(pingMs = bestPingMs)
-            Text(
-                text = stringResource(R.string.xeno_best),
-                color = Color(0xFF00D4A8),
-                fontFamily = JetBrainsMonoFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                letterSpacing = 0.8.sp,
-            )
-        }
     }
 }
 

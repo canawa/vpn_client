@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -89,7 +91,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 XenoLogoMark(inCapsule = true, modifier = Modifier.clickable(onClick = onOpenWebsite))
-                XenoGridIconButton(onClick = onOpenWebsite)
+                XenoGridIconButton(onClick = onOpenServers)
             }
 
             Column(
@@ -213,17 +215,18 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    // Figma: 155×34, r=12, pad 11/18, bg #141B18, border #222B28
+                    // Figma: h34, r12; width grows for longer labels
                     val shape = RoundedCornerShape(12.dp)
                     Box(
                         modifier = Modifier
-                            .width(155.dp)
                             .height(34.dp)
+                            .wrapContentWidth()
+                            .widthIn(min = 155.dp, max = 280.dp)
                             .clip(shape)
                             .background(Color(0xFF141B18))
                             .border(1.dp, Color(0xFF222B28), shape)
                             .clickable(onClick = onConnectClick)
-                            .padding(horizontal = 18.dp, vertical = 11.dp),
+                            .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -231,12 +234,12 @@ fun HomeScreen(
                             color = Color(0xFF00D4A8),
                             fontFamily = JetBrainsMonoFamily,
                             fontWeight = FontWeight.Normal,
-                            fontSize = 12.sp,
-                            lineHeight = 12.sp,
-                            letterSpacing = 0.72.sp, // 6% of 12
+                            fontSize = 11.sp,
+                            lineHeight = 11.sp,
+                            letterSpacing = 0.4.sp,
                             maxLines = 1,
                             softWrap = false,
-                            overflow = TextOverflow.Visible,
+                            overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center,
                         )
                     }

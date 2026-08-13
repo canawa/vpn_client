@@ -76,7 +76,6 @@ data class MainUiState(
     val homeFilterOrder: List<String> = HomeFilterOrder.DEFAULT,
     val appLanguage: AppLanguage = AppLanguage.DEFAULT,
     val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
-    val hasAcceptedConsent: Boolean = false,
     val clipboardSubscriptionUrl: String? = null,
     val showForeignSubscriptionPrompt: Boolean = false,
 )
@@ -150,9 +149,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 preferences.appLanguage,
                 preferences.trafficRoutingMode,
                 preferences.homeFilterOrder,
-                preferences.hasAcceptedConsent,
-            ) { language, routingMode, filterOrder, consentAccepted ->
-                Quad(language, routingMode, filterOrder, consentAccepted)
+            ) { language, routingMode, filterOrder ->
+                Triple(language, routingMode, filterOrder)
             },
         ) { connectionSettings, autoUpdateInterval, lastUpdatedAt, favorites, langRouting ->
             SettingsUiState(
@@ -163,7 +161,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 appLanguage = langRouting.first,
                 trafficRoutingMode = langRouting.second,
                 homeFilterOrder = langRouting.third,
-                hasAcceptedConsent = langRouting.fourth,
             )
         },
         combine(startupCrash, clipboardSubscriptionUrl, showForeignSubscriptionPrompt) { crash, clip, foreign ->
@@ -197,7 +194,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             homeFilterOrder = settingsData.homeFilterOrder,
             appLanguage = settingsData.appLanguage,
             trafficRoutingMode = settingsData.trafficRoutingMode,
-            hasAcceptedConsent = settingsData.hasAcceptedConsent,
             clipboardSubscriptionUrl = clipUrl,
             showForeignSubscriptionPrompt = foreignPrompt,
         )
@@ -276,12 +272,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             VpnAutoReconnect.tryReconnectOnResume()
             maybeAutoRefreshSubscriptionOnResume()
             checkClipboardForSubscription()
-        }
-    }
-
-    fun acceptConsent() {
-        viewModelScope.launch(Dispatchers.IO) {
-            preferences.setConsentAccepted(true)
         }
     }
 
@@ -436,7 +426,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         AppLog.i("processDeepLink action=$action")
         when (action) {
             DeepLinkAction.Open -> {
-                message.value = "POROZOFF VPN"
+                message.value = "XENO VPN"
             }
             DeepLinkAction.Connect -> {
                 if (prepareConnect(showErrors = true)) {
@@ -819,24 +809,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addCustomRule(rawValue: String, target: RoutingRuleTarget) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val normalized = RoutingRuleInput.normalizeWebsite(rawValue)
-            if (normalized.isBlank()) return@launch
+        addCustomRules(listOf(rawValue), target)
+    }
 
+    fun addCustomRules(rawValues: List<String>, target: RoutingRuleTarget) {
+        if (rawValues.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
             val current = preferences.connectionSettings.first()
-            val duplicate = current.customRules.any { rule ->
-                rule.matcher == RoutingRuleMatcher.DomainSuffix &&
-                    RoutingRuleInput.normalizeWebsite(rule.value) == normalized
+            val existing = current.customRules.toMutableList()
+            var changed = false
+
+            rawValues.forEach { raw ->
+                val kind = RoutingRuleInput.classifyLine(raw)
+                val rule = RoutingRuleInput.toStoredRule(raw, kind, target) ?: return@forEach
+                val duplicate = existing.any {
+                    it.matcher == rule.matcher &&
+                        it.value.equals(rule.value, ignoreCase = rule.matcher == RoutingRuleMatcher.DomainSuffix)
+                }
+                if (!duplicate) {
+                    existing += rule
+                    changed = true
+                }
             }
-            if (duplicate) return@launch
+
+            if (!changed) return@launch
 
             persistConnectionSettings(
                 current.copy(
-                    customRules = current.customRules + RoutingRule(
-                        value = normalized,
-                        matcher = RoutingRuleMatcher.DomainSuffix,
-                        target = target,
-                    ),
+                    customRules = existing,
                     sitesEnabled = true,
                 ),
             )
@@ -925,13 +925,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val homeFilterOrder: List<String> = HomeFilterOrder.DEFAULT,
         val appLanguage: AppLanguage = AppLanguage.DEFAULT,
         val trafficRoutingMode: TrafficRoutingMode = TrafficRoutingMode.DEFAULT,
-        val hasAcceptedConsent: Boolean = false,
-    )
-
-    private data class Quad<A, B, C, D>(
-        val first: A,
-        val second: B,
-        val third: C,
-        val fourth: D,
     )
 }

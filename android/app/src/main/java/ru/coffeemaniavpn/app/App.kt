@@ -7,12 +7,14 @@ import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.PowerManager
 import androidx.core.content.getSystemService
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.AppPreferences
 import ru.coffeemaniavpn.app.util.AppLocale
@@ -40,7 +42,16 @@ class App : Application() {
         runCatching { ru.coffeemaniavpn.app.widget.VpnHomeWidgetAnimator.ensureStarted(this) }
 
         applicationScope.launch(Dispatchers.IO) {
-            runCatching { AppPreferences(this@App).loadTrafficRoutingModeIntoMemory() }
+            runCatching {
+                val prefs = AppPreferences(this@App)
+                prefs.loadTrafficRoutingModeIntoMemory()
+                prefs.loadConnectionSettingsIntoMemory()
+                AppLog.i("App: connection settings loaded into memory")
+            }.onFailure {
+                AppLog.e("App: failed to load connection settings", it)
+            }
+            settingsReady.complete(Unit)
+
             runCatching {
                 XrayCoreManager.init(this@App)
                 xrayReady.set(true)
@@ -66,7 +77,15 @@ class App : Application() {
 
         val xrayReady = AtomicBoolean(false)
 
+        private val settingsReady = CompletableDeferred<Unit>()
+
         val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+        /** Waits until ConnectionSettingsStore / TrafficRoutingStore are loaded (tile/widget-safe). */
+        suspend fun awaitSettingsReady(timeoutMs: Long = 5_000L) {
+            if (settingsReady.isCompleted) return
+            withTimeoutOrNull(timeoutMs) { settingsReady.await() }
+        }
 
         val notificationManager by lazy { instance.getSystemService<NotificationManager>()!! }
         val connectivity by lazy { instance.getSystemService<ConnectivityManager>()!! }

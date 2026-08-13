@@ -223,7 +223,7 @@ fun XenoBottomNav(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 12.dp),
+            .padding(bottom = 24.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -324,11 +324,10 @@ fun XenoStatusBadge(
     filled: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    // Figma: 52×20, r11, pad 4/8, bg #00D4A829, border #00D4A880
+    // Figma: r11, pad 4/8, bg #00D4A829, border #00D4A880 — width wraps label
     val shape = RoundedCornerShape(11.dp)
     Box(
         modifier = modifier
-            .width(52.dp)
             .height(20.dp)
             .clip(shape)
             .then(
@@ -360,12 +359,10 @@ fun XenoStatusBadge(
             fontWeight = FontWeight.Normal,
             fontSize = 9.sp,
             lineHeight = 9.sp,
-            letterSpacing = 0.54.sp, // 6% of 9
+            letterSpacing = 0.54.sp,
             maxLines = 1,
+            softWrap = false,
             textAlign = TextAlign.Center,
-            modifier = Modifier
-                .width(36.dp)
-                .height(12.dp),
         )
     }
 }

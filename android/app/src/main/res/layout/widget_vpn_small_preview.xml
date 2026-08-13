@@ -97,8 +97,8 @@
             android:layout_marginTop="2dp"
             android:fontFamily="@font/sf_pro_bold"
             android:includeFontPadding="false"
-            android:text="ClevVPN"
-            android:textColor="#FAC300"
+            android:text="XENO"
+            android:textColor="#00D4A8"
             android:textSize="10sp" />
     </LinearLayout>
 </LinearLayout>

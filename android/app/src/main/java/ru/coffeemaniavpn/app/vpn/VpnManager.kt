@@ -134,17 +134,24 @@ object VpnManager {
         KillSwitchVpnService.releaseImmediate()
         KillSwitchVpnService.release(App.instance)
         XrayCoreManager.stopLoop()
-        try {
-            val config = XrayConfigBuilder.build(node)
-            AppLog.i("VpnManager.connect node=${node.name} protocol=${node.protocol} transport=${node.transport} host=${node.host}:${node.port} rawOutbound=${node.rawOutboundJson != null}")
-            AppLog.i("VpnManager config (${config.length} bytes):\n$config")
-            App.configFile.writeText(config)
-            BoxService.start()
-        } catch (t: Throwable) {
-            AppLog.e("VpnManager.connect failed", t)
-            _lastError.value = t.message ?: "Ошибка подключения"
-            setStatus(VpnStatus.Stopped)
-            VpnAutoReconnect.onConnectFailed()
+        App.applicationScope.launch(Dispatchers.IO) {
+            App.awaitSettingsReady()
+            try {
+                val config = XrayConfigBuilder.build(node)
+                AppLog.i(
+                    "VpnManager.connect node=${node.name} protocol=${node.protocol} " +
+                        "transport=${node.transport} host=${node.host}:${node.port} " +
+                        "rawOutbound=${node.rawOutboundJson != null}",
+                )
+                AppLog.i("VpnManager config (${config.length} bytes):\n$config")
+                App.configFile.writeText(config)
+                BoxService.start()
+            } catch (t: Throwable) {
+                AppLog.e("VpnManager.connect failed", t)
+                _lastError.value = t.message ?: "Ошибка подключения"
+                setStatus(VpnStatus.Stopped)
+                VpnAutoReconnect.onConnectFailed()
+            }
         }
     }
 
@@ -167,9 +174,12 @@ object VpnManager {
 
     internal fun onVpnFullyStopped() {
         VpnDiagnostics.snapshot("fully-stopped")
-        val killSwitch = ConnectionSettingsStore.state.killSwitchEnabled
-        if (killSwitch && !userInitiatedDisconnect) {
-            KillSwitchVpnService.engage(App.instance)
+        val engageKillSwitch = !userInitiatedDisconnect
+        App.applicationScope.launch(Dispatchers.IO) {
+            App.awaitSettingsReady()
+            if (engageKillSwitch && ConnectionSettingsStore.state.killSwitchEnabled) {
+                KillSwitchVpnService.engage(App.instance)
+            }
         }
 
         VpnAutoReconnect.onUnexpectedDisconnect()

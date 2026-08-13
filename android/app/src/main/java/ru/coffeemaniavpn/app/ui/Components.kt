@@ -939,7 +939,7 @@ fun WebsiteBanner(
 ) {
     PromoBanner(
         imageRes = R.drawable.banner_go_web,
-        contentDescription = "POROZOFF VPN — porozoffvpn.ru",
+        contentDescription = "XENO VPN — xenovpn",
         onClick = onClick,
         modifier = modifier,
     )

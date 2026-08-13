@@ -31,7 +31,6 @@ import ru.coffeemaniavpn.app.data.TrafficRoutingMode
 @Composable
 fun AppShell(
     state: MainUiState,
-    onAcceptConsent: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onSelectNode: (String) -> Unit,
     onSelectAutoBalancer: () -> Unit,
@@ -53,6 +52,7 @@ fun AppShell(
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
     onUpdateConnectionSettings: ((ConnectionSettingsState) -> ConnectionSettingsState) -> Unit,
     onAddCustomRule: (String, RoutingRuleTarget) -> Unit,
+    onAddCustomRules: (List<String>, RoutingRuleTarget) -> Unit,
     onRemoveCustomRule: (String) -> Unit,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     onTrafficRoutingModeChange: (TrafficRoutingMode) -> Unit,
@@ -64,16 +64,6 @@ fun AppShell(
 
     fun openWebsite() = openExternalUrl(context, SubscriptionUrlValidator.websiteUrl("home_logo"))
     fun openTelegram() = openExternalUrl(context, SubscriptionUrlValidator.telegramBotUrl("activation"))
-
-    if (!state.hasAcceptedConsent) {
-        ConsentScreen(
-            onAccept = onAcceptConsent,
-            onOpenPrivacyPolicy = { openExternalUrl(context, consentPrivacyUrl()) },
-            onOpenTerms = { openExternalUrl(context, consentTermsUrl()) },
-            modifier = Modifier.fillMaxSize(),
-        )
-        return
-    }
 
     BackHandler(enabled = showDeleteSubscriptionConfirm) {
         showDeleteSubscriptionConfirm = false
@@ -122,10 +112,11 @@ fun AppShell(
                     onRefreshAll = onRefreshServersAndPing,
                     modifier = Modifier.fillMaxSize(),
                 )
-                XenoTab.Settings -> XenoSettingsScreen(
+                XenoTab.Settings ->                 XenoSettingsScreen(
                     state = state,
                     onUpdateConnectionSettings = onUpdateConnectionSettings,
                     onAddCustomRule = onAddCustomRule,
+                    onAddCustomRules = onAddCustomRules,
                     onRemoveCustomRule = onRemoveCustomRule,
                     onReplaceSubscription = {
                         onDeleteSubscriptionClick()

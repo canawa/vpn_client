@@ -30,6 +30,7 @@ object VpnQuickConnect {
 
     fun requestConnect(context: Context) {
         App.applicationScope.launch {
+            App.awaitSettingsReady()
             val node = withContext(Dispatchers.IO) {
                 resolveSelectedNode(context)
             }

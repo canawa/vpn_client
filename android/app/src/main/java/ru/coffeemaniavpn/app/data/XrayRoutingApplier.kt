@@ -38,18 +38,81 @@ object XrayRoutingApplier {
 
     fun applyConnectionSettings(config: JSONObject) {
         val settings = ConnectionSettingsStore.state
-        applyCustomRules(config, settings.customRules.filter { it.isEnabled })
-    }
-
-    private fun applyCustomRules(config: JSONObject, rules: List<RoutingRule>) {
+        val mode = TrafficRoutingStore.mode
         val routing = config.optJSONObject("routing") ?: return
         val existing = routing.optJSONArray("rules") ?: JSONArray().also { routing.put("rules", it) }
 
+        // CUSTOM only: user domain/IP rules. GLOBAL = pure proxy final (no leftover Direct/Block).
+        val enabledCustom = if (mode == TrafficRoutingMode.CUSTOM) {
+            settings.customRules.filter { it.isEnabled }
+        } else {
+            emptyList()
+        }
+        val custom = buildCustomRulesArray(enabledCustom)
+        val presets = buildPresetRulesArray(settings)
+
+        // Custom first so explicit Proxy for a RU domain beats presetRuDirect.
+        val merged = JSONArray()
+        for (i in 0 until custom.length()) merged.put(custom.get(i))
+        for (i in 0 until presets.length()) merged.put(presets.get(i))
+        for (i in 0 until existing.length()) merged.put(existing.get(i))
+        routing.put("rules", merged)
+
+        val finalOutbound = when (mode) {
+            TrafficRoutingMode.GLOBAL -> "proxy"
+            TrafficRoutingMode.CUSTOM -> {
+                val hasProxyRule = enabledCustom.any { it.target == RoutingRuleTarget.Proxy }
+                if (hasProxyRule) "direct" else "proxy"
+            }
+        }
+        putFinalRule(routing, finalOutbound)
+        AppLog.i(
+            "XrayRoutingApplier mode=$mode custom=${enabledCustom.size} " +
+                "presetsRu=${settings.presetRuDirect} presetsAds=${settings.presetAdsBlock} final=$finalOutbound",
+        )
+    }
+
+    private fun buildPresetRulesArray(settings: ConnectionSettingsState): JSONArray {
+        val presets = JSONArray()
+        if (settings.presetRuDirect) {
+            presets.put(
+                XrayConfigBuilder.fieldRule(
+                    domain = JSONArray().apply {
+                        put("geosite:CATEGORY-RU")
+                        put("geosite:TLD-RU")
+                        put("geosite:CATEGORY-GOV-RU")
+                    },
+                    outboundTag = "direct",
+                ),
+            )
+            presets.put(
+                XrayConfigBuilder.fieldRule(
+                    ip = JSONArray().put("geoip:RU"),
+                    outboundTag = "direct",
+                ),
+            )
+        }
+        if (settings.presetAdsBlock) {
+            presets.put(
+                XrayConfigBuilder.fieldRule(
+                    domain = JSONArray().apply {
+                        put("geosite:category-ads-all")
+                        put("geosite:category-ads")
+                    },
+                    outboundTag = "block",
+                ),
+            )
+        }
+        return presets
+    }
+
+    private fun buildCustomRulesArray(rules: List<RoutingRule>): JSONArray {
         val custom = JSONArray()
         rules.forEach { rule ->
             val outbound = when (rule.target) {
                 RoutingRuleTarget.Proxy -> "proxy"
                 RoutingRuleTarget.Direct -> "direct"
+                RoutingRuleTarget.Block -> "block"
             }
             when (rule.matcher) {
                 RoutingRuleMatcher.DomainSuffix -> {
@@ -77,25 +140,7 @@ object XrayRoutingApplier {
                 }
             }
         }
-
-        val merged = JSONArray()
-        for (i in 0 until existing.length()) merged.put(existing.get(i))
-        for (i in 0 until custom.length()) merged.put(custom.get(i))
-        routing.put("rules", merged)
-
-        val finalOutbound = when (TrafficRoutingStore.mode) {
-            TrafficRoutingMode.GLOBAL -> "proxy"
-            TrafficRoutingMode.CUSTOM -> {
-                // Правила «через VPN» = whitelist: остальное direct.
-                // Только «мимо VPN» = blacklist: остальное через proxy.
-                val hasProxyRule = rules.any { it.target == RoutingRuleTarget.Proxy }
-                if (hasProxyRule) "direct" else "proxy"
-            }
-        }
-        putFinalRule(routing, finalOutbound)
-        AppLog.i(
-            "XrayRoutingApplier customRules=${rules.size} mode=${TrafficRoutingStore.mode} final=$finalOutbound",
-        )
+        return custom
     }
 
     private fun putFinalRule(routing: JSONObject, outboundTag: String) {

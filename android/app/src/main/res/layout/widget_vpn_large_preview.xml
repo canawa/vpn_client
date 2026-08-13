@@ -29,8 +29,8 @@
             android:layout_marginBottom="8dp"
             android:fontFamily="@font/sf_pro_bold"
             android:includeFontPadding="false"
-            android:text="ClevVPN"
-            android:textColor="#FAC300"
+            android:text="XENO"
+            android:textColor="#00D4A8"
             android:textSize="12sp" />
 
         <FrameLayout

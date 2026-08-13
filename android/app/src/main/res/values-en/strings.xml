@@ -4,6 +4,9 @@
     <string name="vpn_session_name">ClevVPN</string>
     <string name="vpn_notification_channel">VPN</string>
     <string name="vpn_notification_title">ClevVPN</string>
+    <string name="kill_switch_notification_channel">Kill Switch</string>
+    <string name="kill_switch_notification_title">Kill Switch</string>
+    <string name="kill_switch_notification_text">Internet blocked until VPN reconnects</string>
     <string name="vpn_starting">Connecting…</string>
     <string name="vpn_connected">Connected</string>
     <string name="vpn_stop">Disconnect VPN</string>
@@ -146,7 +149,7 @@
     <string name="xeno_search_location">Search location or node</string>
     <string name="xeno_locations">Locations</string>
     <string name="xeno_auto">Auto</string>
-    <string name="xeno_auto_subtitle">Lowest latency · leastLoad</string>
+    <string name="xeno_auto_subtitle">Lowest latency</string>
     <string name="xeno_best">BEST</string>
     <string name="xeno_settings_title">SETTINGS</string>
     <string name="xeno_settings_connection">CONNECTION</string>
@@ -157,6 +160,10 @@
     <string name="xeno_dns">DNS</string>
     <string name="xeno_dns_internal">Internal</string>
     <string name="xeno_need_help">Need help?</string>
+    <string name="xeno_help_dialog_tag">// help</string>
+    <string name="xeno_help_dialog_title">Do you have access to Telegram?</string>
+    <string name="xeno_help_dialog_yes">Yes</string>
+    <string name="xeno_help_dialog_no">No</string>
     <string name="xeno_support_tg">Message on TG</string>
     <string name="xeno_version">Version</string>
     <string name="xeno_copy_link">Copy\nlink</string>
@@ -209,5 +216,42 @@
     <string name="xeno_domain_rules">Domain rules</string>
     <string name="xeno_domain_rules_hint">Domains, IPs and subnets</string>
     <string name="xeno_add_rule">Add rule</string>
+    <string name="xeno_add_rules_title">Add rules</string>
+    <string name="xeno_one_rule_per_line">One rule per line</string>
+    <string name="xeno_paste">Paste</string>
+    <string name="xeno_action_for_all">Action for all lines</string>
+    <string name="xeno_line_invalid_skip">Line %1$d doesn\'t look like a domain or IP — it will be skipped</string>
+    <plurals name="xeno_add_n_rules">
+        <item quantity="one">Add %d rule</item>
+        <item quantity="other">Add %d rules</item>
+    </plurals>
+    <plurals name="xeno_rules_count">
+        <item quantity="one">%d rule</item>
+        <item quantity="other">%d rules</item>
+    </plurals>
+    <plurals name="xeno_domains_count">
+        <item quantity="one">%d domain</item>
+        <item quantity="other">%d domains</item>
+    </plurals>
+    <plurals name="xeno_subnets_count">
+        <item quantity="one">%d subnet</item>
+        <item quantity="other">%d subnets</item>
+    </plurals>
+    <plurals name="xeno_errors_count">
+        <item quantity="one">%d error</item>
+        <item quantity="other">%d errors</item>
+    </plurals>
     <string name="xeno_ready_lists">Ready-made lists</string>
+    <string name="xeno_filter_all">All %1$d</string>
+    <string name="xeno_filter_tunnel">Tunnel %1$d</string>
+    <string name="xeno_filter_direct">Direct %1$d</string>
+    <string name="xeno_filter_block">Block %1$d</string>
+    <string name="xeno_rule_tunnel">Tunnel</string>
+    <string name="xeno_rule_direct">Direct</string>
+    <string name="xeno_rule_block">Block</string>
+    <string name="xeno_rule_placeholder">*.example.com or 192.168.0.0/16</string>
+    <string name="xeno_preset_ru_direct">Russian services — direct</string>
+    <string name="xeno_preset_ads_block">Ads and trackers — block</string>
+    <string name="xeno_selected_apps_count">Selected %1$d of %2$d</string>
+    <string name="xeno_clear">Clear</string>
 </resources>

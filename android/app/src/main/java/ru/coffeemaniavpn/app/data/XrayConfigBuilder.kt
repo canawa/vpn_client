@@ -138,19 +138,7 @@ object XrayConfigBuilder {
                     },
                     outboundTag = "direct",
                 ))
-                // Российские сайты и IP — мимо VPN (geo-файлы из libv2ray).
-                put(fieldRule(
-                    domain = JSONArray().apply {
-                        put("geosite:CATEGORY-RU")
-                        put("geosite:TLD-RU")
-                        put("geosite:CATEGORY-GOV-RU")
-                    },
-                    outboundTag = "direct",
-                ))
-                put(fieldRule(
-                    ip = JSONArray().put("geoip:RU"),
-                    outboundTag = "direct",
-                ))
+                // RU / ads presets applied in XrayRoutingApplier.applyPresetLists
             })
             put("balancers", JSONArray())
         }

@@ -16,7 +16,7 @@ import ru.coffeemaniavpn.app.R
 fun CoffeeLogo(
     modifier: Modifier = Modifier,
     tint: Color? = null,
-    contentDescription: String? = "POROZOFF VPN",
+    contentDescription: String? = "XENO VPN",
 ) {
     Image(
         painter = painterResource(R.drawable.ic_logo),
@@ -34,6 +34,6 @@ fun CoffeeLogoAvatar(
 ) {
     CoffeeLogo(
         modifier = modifier.size(size),
-        contentDescription = "POROZOFF VPN",
+        contentDescription = "XENO VPN",
     )
 }

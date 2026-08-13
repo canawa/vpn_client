@@ -95,7 +95,14 @@ fun XenoActivationFlow(
             onBack = { step = ActivationStep.Start },
             onTelegram = { step = ActivationStep.StepsTelegram },
             onWebsite = { step = ActivationStep.StepsSite },
-            onHelp = { step = ActivationStep.StepsTelegram },
+            onHelpOpenBot = {
+                onBuyTelegram()
+                step = ActivationStep.StepsTelegram
+            },
+            onHelpOpenSite = {
+                onBuyWebsite()
+                step = ActivationStep.StepsSite
+            },
         )
         ActivationStep.StepsTelegram -> XenoStepsTelegramScreen(
             modifier = modifier,
@@ -299,10 +306,13 @@ private fun XenoSubscribeChoiceScreen(
     onBack: () -> Unit,
     onTelegram: () -> Unit,
     onWebsite: () -> Unit,
-    onHelp: () -> Unit,
+    onHelpOpenBot: () -> Unit,
+    onHelpOpenSite: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
+    var showHelpDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -335,7 +345,7 @@ private fun XenoSubscribeChoiceScreen(
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 23.sp,
-                lineHeight = 27.6.sp, // 120% of 23
+                lineHeight = 27.6.sp,
                 letterSpacing = 0.sp,
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -345,7 +355,7 @@ private fun XenoSubscribeChoiceScreen(
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 13.sp,
-                lineHeight = 19.5.sp, // 150% of 13
+                lineHeight = 19.5.sp,
                 letterSpacing = 0.sp,
             )
 
@@ -376,8 +386,113 @@ private fun XenoSubscribeChoiceScreen(
 
         XenoDashedButton(
             text = stringResource(R.string.xeno_choice_help),
-            onClick = onHelp,
+            onClick = { showHelpDialog = true },
             leadingAccent = "?",
+        )
+    }
+
+    if (showHelpDialog) {
+        XenoHelpTelegramAccessDialog(
+            onDismiss = { showHelpDialog = false },
+            onYes = {
+                showHelpDialog = false
+                onHelpOpenBot()
+            },
+            onNo = {
+                showHelpDialog = false
+                onHelpOpenSite()
+            },
+        )
+    }
+}
+
+@Composable
+private fun XenoHelpTelegramAccessDialog(
+    onDismiss: () -> Unit,
+    onYes: () -> Unit,
+    onNo: () -> Unit,
+) {
+    val plate = Color(0xFF121A17)
+    val stroke = Color(0xFF222B28)
+    val teal = Color(0xFF00D4A8)
+    val text = Color(0xFFF2F5F4)
+    val shape = RoundedCornerShape(18.dp)
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(Color(0xFF0A0D0C))
+                .border(1.dp, stroke, shape)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.xeno_help_dialog_tag),
+                color = teal,
+                fontFamily = JetBrainsMonoFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 13.sp,
+            )
+            Text(
+                text = stringResource(R.string.xeno_help_dialog_title),
+                color = text,
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 22.sp,
+                lineHeight = 28.sp,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                XenoHelpDialogButton(
+                    label = stringResource(R.string.xeno_help_dialog_yes),
+                    modifier = Modifier.weight(1f),
+                    plate = plate,
+                    stroke = stroke,
+                    textColor = text,
+                    onClick = onYes,
+                )
+                XenoHelpDialogButton(
+                    label = stringResource(R.string.xeno_help_dialog_no),
+                    modifier = Modifier.weight(1f),
+                    plate = plate,
+                    stroke = stroke,
+                    textColor = text,
+                    onClick = onNo,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun XenoHelpDialogButton(
+    label: String,
+    plate: Color,
+    stroke: Color,
+    textColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = modifier
+            .height(48.dp)
+            .clip(shape)
+            .background(plate)
+            .border(1.dp, stroke, shape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = textColor,
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 15.sp,
         )
     }
 }

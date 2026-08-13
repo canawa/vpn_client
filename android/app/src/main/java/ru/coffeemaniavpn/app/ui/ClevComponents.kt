@@ -102,15 +102,9 @@ fun ClevLogo(
     modifier: Modifier = Modifier,
     height: Dp = 28.dp,
 ) {
-    val context = LocalContext.current
-    AsyncImage(
-        model = ImageRequest.Builder(context)
-            .data("file:///android_asset/logo_mark.svg")
-            .decoderFactory(SvgDecoder.Factory())
-            .build(),
-        contentDescription = "ClevVPN",
-        modifier = modifier.height(height),
-        contentScale = ContentScale.Fit,
+    XenoLogoMark(
+        compact = height <= 36.dp,
+        modifier = modifier,
     )
 }
 
@@ -149,27 +143,12 @@ fun YellowCircleIconButton(
 @Composable
 fun ClevLogoFull(
     modifier: Modifier = Modifier,
-    logoHeight: Dp = 22.dp,
+    @Suppress("UNUSED_PARAMETER") logoHeight: Dp = 22.dp,
 ) {
-    val colors = coffemaniaColors()
-    Row(
+    XenoLogoMark(
+        compact = logoHeight <= 36.dp,
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        ClevLogo(height = logoHeight)
-        Text(
-            text = buildAnnotatedString {
-                withStyle(SpanStyle(color = colors.espresso, fontWeight = FontWeight.Bold)) {
-                    append("Clev")
-                }
-                withStyle(SpanStyle(color = colors.yellow, fontWeight = FontWeight.Bold)) {
-                    append("VPN")
-                }
-            },
-            fontSize = (logoHeight.value * 0.82f).sp,
-        )
-    }
+    )
 }
 
 @Composable
