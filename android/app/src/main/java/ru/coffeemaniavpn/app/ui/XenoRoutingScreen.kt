@@ -280,7 +280,7 @@ private fun XenoRoutingAppsPane(
                             fontSize = 12.sp,
                         )
                     }
-                    ClevAnimatedSwitch(
+                    XenoAnimatedSwitch(
                         checked = settings.appsEnabled,
                         onCheckedChange = { enabled -> onUpdate { it.copy(appsEnabled = enabled) } },
                     )
@@ -360,7 +360,7 @@ private fun XenoRoutingAppsPane(
             XenoAppsSearchField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = stringResource(R.string.clev_search_apps),
+                placeholder = stringResource(R.string.xeno_search_apps),
                 modifier = Modifier.padding(horizontal = 20.dp),
             )
 
@@ -408,7 +408,7 @@ private fun XenoRoutingAppsPane(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        stringResource(R.string.clev_apps_loading),
+                        stringResource(R.string.xeno_apps_loading),
                         color = XenoMuted,
                         fontFamily = InterFontFamily,
                         fontSize = 13.sp,
@@ -710,7 +710,7 @@ private fun XenoRoutingDomainsPane(
                         fontSize = 12.sp,
                     )
                 }
-                ClevAnimatedSwitch(
+                XenoAnimatedSwitch(
                     checked = domainsOn,
                     onCheckedChange = { enabled ->
                         onTrafficRoutingModeChange(
@@ -951,7 +951,7 @@ private fun XenoPresetRow(
             fontSize = 14.sp,
             modifier = Modifier.weight(1f),
         )
-        ClevAnimatedSwitch(
+        XenoAnimatedSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
         )

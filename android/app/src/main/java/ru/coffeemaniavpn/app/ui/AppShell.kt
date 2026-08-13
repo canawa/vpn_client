@@ -2,7 +2,6 @@ package ru.coffeemaniavpn.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,6 +11,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,9 +61,14 @@ fun AppShell(
     val context = LocalContext.current
     var tab by rememberSaveable { mutableStateOf(XenoTab.Home) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
+    val hasSubscription = state.subscriptionUrl.isNotBlank()
 
     fun openWebsite() = openExternalUrl(context, SubscriptionUrlValidator.websiteUrl("home_logo"))
     fun openTelegram() = openExternalUrl(context, SubscriptionUrlValidator.telegramBotUrl("activation"))
+
+    LaunchedEffect(hasSubscription) {
+        if (!hasSubscription) tab = XenoTab.Home
+    }
 
     BackHandler(enabled = showDeleteSubscriptionConfirm) {
         showDeleteSubscriptionConfirm = false
@@ -74,7 +79,7 @@ fun AppShell(
         containerColor = coffemaniaColors().milkFoam,
         contentWindowInsets = WindowInsets.safeDrawing,
         bottomBar = {
-            if (state.subscriptionUrl.isNotBlank()) {
+            if (hasSubscription) {
                 XenoBottomNav(
                     selected = tab,
                     onSelect = { tab = it },
@@ -87,45 +92,62 @@ fun AppShell(
                 .padding(padding)
                 .fillMaxSize(),
         ) {
-            when (tab) {
-                XenoTab.Home -> HomeScreen(
-                    state = state,
-                    onConnectClick = onConnectClick,
-                    onDisconnectClick = onDisconnectClick,
+            if (!hasSubscription) {
+                XenoActivationFlow(
+                    modifier = Modifier.fillMaxSize(),
+                    isLoading = state.isLoading,
+                    error = state.error,
+                    clipboardUrl = state.clipboardSubscriptionUrl,
+                    showForeignPrompt = state.showForeignSubscriptionPrompt,
                     onPasteLinkClick = onPasteLinkClick,
-                    onImportUrl = onImportUrl,
-                    onOpenServers = { tab = XenoTab.Servers },
-                    onOpenWebsite = ::openWebsite,
                     onAcceptClipboard = onAcceptClipboard,
                     onDismissClipboard = onDismissClipboard,
                     onDismissForeignPrompt = onDismissForeignPrompt,
                     onBuyTelegram = ::openTelegram,
                     onBuyWebsite = ::openWebsite,
+                    onImportUrl = onImportUrl,
                 )
-                XenoTab.Servers -> XenoServersScreen(
-                    state = state,
-                    onSelectNode = onSelectNode,
-                    onSelectAutoBalancer = onSelectAutoBalancer,
-                    onConnectToNode = onConnectToNode,
-                    onToggleFavorite = onToggleFavorite,
-                    onPingNode = onPingNode,
-                    onRefreshAll = onRefreshServersAndPing,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                XenoTab.Settings ->                 XenoSettingsScreen(
-                    state = state,
-                    onUpdateConnectionSettings = onUpdateConnectionSettings,
-                    onAddCustomRule = onAddCustomRule,
-                    onAddCustomRules = onAddCustomRules,
-                    onRemoveCustomRule = onRemoveCustomRule,
-                    onReplaceSubscription = {
-                        onDeleteSubscriptionClick()
-                        onPasteNewLink()
-                    },
-                    onTrafficRoutingModeChange = onTrafficRoutingModeChange,
-                    onLanguageChange = onLanguageChange,
-                    modifier = Modifier.fillMaxSize(),
-                )
+            } else {
+                when (tab) {
+                    XenoTab.Home -> HomeScreen(
+                        state = state,
+                        onConnectClick = onConnectClick,
+                        onDisconnectClick = onDisconnectClick,
+                        onPasteLinkClick = onPasteLinkClick,
+                        onImportUrl = onImportUrl,
+                        onOpenServers = { tab = XenoTab.Servers },
+                        onOpenWebsite = ::openWebsite,
+                        onAcceptClipboard = onAcceptClipboard,
+                        onDismissClipboard = onDismissClipboard,
+                        onDismissForeignPrompt = onDismissForeignPrompt,
+                        onBuyTelegram = ::openTelegram,
+                        onBuyWebsite = ::openWebsite,
+                    )
+                    XenoTab.Servers -> XenoServersScreen(
+                        state = state,
+                        onSelectNode = onSelectNode,
+                        onSelectAutoBalancer = onSelectAutoBalancer,
+                        onConnectToNode = onConnectToNode,
+                        onToggleFavorite = onToggleFavorite,
+                        onPingNode = onPingNode,
+                        onRefreshAll = onRefreshServersAndPing,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    XenoTab.Settings -> XenoSettingsScreen(
+                        state = state,
+                        onUpdateConnectionSettings = onUpdateConnectionSettings,
+                        onAddCustomRule = onAddCustomRule,
+                        onAddCustomRules = onAddCustomRules,
+                        onRemoveCustomRule = onRemoveCustomRule,
+                        onReplaceSubscription = {
+                            onDeleteSubscriptionClick()
+                            onPasteNewLink()
+                        },
+                        onTrafficRoutingModeChange = onTrafficRoutingModeChange,
+                        onLanguageChange = onLanguageChange,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
         }
     }
@@ -133,8 +155,8 @@ fun AppShell(
     if (showDeleteSubscriptionConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteSubscriptionConfirm = false },
-            title = { Text(stringResource(R.string.clev_delete_subscription_title)) },
-            text = { Text(stringResource(R.string.clev_delete_subscription_message)) },
+            title = { Text(stringResource(R.string.xeno_delete_subscription_title)) },
+            text = { Text(stringResource(R.string.xeno_delete_subscription_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -143,12 +165,12 @@ fun AppShell(
                         onDeleteSubscriptionClick()
                     },
                 ) {
-                    Text(stringResource(R.string.clev_delete))
+                    Text(stringResource(R.string.xeno_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteSubscriptionConfirm = false }) {
-                    Text(stringResource(R.string.clev_cancel))
+                    Text(stringResource(R.string.xeno_cancel))
                 }
             },
         )

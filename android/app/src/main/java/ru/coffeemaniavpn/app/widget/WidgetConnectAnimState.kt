@@ -2,7 +2,7 @@ package ru.coffeemaniavpn.app.widget
 
 import ru.coffeemaniavpn.app.vpn.VpnStatus
 
-/** Кадр анимации кнопки виджета (зеркало ClevConnectButton). */
+/** Кадр анимации кнопки виджета (зеркало XenoPowerConnectButton). */
 data class WidgetConnectAnimState(
     val plateOn: Float = 0f,
     val ringFill: Float = 0f,

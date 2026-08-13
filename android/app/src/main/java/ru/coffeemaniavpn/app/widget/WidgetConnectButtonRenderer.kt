@@ -19,7 +19,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
- * Статичный рендер [ClevConnectButton] для RemoteViews — те же кольца и 3D-колодец.
+ * Статичный рендер [XenoPowerConnectButton] для RemoteViews — те же кольца и 3D-колодец.
  */
 object WidgetConnectButtonRenderer {
     /** Диаметр пластины (large / small). */
@@ -306,7 +306,7 @@ object WidgetConnectButtonRenderer {
         if (on) {
             textPaint.color = ColorUtils.setAlphaComponent(0xFF000000.toInt(), (0.45f * 255).toInt())
             textPaint.textSize = plate * 0.058f
-            val label = context.getString(R.string.clev_connected)
+            val label = context.getString(R.string.xeno_connected)
             fitTextSize(textPaint, label, plate * 0.84f)
             val labelFm = textPaint.fontMetrics
             val labelH = labelFm.descent - labelFm.ascent
@@ -337,9 +337,9 @@ object WidgetConnectButtonRenderer {
         } else {
             textPaint.color = mocha
             val label = if (busy) {
-                context.getString(R.string.clev_connecting)
+                context.getString(R.string.xeno_connecting)
             } else {
-                context.getString(R.string.clev_start)
+                context.getString(R.string.xeno_start)
             }
             textPaint.textSize = plate * if (busy) 0.055f else 0.078f
             fitTextSize(textPaint, label, plate * 0.84f)

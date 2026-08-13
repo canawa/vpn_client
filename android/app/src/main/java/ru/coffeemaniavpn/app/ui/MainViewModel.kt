@@ -168,12 +168,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         },
     ) { savedData, vpnData, localData, settingsData, extras ->
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
-        val (vpnStatus, vpnError, connectionElapsedMs, downlinkBps, uplinkBps, inputUrl) = vpnData
+        val (vpnStatus, vpnError, connectionElapsedMs, downlinkBps, uplinkBps, _) = vpnData
         val (loading, pinging, pings, info, localError) = localData
         val (crash, clipUrl, foreignPrompt) = extras
 
         MainUiState(
-            subscriptionUrl = inputUrl.trim().ifBlank { savedUrl.trim() },
+            // Only persisted URL unlocks Home/connect — draft input must not open the app.
+            subscriptionUrl = savedUrl.trim(),
             nodes = nodes,
             selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
             vpnStatus = vpnStatus,
@@ -304,9 +305,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             error.value = appStr(R.string.msg_subscription_not_ours)
             return
         }
-        subscriptionUrlInput.value = url.trim()
         message.value = appStr(R.string.msg_link_pasted)
-        refreshConfig(showUrlRequiredError = false)
+        refreshConfig(showUrlRequiredError = false, urlOverride = url.trim())
     }
 
     fun setSubscriptionAutoUpdateInterval(interval: SubscriptionAutoUpdateInterval) {
@@ -460,13 +460,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         connectAfter: Boolean,
         onEffect: (DeepLinkEffect) -> Unit,
     ) {
-        subscriptionUrlInput.value = url.trim()
         message.value = if (connectAfter) {
             appStr(R.string.msg_subscription_added_connecting)
         } else {
             appStr(R.string.msg_subscription_added)
         }
-        refreshConfig(showUrlRequiredError = false) { success ->
+        refreshConfig(showUrlRequiredError = false, urlOverride = url.trim()) { success ->
             if (success && connectAfter && prepareConnect(showErrors = true)) {
                 onEffect(DeepLinkEffect.RequestConnect)
             }
@@ -567,9 +566,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshConfig(
         showUrlRequiredError: Boolean = false,
+        urlOverride: String? = null,
         onComplete: ((Boolean) -> Unit)? = null,
     ) {
-        val url = uiState.value.subscriptionUrl.trim()
+        val url = urlOverride?.trim().orEmpty()
+            .ifBlank { uiState.value.subscriptionUrl.trim() }
             .ifBlank { subscriptionUrlInput.value.trim() }
         if (url.isBlank() || url == LOCAL_IMPORT_URL) {
             if (url == LOCAL_IMPORT_URL && uiState.value.nodes.isNotEmpty()) {
@@ -587,9 +588,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             onComplete?.invoke(false)
             return
         }
-        if (subscriptionUrlInput.value.isBlank()) {
-            subscriptionUrlInput.value = url
-        }
 
         viewModelScope.launch {
             isLoading.value = true
@@ -598,6 +596,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val success = runCatching {
                 fetchAndSaveSubscription(url)
             }.onSuccess { nodeCount ->
+                subscriptionUrlInput.value = url
                 message.value = appStr(R.string.msg_config_updated, nodeCount)
                 AppLog.i("refreshConfig ok, nodes=$nodeCount")
             }.onFailure { e ->
@@ -723,14 +722,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setTrafficRoutingMode(mode: TrafficRoutingMode) {
         viewModelScope.launch {
             preferences.setTrafficRoutingMode(mode)
-            val node = selectedNode()
-            val wasConnected = uiState.value.vpnStatus == VpnStatus.Started
-            if (wasConnected && node != null) {
-                withContext(Dispatchers.Main) {
-                    VpnManager.disconnect(userInitiated = true)
-                    VpnManager.connect(node)
-                }
-            }
+            reconnectVpnToApplyConfig()
         }
     }
 
@@ -834,16 +826,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             if (!changed) return@launch
 
+            // Mode must be CUSTOM before reconnect, otherwise rules are ignored in config build.
+            if (preferences.trafficRoutingMode.first() != TrafficRoutingMode.CUSTOM) {
+                preferences.setTrafficRoutingMode(TrafficRoutingMode.CUSTOM)
+            }
+
             persistConnectionSettings(
                 current.copy(
                     customRules = existing,
                     sitesEnabled = true,
                 ),
             )
-
-            if (preferences.trafficRoutingMode.first() != TrafficRoutingMode.CUSTOM) {
-                preferences.setTrafficRoutingMode(TrafficRoutingMode.CUSTOM)
-            }
         }
     }
 
@@ -861,14 +854,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (!settings.killSwitchEnabled) {
             KillSwitchVpnService.release(getApplication())
         }
-        val node = selectedNode()
-        val wasConnected = uiState.value.vpnStatus == VpnStatus.Started
-        if (wasConnected && node != null) {
-            withContext(Dispatchers.Main) {
-                VpnManager.disconnect(userInitiated = true)
-                VpnManager.connect(node)
-            }
-        }
+        reconnectVpnToApplyConfig()
+    }
+
+    /** Drop VPN and connect again so Xray rebuilds config with latest routing. */
+    private fun reconnectVpnToApplyConfig() {
+        val status = VpnManager.status.value
+        val shouldReconnect = status == VpnStatus.Started || status == VpnStatus.Starting
+        if (!shouldReconnect) return
+        val nodeId = uiState.value.selectedNodeId ?: selectedNode()?.id ?: return
+        AppLog.i("reconnectVpnToApplyConfig status=$status nodeId=$nodeId")
+        pendingConnectNodeId = nodeId
+        VpnManager.disconnect(userInitiated = true)
     }
 
     fun selectedNode(): ProxyNode? = resolveConnectNode()

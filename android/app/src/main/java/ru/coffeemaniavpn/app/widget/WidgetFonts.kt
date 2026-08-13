@@ -5,7 +5,7 @@ import android.graphics.Typeface
 import androidx.core.content.res.ResourcesCompat
 import ru.coffeemaniavpn.app.R
 
-/** SF Pro — те же начертания, что [ru.coffeemaniavpn.app.ui.ClevFontFamily]. */
+/** SF Pro — те же начертания, что [ru.coffeemaniavpn.app.ui.XenoFontFamily]. */
 object WidgetFonts {
     @Volatile private var regular: Typeface? = null
     @Volatile private var medium: Typeface? = null

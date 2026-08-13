@@ -92,7 +92,7 @@ import android.net.Uri
 import libv2ray.Libv2ray
 import ru.coffeemaniavpn.app.R
 
-enum class ClevSettingsTab {
+enum class XenoClassicSettingsTab {
     Apps,
     Rules,
     Subscription,
@@ -118,7 +118,7 @@ private fun ConnectionSettingsState.withRoutingMode(mode: AppRoutingMode): Conne
 }
 
 @Composable
-fun ClevSettingsHost(
+fun XenoClassicSettingsHost(
     state: MainUiState,
     onClose: () -> Unit,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
@@ -133,7 +133,7 @@ fun ClevSettingsHost(
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
-    var tab by remember { mutableStateOf(ClevSettingsTab.Apps) }
+    var tab by remember { mutableStateOf(XenoClassicSettingsTab.Apps) }
 
     Column(
         modifier = modifier
@@ -148,7 +148,7 @@ fun ClevSettingsHost(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(R.string.clev_settings),
+                text = stringResource(R.string.xeno_settings),
                 color = colors.espresso,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
@@ -171,7 +171,7 @@ fun ClevSettingsHost(
             }
         }
 
-        ClevSegmentedTabs(
+        XenoClassicSegmentedTabs(
             selected = tab,
             onSelect = { tab = it },
             modifier = Modifier
@@ -181,11 +181,11 @@ fun ClevSettingsHost(
 
         Box(modifier = Modifier.weight(1f)) {
             when (tab) {
-                ClevSettingsTab.Apps -> ClevAppsTab(
+                XenoClassicSettingsTab.Apps -> XenoClassicAppsTab(
                     settings = state.connectionSettings,
                     onSave = onSaveConnectionSettings,
                 )
-                ClevSettingsTab.Rules -> ClevRulesTab(
+                XenoClassicSettingsTab.Rules -> XenoClassicRulesTab(
                     settings = state.connectionSettings,
                     routingMode = state.trafficRoutingMode,
                     onUpdateSettings = onUpdateConnectionSettings,
@@ -193,13 +193,13 @@ fun ClevSettingsHost(
                     onRemoveCustomRule = onRemoveCustomRule,
                     onRoutingModeChange = onTrafficRoutingModeChange,
                 )
-                ClevSettingsTab.Subscription -> ClevSubscriptionTab(
+                XenoClassicSettingsTab.Subscription -> XenoClassicSubscriptionTab(
                     state = state,
                     onRefresh = onRefreshSubscription,
                     onDelete = onDeleteSubscription,
                     onPasteNewLink = onPasteNewLink,
                 )
-                ClevSettingsTab.Language -> ClevLanguageTab(
+                XenoClassicSettingsTab.Language -> XenoClassicLanguageTab(
                     language = state.appLanguage,
                     onChange = onLanguageChange,
                 )
@@ -209,17 +209,17 @@ fun ClevSettingsHost(
 }
 
 @Composable
-private fun ClevSegmentedTabs(
-    selected: ClevSettingsTab,
-    onSelect: (ClevSettingsTab) -> Unit,
+private fun XenoClassicSegmentedTabs(
+    selected: XenoClassicSettingsTab,
+    onSelect: (XenoClassicSettingsTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
     val tabs = listOf(
-        ClevSettingsTab.Apps to stringResource(R.string.clev_apps),
-        ClevSettingsTab.Rules to stringResource(R.string.clev_rules),
-        ClevSettingsTab.Subscription to stringResource(R.string.clev_subscription),
-        ClevSettingsTab.Language to stringResource(R.string.clev_language),
+        XenoClassicSettingsTab.Apps to stringResource(R.string.xeno_apps),
+        XenoClassicSettingsTab.Rules to stringResource(R.string.xeno_rules),
+        XenoClassicSettingsTab.Subscription to stringResource(R.string.xeno_subscription),
+        XenoClassicSettingsTab.Language to stringResource(R.string.xeno_language),
     )
     Row(
         modifier = modifier
@@ -263,7 +263,7 @@ private fun ClevSegmentedTabs(
             ) {
                 Text(
                     text = label,
-                    fontFamily = ClevFontFamily,
+                    fontFamily = XenoFontFamily,
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                     letterSpacing = (-0.2).sp,
@@ -279,7 +279,7 @@ private fun ClevSegmentedTabs(
 }
 
 @Composable
-private fun ClevThreeWaySegment(
+private fun XenoClassicThreeWaySegment(
     options: List<Pair<AppRoutingMode, String>>,
     selected: AppRoutingMode,
     onSelect: (AppRoutingMode) -> Unit,
@@ -329,7 +329,7 @@ private fun ClevThreeWaySegment(
             ) {
                 Text(
                     text = label,
-                    fontFamily = ClevFontFamily,
+                    fontFamily = XenoFontFamily,
                     fontSize = 11.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                     letterSpacing = (-0.25).sp,
@@ -346,7 +346,7 @@ private fun ClevThreeWaySegment(
 }
 
 @Composable
-fun ClevAppsTab(
+fun XenoClassicAppsTab(
     settings: ConnectionSettingsState,
     onSave: (ConnectionSettingsState) -> Unit,
 ) {
@@ -392,18 +392,18 @@ fun ClevAppsTab(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = stringResource(R.string.clev_app_routing),
+                text = stringResource(R.string.xeno_app_routing),
                 color = colors.espresso,
-                fontFamily = ClevFontFamily,
+                fontFamily = XenoFontFamily,
                 fontWeight = FontWeight.Bold,
                 fontSize = 17.sp,
             )
 
-            ClevThreeWaySegment(
+            XenoClassicThreeWaySegment(
                 options = listOf(
-                    AppRoutingMode.Off to stringResource(R.string.clev_app_mode_off),
-                    AppRoutingMode.BypassSelected to stringResource(R.string.clev_app_mode_bypass),
-                    AppRoutingMode.OnlySelected to stringResource(R.string.clev_app_mode_only),
+                    AppRoutingMode.Off to stringResource(R.string.xeno_app_mode_off),
+                    AppRoutingMode.BypassSelected to stringResource(R.string.xeno_app_mode_bypass),
+                    AppRoutingMode.OnlySelected to stringResource(R.string.xeno_app_mode_only),
                 ),
                 selected = routingMode,
                 onSelect = { mode -> onSave(settings.withRoutingMode(mode)) },
@@ -411,12 +411,12 @@ fun ClevAppsTab(
 
             Text(
                 text = when (routingMode) {
-                    AppRoutingMode.Off -> stringResource(R.string.clev_app_hint_off)
-                    AppRoutingMode.BypassSelected -> stringResource(R.string.clev_app_hint_bypass)
-                    AppRoutingMode.OnlySelected -> stringResource(R.string.clev_app_hint_only)
+                    AppRoutingMode.Off -> stringResource(R.string.xeno_app_hint_off)
+                    AppRoutingMode.BypassSelected -> stringResource(R.string.xeno_app_hint_bypass)
+                    AppRoutingMode.OnlySelected -> stringResource(R.string.xeno_app_hint_only)
                 },
                 color = colors.mocha,
-                fontFamily = ClevFontFamily,
+                fontFamily = XenoFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 11.sp,
                 lineHeight = 14.sp,
@@ -426,10 +426,10 @@ fun ClevAppsTab(
         when (routingMode) {
             AppRoutingMode.Off -> Unit
             else -> {
-                ClevSearchField(
+                XenoClassicSearchField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = stringResource(R.string.clev_search_apps),
+                    placeholder = stringResource(R.string.xeno_search_apps),
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
 
@@ -440,7 +440,7 @@ fun ClevAppsTab(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(stringResource(R.string.clev_apps_loading), color = colors.mocha, fontSize = 13.sp)
+                        Text(stringResource(R.string.xeno_apps_loading), color = colors.mocha, fontSize = 13.sp)
                     }
                 } else {
                     LazyColumn(
@@ -454,7 +454,7 @@ fun ClevAppsTab(
                     ) {
                         items(filtered, key = { it.packageName }) { app ->
                             val isOn = app.packageName in selected
-                            ClevAppRow(
+                            XenoClassicAppRow(
                                 label = app.label,
                                 packageName = app.packageName,
                                 selected = isOn,
@@ -476,7 +476,7 @@ fun ClevAppsTab(
 }
 
 @Composable
-private fun ClevAppRow(
+private fun XenoClassicAppRow(
     label: String,
     packageName: String,
     selected: Boolean,
@@ -493,7 +493,7 @@ private fun ClevAppRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        ClevAppIcon(packageName = packageName)
+        XenoClassicAppIcon(packageName = packageName)
         Text(
             text = label,
             color = colors.espresso,
@@ -503,12 +503,12 @@ private fun ClevAppRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        ClevSelectionIndicator(selected = selected)
+        XenoSelectionIndicator(selected = selected)
     }
 }
 
 @Composable
-private fun ClevAppIcon(packageName: String, modifier: Modifier = Modifier) {
+private fun XenoClassicAppIcon(packageName: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val bitmap = remember(packageName) {
         runCatching {
@@ -529,7 +529,7 @@ private fun ClevAppIcon(packageName: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ClevSearchField(
+private fun XenoClassicSearchField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
@@ -568,7 +568,7 @@ private fun ClevSearchField(
 }
 
 @Composable
-fun ClevRulesTab(
+fun XenoClassicRulesTab(
     settings: ConnectionSettingsState,
     routingMode: TrafficRoutingMode,
     onUpdateSettings: ((ConnectionSettingsState) -> ConnectionSettingsState) -> Unit,
@@ -595,13 +595,13 @@ fun ClevRulesTab(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = stringResource(R.string.clev_traffic_mode),
+            text = stringResource(R.string.xeno_traffic_mode),
             color = colors.espresso,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
         )
         TrafficRoutingMode.selectable.forEach { mode ->
-            ClevRadioRow(
+            XenoClassicRadioRow(
                 label = mode.displayLabel(),
                 selected = routingMode == mode,
                 onClick = {
@@ -619,7 +619,7 @@ fun ClevRulesTab(
         HorizontalDivider(color = colors.latte)
 
         Text(
-            text = stringResource(R.string.clev_security),
+            text = stringResource(R.string.xeno_security),
             color = colors.espresso,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
@@ -634,13 +634,13 @@ fun ClevRulesTab(
                     .padding(end = 12.dp),
             ) {
                 Text(
-                    text = stringResource(R.string.clev_kill_switch),
+                    text = stringResource(R.string.xeno_kill_switch),
                     color = colors.espresso,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
                 Text(
-                    text = stringResource(R.string.clev_kill_switch_hint),
+                    text = stringResource(R.string.xeno_kill_switch_hint),
                     color = colors.mocha,
                     fontSize = 11.sp,
                     lineHeight = 14.sp,
@@ -658,7 +658,7 @@ fun ClevRulesTab(
         HorizontalDivider(color = colors.latte)
 
         Text(
-            text = stringResource(R.string.clev_my_rules),
+            text = stringResource(R.string.xeno_my_rules),
             color = colors.espresso,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
@@ -674,7 +674,7 @@ fun ClevRulesTab(
                 onValueChange = { newValue = it },
                 placeholder = {
                     Text(
-                        text = stringResource(R.string.clev_rule_domain_placeholder),
+                        text = stringResource(R.string.xeno_rule_domain_placeholder),
                         color = colors.mocha,
                         fontSize = 14.sp,
                     )
@@ -703,7 +703,7 @@ fun ClevRulesTab(
             ) {
                 Icon(
                     imageVector = Icons.Default.AddCircle,
-                    contentDescription = stringResource(R.string.clev_rule_add),
+                    contentDescription = stringResource(R.string.xeno_rule_add),
                     tint = colors.yellow,
                     modifier = Modifier.size(30.dp),
                 )
@@ -714,15 +714,15 @@ fun ClevRulesTab(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ClevRuleTargetChip(
-                label = stringResource(R.string.clev_rule_bypass),
+            XenoClassicRuleTargetChip(
+                label = stringResource(R.string.xeno_rule_bypass),
                 selected = newTarget == RoutingRuleTarget.Direct,
                 selectedColor = colors.orange,
                 onClick = { newTarget = RoutingRuleTarget.Direct },
                 modifier = Modifier.weight(1f),
             )
-            ClevRuleTargetChip(
-                label = stringResource(R.string.clev_rule_via_vpn),
+            XenoClassicRuleTargetChip(
+                label = stringResource(R.string.xeno_rule_via_vpn),
                 selected = newTarget == RoutingRuleTarget.Proxy,
                 selectedColor = colors.green,
                 onClick = { newTarget = RoutingRuleTarget.Proxy },
@@ -732,14 +732,14 @@ fun ClevRulesTab(
 
         if (settings.customRules.isEmpty()) {
             Text(
-                text = stringResource(R.string.clev_rules_empty),
+                text = stringResource(R.string.xeno_rules_empty),
                 color = colors.mocha,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(top = 4.dp),
             )
         } else {
             settings.customRules.forEach { rule ->
-                ClevRuleRow(
+                XenoClassicRuleRow(
                     rule = rule,
                     onToggle = { enabled ->
                         onUpdateSettings { current ->
@@ -758,7 +758,7 @@ fun ClevRulesTab(
 }
 
 @Composable
-private fun ClevRadioRow(
+private fun XenoClassicRadioRow(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -805,7 +805,7 @@ private fun ClevRadioRow(
 }
 
 @Composable
-private fun ClevRuleTargetChip(
+private fun XenoClassicRuleTargetChip(
     label: String,
     selected: Boolean,
     selectedColor: Color,
@@ -839,7 +839,7 @@ private fun ClevRuleTargetChip(
 }
 
 @Composable
-private fun ClevRuleRow(
+private fun XenoClassicRuleRow(
     rule: RoutingRule,
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit,
@@ -869,7 +869,7 @@ private fun ClevRuleRow(
         Text(
             text = rule.value,
             color = colors.espresso,
-            fontFamily = ClevFontFamily,
+            fontFamily = XenoFontFamily,
             fontSize = 14.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -881,9 +881,9 @@ private fun ClevRuleRow(
         Text(
             text = stringResource(
                 if (rule.target == RoutingRuleTarget.Direct) {
-                    R.string.clev_rule_bypass
+                    R.string.xeno_rule_bypass
                 } else {
-                    R.string.clev_rule_via_vpn
+                    R.string.xeno_rule_via_vpn
                 },
             ),
             color = if (rule.target == RoutingRuleTarget.Direct) colors.orange else colors.green,
@@ -893,7 +893,7 @@ private fun ClevRuleRow(
             modifier = Modifier.alpha(contentAlpha),
         )
         Spacer(modifier = Modifier.width(8.dp))
-        ClevRuleActionGroup(
+        XenoRuleActionGroup(
             checked = rule.isEnabled,
             onCheckedChange = onToggle,
             onDelete = onDelete,
@@ -902,7 +902,7 @@ private fun ClevRuleRow(
 }
 
 @Composable
-private fun ClevSubscriptionTab(
+private fun XenoClassicSubscriptionTab(
     state: MainUiState,
     onRefresh: () -> Unit,
     onDelete: () -> Unit,
@@ -912,7 +912,7 @@ private fun ClevSubscriptionTab(
     val context = LocalContext.current
     val info = state.subscriptionInfo
     val supportUrl = info?.supportURL?.takeIf { it.isNotBlank() }
-        ?: stringResource(R.string.clev_support_url)
+        ?: stringResource(R.string.xeno_support_url)
     val supportBlue = Color(0xFF0A84FF)
     var copied by remember { mutableStateOf(false) }
     val cabinetUrl = SubscriptionUrlValidator.websiteUrl("settings_cabinet")
@@ -931,7 +931,7 @@ private fun ClevSubscriptionTab(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = stringResource(R.string.clev_subscription),
+                text = stringResource(R.string.xeno_subscription),
                 color = colors.espresso,
                 fontWeight = FontWeight.Bold,
                 fontSize = 17.sp,
@@ -967,7 +967,7 @@ private fun ClevSubscriptionTab(
                         text = if (info?.hasTitle == true) {
                             info.title
                         } else {
-                            stringResource(R.string.clev_subscription_default_title)
+                            stringResource(R.string.xeno_subscription_default_title)
                         },
                         color = colors.espresso,
                         fontWeight = FontWeight.Medium,
@@ -1007,7 +1007,7 @@ private fun ClevSubscriptionTab(
                                 )
                             }
                         },
-                        text = stringResource(R.string.clev_refresh_subscription),
+                        text = stringResource(R.string.xeno_refresh_subscription),
                         onClick = onRefresh,
                         enabled = !state.isLoading,
                     )
@@ -1088,7 +1088,7 @@ private fun ClevSubscriptionTab(
                             modifier = Modifier.size(14.dp),
                         )
                     },
-                    text = stringResource(R.string.clev_paste_new_link),
+                    text = stringResource(R.string.xeno_paste_new_link),
                     onClick = onPasteNewLink,
                 )
 
@@ -1108,7 +1108,7 @@ private fun ClevSubscriptionTab(
                                 modifier = Modifier.size(14.dp),
                             )
                         },
-                        text = stringResource(R.string.clev_delete_key_logout),
+                        text = stringResource(R.string.xeno_delete_key_logout),
                         onClick = onDelete,
                     )
                 }
@@ -1162,14 +1162,14 @@ private fun ClevSubscriptionTab(
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = stringResource(R.string.clev_support),
+                    text = stringResource(R.string.xeno_support),
                     color = supportBlue,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
             Spacer(modifier = Modifier.height(10.dp))
-            ClevLogoFull(
+            XenoLogoFull(
                 modifier = Modifier.alpha(0.5f),
                 logoHeight = 16.dp,
             )
@@ -1302,13 +1302,13 @@ private fun SubscriptionActionButton(
 @Composable
 private fun TrafficRoutingMode.displayLabel(): String = stringResource(
     when (this) {
-        TrafficRoutingMode.GLOBAL -> R.string.clev_traffic_mode_global
-        TrafficRoutingMode.CUSTOM -> R.string.clev_traffic_mode_custom
+        TrafficRoutingMode.GLOBAL -> R.string.xeno_traffic_mode_global
+        TrafficRoutingMode.CUSTOM -> R.string.xeno_traffic_mode_custom
     },
 )
 
 @Composable
-private fun ClevLanguageTab(
+private fun XenoClassicLanguageTab(
     language: AppLanguage,
     onChange: (AppLanguage) -> Unit,
 ) {
@@ -1321,7 +1321,7 @@ private fun ClevLanguageTab(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = stringResource(R.string.clev_language),
+            text = stringResource(R.string.xeno_language),
             color = colors.espresso,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
@@ -1345,8 +1345,8 @@ private fun ClevLanguageTab(
                 ) {
                     Text(
                         text = when (lang) {
-                            AppLanguage.RU -> stringResource(R.string.clev_lang_ru)
-                            AppLanguage.EN -> stringResource(R.string.clev_lang_en)
+                            AppLanguage.RU -> stringResource(R.string.xeno_lang_ru)
+                            AppLanguage.EN -> stringResource(R.string.xeno_lang_en)
                         },
                         color = colors.espresso,
                         fontWeight = FontWeight.Bold,

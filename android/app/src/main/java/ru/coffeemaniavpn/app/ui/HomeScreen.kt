@@ -115,7 +115,7 @@ fun HomeScreen(
                 Text(
                     text = when {
                         isConnected -> stringResource(R.string.xeno_status_connected)
-                        state.vpnStatus == VpnStatus.Starting -> stringResource(R.string.clev_connecting)
+                        state.vpnStatus == VpnStatus.Starting -> stringResource(R.string.xeno_connecting)
                         else -> stringResource(R.string.xeno_status_disconnected)
                     }.uppercase(),
                     color = if (isConnected) Color(0xFF00D4A8) else Color(0xFF6B7672),

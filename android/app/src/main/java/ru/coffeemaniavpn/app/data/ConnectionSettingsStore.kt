@@ -15,8 +15,10 @@ object ConnectionSettingsStore {
         state = newState
         AppLog.i(
             "ConnectionSettingsStore sites=${newState.sitesEnabled}/${newState.siteDomains.size} " +
+                "customRules=${newState.customRules.count { it.isEnabled }}/${newState.customRules.size} " +
                 "mode=${newState.sitesMode} " +
                 "apps=${newState.appsEnabled}/${newState.appPackages.size} " +
+                "presetsRu=${newState.presetRuDirect} presetsAds=${newState.presetAdsBlock} " +
                 "killSwitch=${newState.killSwitchEnabled}",
         )
     }

@@ -7,7 +7,7 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
 object DeepLinkParser {
-    val supportedSchemes = setOf("clevvpn")
+    val supportedSchemes = setOf("xenovpn")
 
     fun parse(uri: Uri): DeepLinkAction? {
         val scheme = uri.scheme?.lowercase() ?: return null

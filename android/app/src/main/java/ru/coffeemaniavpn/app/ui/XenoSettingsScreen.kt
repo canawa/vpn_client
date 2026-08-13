@@ -212,7 +212,7 @@ private fun XenoSettingsMain(
                 )
                 XenoSettingsDivider()
                 XenoSettingsToggleRow(
-                    title = stringResource(R.string.clev_kill_switch),
+                    title = stringResource(R.string.xeno_kill_switch),
                     subtitle = null,
                     icon = Icons.Outlined.Shield,
                     checked = state.connectionSettings.killSwitchEnabled,
@@ -232,10 +232,10 @@ private fun XenoSettingsMain(
                 )
                 XenoSettingsDivider()
                 XenoSettingsValueRow(
-                    title = stringResource(R.string.clev_language),
+                    title = stringResource(R.string.xeno_language),
                     value = when (state.appLanguage) {
-                        AppLanguage.RU -> stringResource(R.string.clev_lang_ru)
-                        AppLanguage.EN -> stringResource(R.string.clev_lang_en)
+                        AppLanguage.RU -> stringResource(R.string.xeno_lang_ru)
+                        AppLanguage.EN -> stringResource(R.string.xeno_lang_en)
                     },
                     icon = Icons.Outlined.Language,
                     onClick = onOpenLanguage,
@@ -298,12 +298,12 @@ private fun XenoSettingsMain(
                         onReplaceSubscription()
                     },
                 ) {
-                    Text(stringResource(R.string.clev_delete))
+                    Text(stringResource(R.string.xeno_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showReplaceConfirm = false }) {
-                    Text(stringResource(R.string.clev_cancel))
+                    Text(stringResource(R.string.xeno_cancel))
                 }
             },
         )
@@ -313,11 +313,11 @@ private fun XenoSettingsMain(
 @Composable
 private fun XenoProfileCard(info: SubscriptionInfo?) {
     val title = info?.title?.takeIf { it.isNotBlank() }
-        ?: stringResource(R.string.clev_subscription_default_title)
+        ?: stringResource(R.string.xeno_subscription_default_title)
     val initials = profileInitials(title)
     val statusLine = when {
         info == null -> stringResource(R.string.xeno_profile_inactive)
-        info.isExpired() -> stringResource(R.string.clev_subscription_expired)
+        info.isExpired() -> stringResource(R.string.xeno_subscription_expired)
         else -> stringResource(R.string.xeno_profile_active)
     }
     // Figma: 355×71, r16, bg #121A17, border #222B28
@@ -456,7 +456,7 @@ private fun XenoSettingsToggleRow(
                 )
             }
         }
-        ClevAnimatedSwitch(
+        XenoAnimatedSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
         )
@@ -512,7 +512,7 @@ private fun XenoSettingsNavToggleRow(
                 modifier = Modifier.size(20.dp),
             )
         }
-        ClevAnimatedSwitch(
+        XenoAnimatedSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
         )
@@ -718,7 +718,7 @@ private fun XenoSettingsLanguagePage(
             .verticalScroll(rememberScrollState()),
     ) {
         XenoSubpageHeader(
-            title = stringResource(R.string.clev_language),
+            title = stringResource(R.string.xeno_language),
             onBack = onBack,
         )
         Column(
@@ -738,8 +738,8 @@ private fun XenoSettingsLanguagePage(
                     ) {
                         Text(
                             text = when (lang) {
-                                AppLanguage.RU -> stringResource(R.string.clev_lang_ru)
-                                AppLanguage.EN -> stringResource(R.string.clev_lang_en)
+                                AppLanguage.RU -> stringResource(R.string.xeno_lang_ru)
+                                AppLanguage.EN -> stringResource(R.string.xeno_lang_en)
                             },
                             color = XenoText,
                             fontFamily = InterFontFamily,

@@ -7,7 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.tween
 
 /** Параметры анимаций из Theme/Components.swift и ConnectionEffects.swift (macOS/iOS). */
-object ClevMotion {
+object XenoMotion {
     val pressSpring = spring<Float>(dampingRatio = 0.55f, stiffness = 480f)
     const val pressScale = 0.93f
 

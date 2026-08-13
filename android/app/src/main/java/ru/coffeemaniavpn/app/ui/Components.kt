@@ -88,7 +88,7 @@ fun CoffemaniaSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    ClevAnimatedSwitch(
+    XenoAnimatedSwitch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = modifier,

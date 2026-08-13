@@ -42,14 +42,18 @@ object XrayRoutingApplier {
         val routing = config.optJSONObject("routing") ?: return
         val existing = routing.optJSONArray("rules") ?: JSONArray().also { routing.put("rules", it) }
 
-        // CUSTOM only: user domain/IP rules. GLOBAL = pure proxy final (no leftover Direct/Block).
+        // GLOBAL = all traffic via proxy (no custom/presets). CUSTOM = user rules + optional presets.
         val enabledCustom = if (mode == TrafficRoutingMode.CUSTOM) {
             settings.customRules.filter { it.isEnabled }
         } else {
             emptyList()
         }
         val custom = buildCustomRulesArray(enabledCustom)
-        val presets = buildPresetRulesArray(settings)
+        val presets = if (mode == TrafficRoutingMode.CUSTOM) {
+            buildPresetRulesArray(settings)
+        } else {
+            JSONArray()
+        }
 
         // Custom first so explicit Proxy for a RU domain beats presetRuDirect.
         val merged = JSONArray()
@@ -68,7 +72,8 @@ object XrayRoutingApplier {
         putFinalRule(routing, finalOutbound)
         AppLog.i(
             "XrayRoutingApplier mode=$mode custom=${enabledCustom.size} " +
-                "presetsRu=${settings.presetRuDirect} presetsAds=${settings.presetAdsBlock} final=$finalOutbound",
+                "presets=${presets.length()} presetsRu=${settings.presetRuDirect} " +
+                "presetsAds=${settings.presetAdsBlock} final=$finalOutbound",
         )
     }
 
@@ -93,11 +98,12 @@ object XrayRoutingApplier {
             )
         }
         if (settings.presetAdsBlock) {
+            // Tags match uppercase lists shipped in libv2ray geosite.dat.
             presets.put(
                 XrayConfigBuilder.fieldRule(
                     domain = JSONArray().apply {
-                        put("geosite:category-ads-all")
-                        put("geosite:category-ads")
+                        put("geosite:CATEGORY-ADS-ALL")
+                        put("geosite:CATEGORY-ADS")
                     },
                     outboundTag = "block",
                 ),
@@ -118,12 +124,10 @@ object XrayRoutingApplier {
                 RoutingRuleMatcher.DomainSuffix -> {
                     val domain = normalizeDomain(rule.value)
                     if (domain.isBlank()) return@forEach
+                    // Xray "domain:" matches the domain and all subdomains.
                     custom.put(
                         XrayConfigBuilder.fieldRule(
-                            domain = JSONArray().apply {
-                                put("domain:$domain")
-                                put("domain:.$domain")
-                            },
+                            domain = JSONArray().put("domain:$domain"),
                             outboundTag = outbound,
                         ),
                     )

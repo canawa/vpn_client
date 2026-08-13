@@ -12,7 +12,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "ru.coffeemaniavpn.clev"
+        applicationId = "ru.coffeemaniavpn.xeno"
         minSdk = 26
         targetSdk = 36
         versionCode = 11
@@ -62,6 +62,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 
     buildFeatures {

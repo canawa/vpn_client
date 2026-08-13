@@ -121,12 +121,12 @@ data class CoffemaniaExtraColors(
     val orange: Color = CoffemaniaColors.Orange,
 )
 
-val LocalCoffemaniaExtraColors = staticCompositionLocalOf { clevExtraColors() }
+val LocalCoffemaniaExtraColors = staticCompositionLocalOf { xenoExtraColors() }
 
 @Composable
 fun coffemaniaColors(): CoffemaniaExtraColors = LocalCoffemaniaExtraColors.current
 
-fun clevExtraColors(): CoffemaniaExtraColors = CoffemaniaExtraColors(
+fun xenoExtraColors(): CoffemaniaExtraColors = CoffemaniaExtraColors(
     milkFoam = CoffemaniaColors.Background,
     espresso = CoffemaniaColors.TextPrimary,
     mocha = CoffemaniaColors.TextSecondary,
@@ -157,8 +157,8 @@ fun clevExtraColors(): CoffemaniaExtraColors = CoffemaniaExtraColors(
     connectDisabledIcon = CoffemaniaColors.ConnectDisabledIcon,
 )
 
-fun lightCoffemaniaExtraColors(): CoffemaniaExtraColors = clevExtraColors()
-fun darkCoffemaniaExtraColors(): CoffemaniaExtraColors = clevExtraColors()
+fun lightCoffemaniaExtraColors(): CoffemaniaExtraColors = xenoExtraColors()
+fun darkCoffemaniaExtraColors(): CoffemaniaExtraColors = xenoExtraColors()
 
 private fun colorSchemeFrom(extra: CoffemaniaExtraColors) = darkColorScheme(
     primary = extra.primary,
@@ -198,10 +198,10 @@ private fun colorSchemeFrom(extra: CoffemaniaExtraColors) = darkColorScheme(
 fun CoffemaniaTheme(
     content: @Composable () -> Unit,
 ) {
-    val extra = clevExtraColors()
+    val extra = xenoExtraColors()
     CompositionLocalProvider(
         LocalCoffemaniaExtraColors provides extra,
-        LocalTextStyle provides ClevTextStyle,
+        LocalTextStyle provides XenoTextStyle,
     ) {
         MaterialTheme(
             colorScheme = colorSchemeFrom(extra),

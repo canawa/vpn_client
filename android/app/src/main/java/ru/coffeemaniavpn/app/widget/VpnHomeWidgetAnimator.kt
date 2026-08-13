@@ -145,7 +145,7 @@ object VpnHomeWidgetAnimator {
     }
 
     private suspend fun animateConnect(context: Context) {
-        // Комета + заливка кольца + пластина → On (как ClevConnectButton).
+        // Комета + заливка кольца + пластина → On (как XenoPowerConnectButton).
         val cometMs = 500L
         val fillDelay = 150L
         val fillMs = 550L

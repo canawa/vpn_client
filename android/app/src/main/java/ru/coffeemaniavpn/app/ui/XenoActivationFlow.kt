@@ -82,13 +82,10 @@ fun XenoActivationFlow(
             modifier = modifier,
             isLoading = isLoading,
             error = error,
-            clipboardUrl = clipboardUrl,
             onHasKey = {
                 if (clipboardUrl != null) onAcceptClipboard() else step = ActivationStep.Import
             },
             onNeedSubscription = { step = ActivationStep.Choice },
-            onAcceptClipboard = onAcceptClipboard,
-            onDismissClipboard = onDismissClipboard,
         )
         ActivationStep.Choice -> XenoSubscribeChoiceScreen(
             modifier = modifier,
@@ -150,11 +147,8 @@ fun XenoActivationFlow(
 private fun XenoStartScreen(
     isLoading: Boolean,
     error: String?,
-    clipboardUrl: String?,
     onHasKey: () -> Unit,
     onNeedSubscription: () -> Unit,
-    onAcceptClipboard: () -> Unit,
-    onDismissClipboard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
@@ -200,25 +194,6 @@ private fun XenoStartScreen(
                 letterSpacing = 0.sp,
                 textAlign = TextAlign.Start,
             )
-            clipboardUrl?.let {
-                Spacer(modifier = Modifier.height(20.dp))
-                XenoCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            text = stringResource(R.string.clipboard_subscription_detected),
-                            color = colors.espresso,
-                            fontSize = 14.sp,
-                        )
-                        XenoPrimaryButton(
-                            text = stringResource(R.string.clipboard_add_subscription),
-                            onClick = onAcceptClipboard,
-                        )
-                        TextButton(onClick = onDismissClipboard) {
-                            Text(stringResource(R.string.clipboard_dismiss), color = colors.mocha)
-                        }
-                    }
-                }
-            }
             error?.let {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(text = it, color = colors.error, fontSize = 13.sp)

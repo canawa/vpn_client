@@ -42,7 +42,7 @@
                 android:layout_marginTop="2dp"
                 android:fontFamily="@font/sf_pro_bold"
                 android:includeFontPadding="false"
-                android:text="@string/clev_start"
+                android:text="@string/xeno_start"
                 android:textColor="#000000"
                 android:textSize="10sp" />
         </LinearLayout>

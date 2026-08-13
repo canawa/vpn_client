@@ -98,7 +98,7 @@ import java.util.concurrent.TimeUnit
 enum class ConnectUiStatus { Off, Busy, On }
 
 @Composable
-fun ClevLogo(
+fun XenoLogo(
     modifier: Modifier = Modifier,
     height: Dp = 28.dp,
 ) {
@@ -141,7 +141,7 @@ fun YellowCircleIconButton(
 }
 
 @Composable
-fun ClevLogoFull(
+fun XenoLogoFull(
     modifier: Modifier = Modifier,
     @Suppress("UNUSED_PARAMETER") logoHeight: Dp = 22.dp,
 ) {
@@ -152,7 +152,7 @@ fun ClevLogoFull(
 }
 
 @Composable
-fun ClevCard(
+fun XenoPanelCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 16.dp,
     content: @Composable () -> Unit,
@@ -182,7 +182,7 @@ fun StatusGlow(
     }
     val glowColor by animateColorAsState(
         targetValue = target,
-        animationSpec = ClevMotion.statusGlowColorSpec,
+        animationSpec = XenoMotion.statusGlowColorSpec,
         label = "statusGlow",
     )
     Box(
@@ -198,7 +198,7 @@ fun StatusGlow(
 }
 
 @Composable
-fun ClevConnectButton(
+fun XenoPowerConnectButton(
     vpnStatus: VpnStatus,
     connectionElapsedMs: Long,
     enabled: Boolean,
@@ -220,8 +220,8 @@ fun ClevConnectButton(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) ClevMotion.pressScale else 1f,
-        animationSpec = ClevMotion.pressSpring,
+        targetValue = if (pressed) XenoMotion.pressScale else 1f,
+        animationSpec = XenoMotion.pressSpring,
         label = "press",
     )
 
@@ -244,33 +244,33 @@ fun ClevConnectButton(
                 cometAngle.snapTo(-90f)
                 showComet = true
                 launch {
-                    cometAngle.animateTo(810f, ClevMotion.connectCometSpec)
+                    cometAngle.animateTo(810f, XenoMotion.connectCometSpec)
                 }
                 launch {
-                    delay(ClevMotion.connectRingFillDelayMs)
-                    ringFill.animateTo(1f, ClevMotion.connectRingFillSpec)
+                    delay(XenoMotion.connectRingFillDelayMs)
+                    ringFill.animateTo(1f, XenoMotion.connectRingFillSpec)
                     showComet = false
                 }
                 showBurst = true
-                delay(ClevMotion.connectBurstDurationMs)
+                delay(XenoMotion.connectBurstDurationMs)
                 showBurst = false
             }
             ConnectUiStatus.Off -> {
                 skipInitialConnectAnimation = false
-                ringFill.animateTo(0f, ClevMotion.disconnectRingSpec)
+                ringFill.animateTo(0f, XenoMotion.disconnectRingSpec)
                 cometAngle.snapTo(-90f)
                 showComet = false
                 showBurst = false
             }
             ConnectUiStatus.Busy -> {
-                ringFill.animateTo(0f, ClevMotion.disconnectRingSpec)
+                ringFill.animateTo(0f, XenoMotion.disconnectRingSpec)
                 showComet = false
                 showBurst = false
             }
         }
     }
 
-    val spinDuration = if (showPing) ClevMotion.busySpinPingMs else ClevMotion.busySpinConnectMs
+    val spinDuration = if (showPing) XenoMotion.busySpinPingMs else XenoMotion.busySpinConnectMs
     val infinite = rememberInfiniteTransition(label = "spin")
     val spin by infinite.animateFloat(
         initialValue = 0f,
@@ -284,7 +284,7 @@ fun ClevConnectButton(
 
     val plateOnProgress by animateFloatAsState(
         targetValue = if (uiStatus == ConnectUiStatus.On) 1f else 0f,
-        animationSpec = ClevMotion.plateOnSpec,
+        animationSpec = XenoMotion.plateOnSpec,
         label = "plateOn",
     )
 
@@ -486,7 +486,7 @@ fun ClevConnectButton(
                 Spacer(modifier = Modifier.height(if (uiStatus == ConnectUiStatus.On) 7.dp else 6.dp))
                 if (uiStatus == ConnectUiStatus.On) {
                     Text(
-                        text = stringResource(R.string.clev_connected),
+                        text = stringResource(R.string.xeno_connected),
                         color = Color.Black.copy(alpha = 0.45f),
                         fontSize = (size.value * 0.058f).sp,
                         fontWeight = FontWeight.Bold,
@@ -501,9 +501,9 @@ fun ClevConnectButton(
                     )
                 } else {
                     val label = when {
-                        showPing -> stringResource(R.string.clev_checking_ping)
-                        uiStatus == ConnectUiStatus.Busy -> stringResource(R.string.clev_connecting)
-                        else -> stringResource(R.string.clev_start)
+                        showPing -> stringResource(R.string.xeno_checking_ping)
+                        uiStatus == ConnectUiStatus.Busy -> stringResource(R.string.xeno_connecting)
+                        else -> stringResource(R.string.xeno_start)
                     }
                     val isLongLabel = showPing || uiStatus == ConnectUiStatus.Busy
                     Text(
@@ -544,7 +544,7 @@ fun VpnStatus.toConnectUi(): ConnectUiStatus = when (this) {
 
 /** Круг-индикатор выбора: жёлтое кольцо + жёлтая точка / тонкое серое кольцо. */
 @Composable
-fun ClevSelectionIndicator(
+fun XenoSelectionIndicator(
     selected: Boolean,
     modifier: Modifier = Modifier,
     size: Dp = 18.dp,
@@ -574,7 +574,7 @@ fun ClevSelectionIndicator(
 }
 
 @Composable
-fun ClevFilterChip(
+fun XenoFilterChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -653,7 +653,7 @@ fun ServerTitleWithProtocolBadge(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Star,
-                    contentDescription = stringResource(R.string.clev_remove_favorite),
+                    contentDescription = stringResource(R.string.xeno_remove_favorite),
                     tint = colors.yellow,
                     modifier = Modifier.size(12.dp),
                 )
@@ -695,7 +695,7 @@ fun PingLabel(
                 .background(CoffemaniaColors.pingColor(ms)),
         )
         Text(
-            text = stringResource(R.string.clev_ping_ms, ms),
+            text = stringResource(R.string.xeno_ping_ms, ms),
             color = colors.mocha,
             fontSize = 12.sp,
         )
@@ -730,11 +730,11 @@ fun InfoBarIconButton(
     }
 }
 
-private val ClevSwitchThumbColor = Color(0xFFF4F4F5)
+private val XenoSwitchThumbColor = Color(0xFFF4F4F5)
 
 /** Плавный pill-переключатель: жёлтый трек и светлый бегунок. */
 @Composable
-fun ClevAnimatedSwitch(
+fun XenoAnimatedSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -752,7 +752,7 @@ fun ClevAnimatedSwitch(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMedium,
         ),
-        label = "clevSwitchThumb",
+        label = "xenoSwitchThumb",
     )
     val trackColor by animateColorAsState(
         targetValue = when {
@@ -762,9 +762,9 @@ fun ClevAnimatedSwitch(
             else -> colors.latte
         },
         animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-        label = "clevSwitchTrack",
+        label = "xenoSwitchTrack",
     )
-    val thumbColor = if (enabled) ClevSwitchThumbColor else ClevSwitchThumbColor.copy(alpha = 0.65f)
+    val thumbColor = if (enabled) XenoSwitchThumbColor else XenoSwitchThumbColor.copy(alpha = 0.65f)
 
     BoxWithConstraints(
         modifier = modifier
@@ -789,7 +789,7 @@ fun ClevAnimatedSwitch(
 
 /** Переключатель + корзина в общей тёмной «капсуле». */
 @Composable
-fun ClevRuleActionGroup(
+fun XenoRuleActionGroup(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     onDelete: () -> Unit,
@@ -805,7 +805,7 @@ fun ClevRuleActionGroup(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        ClevAnimatedSwitch(
+        XenoAnimatedSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
@@ -819,8 +819,8 @@ fun ClevRuleActionGroup(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_clev_trash),
-                contentDescription = stringResource(R.string.clev_rule_delete),
+                painter = painterResource(R.drawable.ic_xeno_trash),
+                contentDescription = stringResource(R.string.xeno_rule_delete),
                 tint = colors.error.copy(alpha = 0.88f),
                 modifier = Modifier.size(21.dp),
             )
