@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,6 +41,63 @@ import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.LoadBalancer
 import ru.coffeemaniavpn.app.data.PingState
+
+/** Figma: number Inter Medium 14 / #00D4A8 + "ms" Inter Medium 10 / #6B7672 */
+@Composable
+private fun XenoPingValue(
+    pingMs: Int?,
+    loading: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val numberColor = when {
+        pingMs == null -> Color(0xFF6B7672)
+        else -> CoffemaniaColors.pingColor(pingMs)
+    }
+    when {
+        pingMs != null -> {
+            Row(
+                modifier = modifier,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = pingMs.toString(),
+                    color = numberColor,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    lineHeight = 14.sp,
+                    letterSpacing = 0.sp,
+                )
+                Text(
+                    text = " ms",
+                    color = Color(0xFF6B7672),
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp,
+                    lineHeight = 10.sp,
+                    letterSpacing = 0.sp,
+                    modifier = Modifier.offset(y = 1.dp),
+                )
+            }
+        }
+        loading -> Text(
+            text = "…",
+            color = Color(0xFF6B7672),
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp,
+            modifier = modifier,
+        )
+        else -> Text(
+            text = "—",
+            color = Color(0xFF6B7672),
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp,
+            modifier = modifier,
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -220,7 +278,7 @@ private fun XenoAutoCard(
 ) {
     val colors = coffemaniaColors()
     val shape = RoundedCornerShape(16.dp)
-    val border = if (selected) colors.primary else colors.primary.copy(alpha = 0.45f)
+    val border = if (selected) Color(0xFF00D4A8) else Color(0xFF00D4A8).copy(alpha = 0.45f)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -241,26 +299,22 @@ private fun XenoAutoCard(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = stringResource(R.string.xeno_auto),
-                color = colors.primary,
+                color = Color(0xFF00D4A8),
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
             )
             Text(
                 text = stringResource(R.string.xeno_auto_subtitle),
-                color = colors.mocha,
+                color = Color(0xFF6B7672),
                 fontSize = 12.sp,
             )
         }
         Column(horizontalAlignment = Alignment.End) {
+            XenoPingValue(pingMs = bestPingMs)
             Text(
-                text = bestPingMs?.let { "$it ms" } ?: "—",
-                color = colors.primary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-            )
-            Text(
-                text = "BEST",
-                color = colors.primary,
+                text = stringResource(R.string.xeno_best),
+                color = Color(0xFF00D4A8),
+                fontFamily = JetBrainsMonoFamily,
                 fontWeight = FontWeight.Bold,
                 fontSize = 10.sp,
                 letterSpacing = 0.8.sp,
@@ -278,11 +332,10 @@ private fun XenoLocationRow(
     onDoubleClick: () -> Unit,
 ) {
     val colors = coffemaniaColors()
+    val pingMs = display.pingMs
     val pingColor = when {
-        display.pingMs == null -> colors.mocha
-        display.pingMs < 80 -> colors.primary
-        display.pingMs < 150 -> colors.orange
-        else -> colors.error
+        pingMs == null -> Color(0xFF6B7672)
+        else -> CoffemaniaColors.pingColor(pingMs)
     }
     val code = FlagUtils.resolveCountryCodeOrDefault(display.flag)
     Row(
@@ -300,7 +353,7 @@ private fun XenoLocationRow(
                     .width(3.dp)
                     .height(36.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(colors.primary),
+                    .background(Color(0xFF00D4A8)),
             )
         } else {
             Spacer(modifier = Modifier.width(3.dp))
@@ -309,37 +362,40 @@ private fun XenoLocationRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = display.title,
-                color = colors.espresso,
+                color = Color(0xFFF2F5F4),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp,
                 maxLines = 1,
             )
-            val sub = display.group ?: display.subtitle
+            val sub = display.protocolLabel
             if (sub.isNotBlank()) {
-                Text(text = sub, color = colors.mocha, fontSize = 12.sp, maxLines = 1)
-            }
-        }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            if (selected && display.pingMs != null) {
-                XenoSignalBars(
-                    strength = when {
-                        display.pingMs < 50 -> 4
-                        display.pingMs < 100 -> 3
-                        display.pingMs < 180 -> 2
-                        else -> 1
-                    },
-                    color = pingColor,
+                Text(
+                    text = sub,
+                    color = Color(0xFF6B7672),
+                    fontSize = 12.sp,
+                    maxLines = 1,
                 )
             }
-            Text(
-                text = display.pingMs?.let { "$it ms" } ?: display.pingText,
-                color = pingColor,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
+        }
+        // Figma: number + "ms" then signal bars (selected only)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            XenoPingValue(
+                pingMs = pingMs,
+                loading = display.pingText == "…",
             )
+            if (selected && pingMs != null) {
+                XenoSignalBars(
+                    strength = when {
+                        pingMs < 50 -> 3
+                        pingMs < 100 -> 2
+                        else -> 1
+                    },
+                    color = Color(0xFF00D4A8),
+                )
+            }
         }
     }
 }

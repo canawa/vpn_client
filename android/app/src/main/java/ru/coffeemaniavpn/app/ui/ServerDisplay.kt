@@ -149,7 +149,7 @@ object ServerDisplayMapper {
         }
 
         return ServerDisplay(
-            flag = flag,
+            flag = resolveFlagCode(flag, trimmed, title, group),
             title = title,
             subtitle = "",
             protocolLabel = if (node.isHysteria2) "Hysteria2" else "VLESS",
@@ -157,5 +157,19 @@ object ServerDisplayMapper {
             pingMs = pingMs,
             group = group,
         )
+    }
+
+    /** Emoji/ISO из имени, иначе страна/город из текста → ISO-код. */
+    private fun resolveFlagCode(
+        flagRaw: String,
+        rawName: String,
+        title: String,
+        group: String?,
+    ): String {
+        FlagUtils.resolveCountryCode(flagRaw)?.let { return it }
+        FlagUtils.resolveCountryCodeFromText(title)?.let { return it }
+        group?.let { FlagUtils.resolveCountryCodeFromText(it) }?.let { return it }
+        FlagUtils.resolveCountryCodeFromText(rawName)?.let { return it }
+        return FlagUtils.DEFAULT_FLAG_CODE
     }
 }

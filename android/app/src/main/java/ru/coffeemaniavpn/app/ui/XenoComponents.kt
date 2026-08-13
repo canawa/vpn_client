@@ -15,15 +15,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,15 +32,24 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import coil.size.Size
+import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.SubscriptionInfo
 import ru.coffeemaniavpn.app.data.formatTrafficBytes
 
@@ -58,40 +68,74 @@ fun XenoLogoMark(
     val content = @Composable {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(if (useCompact) 7.dp else 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (inCapsule) 5.dp else if (useCompact) 7.dp else 8.dp),
         ) {
-            Box(modifier = Modifier.size(markSize)) {
+            if (inCapsule) {
+                // Figma 24×24 backing + nested mark (outer #075243 16, inner #00D4A8 8)
                 Box(
                     modifier = Modifier
-                        .padding(top = offset, start = offset)
-                        .size(square)
-                        .background(Color(0xFF04342C)),
-                )
-                Box(
-                    modifier = Modifier
-                        .size(square)
-                        .background(Color(0xFF00E091)),
-                )
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF0A0D0C)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .background(Color(0xFF075243)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(Color(0xFF00D4A8)),
+                    )
+                }
+            } else {
+                Box(modifier = Modifier.size(markSize)) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = offset, start = offset)
+                            .size(square)
+                            .background(Color(0xFF04342C)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(square)
+                            .background(Color(0xFF00E091)),
+                    )
+                }
             }
             Text(
                 text = "XENO",
-                color = Color.White,
-                fontWeight = FontWeight.Medium,
-                fontSize = if (useCompact) 15.sp else 22.sp,
-                lineHeight = if (useCompact) 15.sp else 22.sp,
-                letterSpacing = 2.sp,
-                fontFamily = JetBrainsMonoFamily,
+                color = Color(0xFFF2F5F4),
+                fontFamily = if (inCapsule) BytesizedFamily else JetBrainsMonoFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = when {
+                    inCapsule -> 30.sp
+                    useCompact -> 15.sp
+                    else -> 22.sp
+                },
+                lineHeight = when {
+                    inCapsule -> 30.sp
+                    useCompact -> 15.sp
+                    else -> 22.sp
+                },
+                letterSpacing = if (inCapsule) 0.6.sp else 2.sp,
+                maxLines = 1,
+                softWrap = false,
             )
         }
     }
     if (inCapsule) {
+        // Figma: 101×40, r12, bg #141B18, border #222B28; logo inset 5×8
         Box(
             modifier = modifier
+                .width(101.dp)
                 .height(40.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF141414))
-                .border(1.dp, Color(0xFF252525), RoundedCornerShape(12.dp))
-                .padding(horizontal = 12.dp),
+                .background(Color(0xFF141B18))
+                .border(1.dp, Color(0xFF222B28), RoundedCornerShape(12.dp))
+                .padding(start = 5.dp, end = 8.dp),
             contentAlignment = Alignment.CenterStart,
         ) { content() }
     } else {
@@ -108,19 +152,22 @@ fun XenoGridIconButton(
         modifier = modifier
             .size(40.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF141414))
-            .border(1.dp, Color(0xFF252525), RoundedCornerShape(12.dp))
+            .background(Color(0xFF141B18))
+            .border(1.dp, Color(0xFF222B28), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
+        // Figma grid: 5×5 cells — TL/BR teal, TR/BL grey
+        val teal = Color(0xFF00D4A8)
+        val grey = Color(0xFF566460)
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF00E091)))
-                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF00E091).copy(alpha = 0.4f)))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(teal))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(grey))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF00E091).copy(alpha = 0.4f)))
-                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF00E091).copy(alpha = 0.4f)))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(grey))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(1.dp)).background(teal))
             }
         }
     }
@@ -133,7 +180,6 @@ fun XenoScreenHeader(
     modifier: Modifier = Modifier,
     trailing: @Composable (() -> Unit)? = null,
 ) {
-    val colors = coffemaniaColors()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -145,14 +191,21 @@ fun XenoScreenHeader(
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = title,
-                color = colors.espresso,
-                fontWeight = FontWeight.Bold,
+                color = Color(0xFFF2F5F4),
+                fontFamily = BebasNeueFamily,
+                fontWeight = FontWeight.Normal,
                 fontSize = 32.sp,
+                lineHeight = 32.sp,
                 letterSpacing = 1.2.sp,
             )
             subtitle?.let {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = it, color = colors.mocha, fontSize = 13.sp)
+                Text(
+                    text = it,
+                    color = Color(0xFF6B7672),
+                    fontFamily = InterFontFamily,
+                    fontSize = 13.sp,
+                )
             }
         }
         trailing?.invoke()
@@ -247,16 +300,21 @@ fun XenoCard(
     borderColor: Color? = null,
     content: @Composable () -> Unit,
 ) {
+    // Figma: plate #141B18, border #222B28, r16
     val shape = RoundedCornerShape(16.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Color(0xFF141414))
-            .border(1.dp, borderColor ?: Color(0xFF252525), shape)
+            .background(Color(0xFF141B18))
+            .border(1.dp, borderColor ?: Color(0xFF222B28), shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 14.dp),
-    ) { content() }
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            content()
+        }
+    }
 }
 
 @Composable
@@ -317,20 +375,39 @@ fun XenoCountryTile(
     code: String,
     modifier: Modifier = Modifier,
 ) {
+    val countryCode = remember(code) { FlagUtils.resolveCountryCodeOrDefault(code) }
+    val assetPath = remember(countryCode) { FlagUtils.flagAssetPath(countryCode) }
+    val shape = RoundedCornerShape(10.dp)
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val px = with(density) { 42.dp.roundToPx().coerceAtLeast(1) }
+    val request = remember(assetPath, px, countryCode) {
+        ImageRequest.Builder(context)
+            .data(assetPath)
+            .size(Size(px, px))
+            .memoryCacheKey("xeno-flag-$countryCode-$px")
+            .diskCachePolicy(CachePolicy.DISABLED)
+            .allowHardware(true)
+            .build()
+    }
+
     Box(
         modifier = modifier
             .size(42.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF04342C))
-            .border(1.dp, Color(0xFF00E091).copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
+            .clip(shape)
+            .background(Color(0xFF121A17))
+            .border(1.dp, Color(0xFF222B28), shape),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = code.uppercase().take(2),
-            color = Color(0xFF00E091),
-            fontFamily = InterFontFamily,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
+        AsyncImage(
+            model = request,
+            contentDescription = countryCode.uppercase(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(shape),
+            contentScale = ContentScale.Crop,
+            error = ColorPainter(Color(0xFF04342C)),
+            placeholder = ColorPainter(Color(0xFF121A17)),
         )
     }
 }
@@ -341,20 +418,22 @@ fun XenoSignalBars(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
+    // Figma: 4×6, 4×10, 4×14, r1, gap 3, #00D4A8 when lit
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        // Figma: 3 bars
         val heights = listOf(6.dp, 10.dp, 14.dp)
         heights.forEachIndexed { index, h ->
             Box(
                 modifier = Modifier
-                    .width(3.dp)
+                    .width(4.dp)
                     .height(h)
                     .clip(RoundedCornerShape(1.dp))
-                    .background(if (index < strength) color else color.copy(alpha = 0.25f)),
+                    .background(
+                        if (index < strength) color else color.copy(alpha = 0.25f),
+                    ),
             )
         }
     }
@@ -395,13 +474,11 @@ fun XenoServerCard(
                     fontFamily = InterFontFamily,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp,
-                    lineHeight = 15.sp,
+                    lineHeight = 18.sp,
                     letterSpacing = 0.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .width(90.dp)
-                        .height(18.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
@@ -446,7 +523,7 @@ fun XenoServerCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "select",
+                        text = stringResource(R.string.xeno_select),
                         color = Color(0xFF7A7F78),
                         fontFamily = InterFontFamily,
                         fontSize = 11.sp,
@@ -484,7 +561,7 @@ fun XenoSubscriptionCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "SUBSCRIPTION",
+                    text = stringResource(R.string.xeno_subscription_label),
                     color = Color(0xFF7A7F78),
                     fontFamily = InterFontFamily,
                     fontSize = 10.sp,
@@ -492,12 +569,12 @@ fun XenoSubscriptionCard(
                     letterSpacing = 1.sp,
                 )
                 if (hasSubscription && info != null && !info.isExpired()) {
-                    XenoStatusBadge(text = "ACTIVE")
+                    XenoStatusBadge(text = stringResource(R.string.xeno_active_badge))
                 }
             }
             if (!hasSubscription || info == null) {
                 Text(
-                    text = "Не импортирована",
+                    text = stringResource(R.string.xeno_sub_not_imported),
                     color = Color.White,
                     fontFamily = InterFontFamily,
                     fontWeight = FontWeight.SemiBold,
@@ -511,7 +588,7 @@ fun XenoSubscriptionCard(
                 ) {
                     if (info.isDisplayUnlimitedTraffic()) {
                         Text(
-                            text = "Безлимит",
+                            text = stringResource(R.string.subscription_traffic_unlimited),
                             color = Color.White,
                             fontFamily = InterFontFamily,
                             fontWeight = FontWeight.Bold,
@@ -532,7 +609,10 @@ fun XenoSubscriptionCard(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                text = (parts.getOrNull(1) ?: "GB") + " left",
+                                text = stringResource(
+                                    R.string.xeno_traffic_left,
+                                    parts.getOrNull(1) ?: "GB",
+                                ),
                                 color = Color(0xFF7A7F78),
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.Normal,
@@ -552,7 +632,7 @@ fun XenoSubscriptionCard(
                     Column(horizontalAlignment = Alignment.End) {
                         xenoShortExpireDate(info)?.let { date ->
                             Text(
-                                text = "Expires $date",
+                                text = stringResource(R.string.xeno_expires_prefix, date),
                                 color = Color(0xFF6B7672),
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.Normal,
@@ -583,16 +663,21 @@ fun XenoSubscriptionCard(
                     }
                 }
                 if (info.total > 0 && !info.isDisplayUnlimitedTraffic()) {
-                    LinearProgressIndicator(
-                        progress = { 1f - info.usageFraction },
+                    val remaining = (1f - info.usageFraction).coerceIn(0f, 1f)
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
-                            .clip(RoundedCornerShape(999.dp)),
-                        color = Color(0xFF00D4A8),
-                        trackColor = Color(0xFF222B28),
-                        strokeCap = StrokeCap.Round,
-                    )
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFF222B28)),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(remaining)
+                                .fillMaxSize()
+                                .background(Color(0xFF00D4A8)),
+                        )
+                    }
                 } else {
                     Spacer(modifier = Modifier.height(6.dp))
                 }
@@ -607,13 +692,18 @@ private fun xenoShortExpireDate(info: SubscriptionInfo): String? {
         .format(java.util.Date(info.expire * 1_000L))
 }
 
+@Composable
 private fun xenoDaysLeftLabel(info: SubscriptionInfo): String? {
     if (info.expire <= 0) return null
     val nowSec = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
     val remainingSec = info.expire - nowSec
     if (remainingSec <= 0) return null
     val days = (remainingSec + 86_399L) / 86_400L
-    return if (days == 1L) "1 day left" else "$days days left"
+    return if (days == 1L) {
+        stringResource(R.string.xeno_day_left)
+    } else {
+        stringResource(R.string.xeno_days_left, days)
+    }
 }
 
 @Composable

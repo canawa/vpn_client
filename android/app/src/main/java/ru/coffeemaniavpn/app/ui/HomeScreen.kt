@@ -105,7 +105,7 @@ fun HomeScreen(
                     onClick = {
                         if (isConnected) onDisconnectClick() else onConnectClick()
                     },
-                    size = 176.dp,
+                    size = 188.dp,
                 )
 
                 Spacer(modifier = Modifier.height(18.dp))
@@ -227,7 +227,7 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "TEST CONNECTION",
+                            text = stringResource(R.string.xeno_test_connection),
                             color = Color(0xFF00D4A8),
                             fontFamily = JetBrainsMonoFamily,
                             fontWeight = FontWeight.Normal,
@@ -272,9 +272,11 @@ private fun selectedServerDisplay(state: MainUiState): ServerDisplay {
                 )
             } else {
                 ServerDisplayMapper.map(node, state.nodePings[node.id]).let { d ->
-                    val subtitle = d.group?.takeIf { it.isNotBlank() }
-                        ?: d.subtitle.ifBlank { node.host }
-                    d.copy(subtitle = subtitle)
+                    d.copy(
+                        subtitle = d.protocolLabel.ifBlank {
+                            d.group?.takeIf { it.isNotBlank() } ?: d.subtitle
+                        },
+                    )
                 }
             }
         }
