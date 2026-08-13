@@ -141,7 +141,6 @@ fun AppShell(
                         onRemoveCustomRule = onRemoveCustomRule,
                         onReplaceSubscription = {
                             onDeleteSubscriptionClick()
-                            onPasteNewLink()
                         },
                         onTrafficRoutingModeChange = onTrafficRoutingModeChange,
                         onLanguageChange = onLanguageChange,

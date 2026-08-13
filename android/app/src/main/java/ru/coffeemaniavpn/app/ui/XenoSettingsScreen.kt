@@ -29,9 +29,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
@@ -276,8 +276,8 @@ private fun XenoSettingsMain(
                     },
                 )
                 XenoFooterButton(
-                    label = stringResource(R.string.xeno_add_new_config),
-                    icon = Icons.Outlined.Add,
+                    label = stringResource(R.string.xeno_delete_subscription),
+                    icon = Icons.Outlined.DeleteOutline,
                     destructive = true,
                     modifier = Modifier.weight(1f),
                     onClick = { showReplaceConfirm = true },
@@ -289,8 +289,8 @@ private fun XenoSettingsMain(
     if (showReplaceConfirm) {
         AlertDialog(
             onDismissRequest = { showReplaceConfirm = false },
-            title = { Text(stringResource(R.string.xeno_replace_config_title)) },
-            text = { Text(stringResource(R.string.xeno_replace_config_message)) },
+            title = { Text(stringResource(R.string.xeno_delete_subscription_title)) },
+            text = { Text(stringResource(R.string.xeno_delete_subscription_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {

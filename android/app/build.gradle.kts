@@ -12,7 +12,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "ru.coffeemaniavpn.xeno"
+        applicationId = "ru.xenovpn.xeno"
         minSdk = 26
         targetSdk = 36
         versionCode = 11
