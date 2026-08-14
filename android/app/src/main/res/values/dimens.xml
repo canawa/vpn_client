@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 2× от прежних 28dp; фактический размер ещё режется по ячейке в updater. -->
+    <dimen name="widget_large_logo">56dp</dimen>
+</resources>

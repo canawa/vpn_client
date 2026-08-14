@@ -14,7 +14,8 @@ import ru.coffeemaniavpn.app.R
 
 class ServiceNotification(private val service: Service) {
     private val notificationId = 1
-    private val channelId = "coffemania_vpn"
+    private val channelId = "clevvpn_status"
+    private val legacySilentChannelId = "coffemania_vpn"
 
     private val flags =
         PendingIntent.FLAG_UPDATE_CURRENT or
@@ -32,7 +33,7 @@ class ServiceNotification(private val service: Service) {
             .setOnlyAlertOnce(true)
             .setSmallIcon(R.drawable.ic_logo_notif)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(
                 PendingIntent.getActivity(
@@ -58,11 +59,12 @@ class ServiceNotification(private val service: Service) {
 
     fun show(serverLine: String, statusLine: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            App.notificationManager.deleteNotificationChannel(legacySilentChannelId)
             App.notificationManager.createNotificationChannel(
                 NotificationChannel(
                     channelId,
                     service.getString(R.string.vpn_notification_channel),
-                    NotificationManager.IMPORTANCE_LOW,
+                    NotificationManager.IMPORTANCE_DEFAULT,
                 ),
             )
         }

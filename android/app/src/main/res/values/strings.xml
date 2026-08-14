@@ -7,7 +7,7 @@
     <string name="vpn_notification_title">ClevVPN</string>
     <string name="vpn_starting">Подключение…</string>
     <string name="vpn_connected">Подключено</string>
-    <string name="vpn_stop">Отключить VPN</string>
+    <string name="vpn_stop">Отключить</string>
     <string name="qs_vpn_tile_label">ClevVPN</string>
     <string name="qs_vpn_connected">Подключено</string>
     <string name="qs_vpn_disconnected">Отключено</string>
@@ -111,9 +111,9 @@
     <string name="devices_count_unlimited">Устройств: ∞</string>
     <string name="devices_count">Устройств: %1$d</string>
     <string name="widget_description">ClevVPN — подключение и выбор сервера</string>
-    <string name="widget_description_small">ClevVPN — кнопка подключения</string>
+    <string name="widget_description_small">ClevVPN — подключение и текущий сервер</string>
     <string name="widget_label_large">ClevVPN</string>
-    <string name="widget_label_small">ClevVPN · кнопка</string>
+    <string name="widget_label_small">ClevVPN · компактный</string>
     <string name="widget_connect">Подключить VPN</string>
     <string name="widget_connect_short">ПОДКЛ.</string>
     <string name="widget_prev">Предыдущие серверы</string>
@@ -121,4 +121,8 @@
     <string name="widget_empty">Нет серверов — откройте приложение</string>
     <string name="widget_empty_short">Нет серверов</string>
     <string name="widget_preview_server_small" translatable="false">Нидерланды</string>
+    <string name="widget_preview_server_1" translatable="false">Авто | Европа</string>
+    <string name="widget_preview_server_2" translatable="false">Германия</string>
+    <string name="widget_preview_server_3" translatable="false">Великобритания</string>
+    <string name="widget_preview_server_4" translatable="false">Нидерланды</string>
 </resources>

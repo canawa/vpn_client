@@ -7,7 +7,7 @@
     <string name="vpn_notification_title">ClevVPN</string>
     <string name="vpn_starting">Подключение…</string>
     <string name="vpn_connected">Подключено</string>
-    <string name="vpn_stop">Отключить VPN</string>
+    <string name="vpn_stop">Отключить</string>
     <string name="qs_vpn_tile_label">ClevVPN</string>
     <string name="qs_vpn_connected">Подключено</string>
     <string name="qs_vpn_disconnected">Отключено</string>

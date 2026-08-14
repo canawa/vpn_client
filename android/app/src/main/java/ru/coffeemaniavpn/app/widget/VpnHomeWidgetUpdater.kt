@@ -6,6 +6,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.os.Build
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +35,8 @@ object VpnHomeWidgetUpdater {
     private const val KEY_PAGE = "page"
     private const val PAGE_SIZE = 4
     private const val OUTER_OVER_PLATE = 1.43f
+    private const val LARGE_LOGO_DP = 56f
+    private const val LARGE_LOGO_MARGIN_DP = 4f
 
     private val rowIds = intArrayOf(
         R.id.widget_row_0,
@@ -230,6 +234,10 @@ object VpnHomeWidgetUpdater {
     }
 
     private suspend fun buildSmallViews(context: Context, widgetId: Int): RemoteViews {
+        val preferences = AppPreferences(context)
+        val nodes = preferences.nodes.first()
+        val selectedId = preferences.selectedNodeId.first()
+        val node = nodes.firstOrNull { it.id == selectedId } ?: nodes.firstOrNull()
         val elapsedMs = VpnManager.connectionElapsedMs.value
         val plateDp = smallPlateDp(context, widgetId)
 
@@ -242,6 +250,10 @@ object VpnHomeWidgetUpdater {
             R.id.widget_small_root,
             openAppPendingIntent(context),
         )
+        views.setOnClickPendingIntent(
+            R.id.widget_small_server,
+            openAppPendingIntent(context),
+        )
         views.setImageViewBitmap(
             R.id.widget_connect,
             WidgetConnectButtonRenderer.render(
@@ -251,6 +263,26 @@ object VpnHomeWidgetUpdater {
                 plateDp = plateDp,
             ),
         )
+        if (node == null) {
+            views.setViewVisibility(R.id.widget_small_flag, View.GONE)
+            views.setTextViewText(
+                R.id.widget_small_name,
+                context.getString(R.string.widget_empty_short),
+            )
+            views.setTextColor(R.id.widget_small_name, colorMuted)
+        } else {
+            val display = ServerDisplayMapper.map(node)
+            views.setViewVisibility(R.id.widget_small_flag, View.VISIBLE)
+            views.setImageViewBitmap(
+                R.id.widget_small_flag,
+                WidgetFlagBitmaps.get(context, display.flag),
+            )
+            views.setTextViewText(
+                R.id.widget_small_name,
+                display.title.ifBlank { "Сервер" },
+            )
+            views.setTextColor(R.id.widget_small_name, colorText)
+        }
         return views
     }
 
@@ -271,6 +303,7 @@ object VpnHomeWidgetUpdater {
             R.id.widget_logo,
             openAppPendingIntent(context),
         )
+        applyLargeLogoSize(views, context, widgetId)
         views.setOnClickPendingIntent(
             R.id.widget_prev,
             broadcastPendingIntent(context, ACTION_PREV, requestCode = 101),
@@ -391,9 +424,57 @@ object VpnHomeWidgetUpdater {
             fallback = 110,
         )
         val leftW = w * 0.38f - 8f
-        val btnH = h - 16f - 32f
+        val btnH = h - 16f - LARGE_LOGO_DP - LARGE_LOGO_MARGIN_DP
         val box = minOf(leftW, btnH).coerceAtLeast(56f)
         return (box / OUTER_OVER_PLATE).coerceIn(48f, 96f)
+    }
+
+    /**
+     * Лого 2× (56dp), но не шире левой колонки и не выше свободной высоты ячейки.
+     * На API 31+ задаём точный квадрат, иначе ImageView match_parent + fitCenter.
+     */
+    private fun applyLargeLogoSize(views: RemoteViews, context: Context, widgetId: Int) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        val dp = largeLogoDp(context, widgetId)
+        views.setViewLayoutWidth(R.id.widget_logo, dp, TypedValue.COMPLEX_UNIT_DIP)
+        views.setViewLayoutHeight(R.id.widget_logo, dp, TypedValue.COMPLEX_UNIT_DIP)
+    }
+
+    private fun largeLogoDp(context: Context, widgetId: Int): Float {
+        val opts = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId)
+        val w = widgetFitDp(
+            opts,
+            AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,
+            AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
+            fallback = 250,
+        )
+        val h = widgetFitDp(
+            opts,
+            AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,
+            AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,
+            fallback = 110,
+        )
+        val leftW = (w - 24f) * 0.38f
+        val innerH = h - 16f
+        return minOf(LARGE_LOGO_DP, leftW, innerH - LARGE_LOGO_MARGIN_DP).coerceAtLeast(24f)
+    }
+
+    /** Для вписывания берём меньшую сторону ячейки — иначе лого вылезет в узкой ориентации. */
+    private fun widgetFitDp(
+        opts: android.os.Bundle,
+        minKey: String,
+        maxKey: String,
+        fallback: Int,
+    ): Int {
+        val min = opts.getInt(minKey, 0)
+        val max = opts.getInt(maxKey, 0)
+        val picked = when {
+            min > 0 && max > 0 -> minOf(min, max)
+            min > 0 -> min
+            max > 0 -> max
+            else -> fallback
+        }
+        return picked
     }
 
     private fun smallPlateDp(context: Context, widgetId: Int): Float {
@@ -402,7 +483,7 @@ object VpnHomeWidgetUpdater {
             opts,
             AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,
             AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
-            fallback = 70,
+            fallback = 110,
         )
         val h = widgetSizeDp(
             opts,
@@ -410,8 +491,9 @@ object VpnHomeWidgetUpdater {
             AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,
             fallback = 70,
         )
-        val box = minOf(w, h) - 12f
-        return (box.coerceAtLeast(40f) / OUTER_OVER_PLATE).coerceIn(28f, 72f)
+        // Кнопка занимает левую долю 2×1, высота ячейки ограничивает диаметр.
+        val box = minOf(w * 0.42f, h.toFloat()) - 8f
+        return (box.coerceAtLeast(40f) / OUTER_OVER_PLATE).coerceIn(28f, 64f)
     }
 
     private fun widgetSizeDp(
