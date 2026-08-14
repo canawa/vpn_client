@@ -483,7 +483,7 @@ object VpnHomeWidgetUpdater {
             opts,
             AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,
             AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
-            fallback = 110,
+            fallback = 180,
         )
         val h = widgetSizeDp(
             opts,
@@ -491,8 +491,8 @@ object VpnHomeWidgetUpdater {
             AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,
             fallback = 70,
         )
-        // Кнопка занимает левую долю 2×1, высота ячейки ограничивает диаметр.
-        val box = minOf(w * 0.42f, h.toFloat()) - 8f
+        // Кнопка слева в 3×1, диаметр ограничивает высота ячейки.
+        val box = minOf(w * 0.30f, h.toFloat()) - 8f
         return (box.coerceAtLeast(40f) / OUTER_OVER_PLATE).coerceIn(28f, 64f)
     }
 
