@@ -14,7 +14,10 @@ import ru.coffeemaniavpn.app.R
 
 class ServiceNotification(private val service: Service) {
     private val notificationId = 1
-    private val channelId = "coffemania_vpn"
+
+    // TEMP: hide connection notification from shade — restore channelId + IMPORTANCE_LOW below
+    private val hideFromShade = true
+    private val channelId = if (hideFromShade) "xenovpn_vpn_hidden" else "coffemania_vpn"
 
     private val flags =
         PendingIntent.FLAG_UPDATE_CURRENT or
@@ -30,10 +33,17 @@ class ServiceNotification(private val service: Service) {
             .setOngoing(true)
             .setContentTitle(service.getString(R.string.vpn_notification_title))
             .setOnlyAlertOnce(true)
+            .setSilent(true)
             .setSmallIcon(R.drawable.ic_logo_notif)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(
+                if (hideFromShade) NotificationCompat.PRIORITY_MIN
+                else NotificationCompat.PRIORITY_LOW,
+            )
+            .setVisibility(
+                if (hideFromShade) NotificationCompat.VISIBILITY_SECRET
+                else NotificationCompat.VISIBILITY_PUBLIC,
+            )
             .setContentIntent(
                 PendingIntent.getActivity(
                     service,
@@ -42,29 +52,48 @@ class ServiceNotification(private val service: Service) {
                     flags,
                 ),
             )
-            .addAction(
-                NotificationCompat.Action.Builder(
-                    android.R.drawable.ic_menu_close_clear_cancel,
-                    service.getString(R.string.vpn_stop),
-                    PendingIntent.getService(
-                        service,
-                        1,
-                        Intent(service, VPNService::class.java).setAction(VpnAction.SERVICE_CLOSE),
-                        flags,
-                    ),
-                ).build(),
-            )
+            .apply {
+                if (!hideFromShade) {
+                    addAction(
+                        NotificationCompat.Action.Builder(
+                            android.R.drawable.ic_menu_close_clear_cancel,
+                            service.getString(R.string.vpn_stop),
+                            PendingIntent.getService(
+                                service,
+                                1,
+                                Intent(service, VPNService::class.java).setAction(VpnAction.SERVICE_CLOSE),
+                                flags,
+                            ),
+                        ).build(),
+                    )
+                }
+            }
     }
 
     fun show(serverLine: String, statusLine: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val importance =
+                if (hideFromShade) NotificationManager.IMPORTANCE_NONE
+                else NotificationManager.IMPORTANCE_LOW
             App.notificationManager.createNotificationChannel(
                 NotificationChannel(
                     channelId,
                     service.getString(R.string.vpn_notification_channel),
-                    NotificationManager.IMPORTANCE_LOW,
+                    importance,
                 ),
             )
+        }
+        if (hideFromShade) {
+            // Minimal FGS placeholder — required by Android, not shown in shade (IMPORTANCE_NONE).
+            service.startForeground(
+                notificationId,
+                builder
+                    .setContentTitle(" ")
+                    .setContentText(" ")
+                    .setStyle(null)
+                    .build(),
+            )
+            return
         }
         val title = service.getString(R.string.vpn_notification_title)
         val preview = serverLine.ifBlank { statusLine }

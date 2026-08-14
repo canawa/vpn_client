@@ -71,8 +71,10 @@
                 android:value="vpn" />
         </service>
 
+        <!-- TEMP: QS tile hidden — set enabled="true" to restore -->
         <service
             android:name=".vpn.VpnQuickTileService"
+            android:enabled="false"
             android:exported="true"
             android:icon="@drawable/ic_logo_notif"
             android:label="@string/qs_vpn_tile_label"
@@ -85,8 +87,10 @@
                 android:value="true" />
         </service>
 
+        <!-- TEMP: widgets disabled — set enabled="true" to restore -->
         <receiver
             android:name=".widget.VpnHomeWidgetProvider"
+            android:enabled="false"
             android:exported="true"
             android:label="@string/widget_label_large">
             <intent-filter>
@@ -103,6 +107,7 @@
 
         <receiver
             android:name=".widget.VpnHomeWidgetSmallProvider"
+            android:enabled="false"
             android:exported="true"
             android:label="@string/widget_label_small">
             <intent-filter>
