@@ -32,6 +32,7 @@ object VpnHomeWidgetUpdater {
     private const val PREFS = "vpn_home_widget"
     private const val KEY_PAGE = "page"
     private const val PAGE_SIZE = 4
+    private const val OUTER_OVER_PLATE = 1.43f
 
     private val rowIds = intArrayOf(
         R.id.widget_row_0,
@@ -68,15 +69,11 @@ object VpnHomeWidgetUpdater {
                 ComponentName(appContext, VpnHomeWidgetSmallProvider::class.java),
             )
             if (largeIds.isEmpty() && smallIds.isEmpty()) return@launch
-            val largeViews = if (largeIds.isNotEmpty()) buildLargeViews(appContext) else null
-            val smallViews = if (smallIds.isNotEmpty()) buildSmallViews(appContext) else null
+            val largePairs = largeIds.map { id -> id to buildLargeViews(appContext, id) }
+            val smallPairs = smallIds.map { id -> id to buildSmallViews(appContext, id) }
             withContext(Dispatchers.Main) {
-                largeViews?.let { views ->
-                    largeIds.forEach { id -> manager.updateAppWidget(id, views) }
-                }
-                smallViews?.let { views ->
-                    smallIds.forEach { id -> manager.updateAppWidget(id, views) }
-                }
+                largePairs.forEach { (id, views) -> manager.updateAppWidget(id, views) }
+                smallPairs.forEach { (id, views) -> manager.updateAppWidget(id, views) }
             }
         }
     }
@@ -94,39 +91,43 @@ object VpnHomeWidgetUpdater {
         if (largeIds.isEmpty() && smallIds.isEmpty()) return
         val elapsed = VpnManager.connectionElapsedMs.value
         if (largeIds.isNotEmpty()) {
-            val bitmap = WidgetConnectButtonRenderer.render(
-                context = appContext,
-                connectionElapsedMs = elapsed,
-                anim = anim,
-                plateDp = WidgetConnectButtonRenderer.PLATE_DP,
-            )
-            val views = RemoteViews(appContext.packageName, R.layout.widget_vpn_large).apply {
-                setImageViewBitmap(R.id.widget_connect, bitmap)
-                setOnClickPendingIntent(
-                    R.id.widget_connect,
-                    broadcastPendingIntent(appContext, ACTION_TOGGLE, requestCode = 100),
-                )
-            }
             withContext(Dispatchers.Main) {
-                manager.partiallyUpdateAppWidget(largeIds, views)
+                largeIds.forEach { id ->
+                    val bitmap = WidgetConnectButtonRenderer.render(
+                        context = appContext,
+                        connectionElapsedMs = elapsed,
+                        anim = anim,
+                        plateDp = largePlateDp(appContext, id),
+                    )
+                    val views = RemoteViews(appContext.packageName, R.layout.widget_vpn_large).apply {
+                        setImageViewBitmap(R.id.widget_connect, bitmap)
+                        setOnClickPendingIntent(
+                            R.id.widget_connect,
+                            broadcastPendingIntent(appContext, ACTION_TOGGLE, requestCode = 100),
+                        )
+                    }
+                    manager.partiallyUpdateAppWidget(id, views)
+                }
             }
         }
         if (smallIds.isNotEmpty()) {
-            val bitmap = WidgetConnectButtonRenderer.render(
-                context = appContext,
-                connectionElapsedMs = elapsed,
-                anim = anim,
-                plateDp = WidgetConnectButtonRenderer.PLATE_DP_SMALL,
-            )
-            val views = RemoteViews(appContext.packageName, R.layout.widget_vpn_small).apply {
-                setImageViewBitmap(R.id.widget_connect, bitmap)
-                setOnClickPendingIntent(
-                    R.id.widget_connect,
-                    broadcastPendingIntent(appContext, ACTION_TOGGLE, requestCode = 110),
-                )
-            }
             withContext(Dispatchers.Main) {
-                manager.partiallyUpdateAppWidget(smallIds, views)
+                smallIds.forEach { id ->
+                    val bitmap = WidgetConnectButtonRenderer.render(
+                        context = appContext,
+                        connectionElapsedMs = elapsed,
+                        anim = anim,
+                        plateDp = smallPlateDp(appContext, id),
+                    )
+                    val views = RemoteViews(appContext.packageName, R.layout.widget_vpn_small).apply {
+                        setImageViewBitmap(R.id.widget_connect, bitmap)
+                        setOnClickPendingIntent(
+                            R.id.widget_connect,
+                            broadcastPendingIntent(appContext, ACTION_TOGGLE, requestCode = 110),
+                        )
+                    }
+                    manager.partiallyUpdateAppWidget(id, views)
+                }
             }
         }
     }
@@ -147,9 +148,9 @@ object VpnHomeWidgetUpdater {
         App.applicationScope.launch(Dispatchers.IO) {
             val appContext = context.applicationContext
             val manager = AppWidgetManager.getInstance(appContext)
-            val views = buildLargeViews(appContext)
+            val pairs = appWidgetIds.map { id -> id to buildLargeViews(appContext, id) }
             withContext(Dispatchers.Main) {
-                appWidgetIds.forEach { id -> manager.updateAppWidget(id, views) }
+                pairs.forEach { (id, views) -> manager.updateAppWidget(id, views) }
             }
         }
     }
@@ -159,9 +160,9 @@ object VpnHomeWidgetUpdater {
         App.applicationScope.launch(Dispatchers.IO) {
             val appContext = context.applicationContext
             val manager = AppWidgetManager.getInstance(appContext)
-            val views = buildSmallViews(appContext)
+            val pairs = appWidgetIds.map { id -> id to buildSmallViews(appContext, id) }
             withContext(Dispatchers.Main) {
-                appWidgetIds.forEach { id -> manager.updateAppWidget(id, views) }
+                pairs.forEach { (id, views) -> manager.updateAppWidget(id, views) }
             }
         }
     }
@@ -228,21 +229,14 @@ object VpnHomeWidgetUpdater {
         AppLog.i("VpnHomeWidget page $current -> $next")
     }
 
-    private suspend fun buildSmallViews(context: Context): RemoteViews {
-        val preferences = AppPreferences(context)
-        val nodes = preferences.nodes.first()
-        val selectedId = preferences.selectedNodeId.first()
+    private suspend fun buildSmallViews(context: Context, widgetId: Int): RemoteViews {
         val elapsedMs = VpnManager.connectionElapsedMs.value
-        val node = nodes.find { it.id == selectedId } ?: nodes.firstOrNull()
+        val plateDp = smallPlateDp(context, widgetId)
 
         val views = RemoteViews(context.packageName, R.layout.widget_vpn_small)
         views.setOnClickPendingIntent(
             R.id.widget_connect,
             broadcastPendingIntent(context, ACTION_TOGGLE, requestCode = 110),
-        )
-        views.setOnClickPendingIntent(
-            R.id.widget_small_server,
-            openAppPendingIntent(context),
         )
         views.setOnClickPendingIntent(
             R.id.widget_small_root,
@@ -254,31 +248,13 @@ object VpnHomeWidgetUpdater {
                 context = context,
                 connectionElapsedMs = elapsedMs,
                 anim = VpnHomeWidgetAnimator.state,
-                plateDp = WidgetConnectButtonRenderer.PLATE_DP_SMALL,
+                plateDp = plateDp,
             ),
         )
-
-        if (node == null) {
-            views.setViewVisibility(R.id.widget_small_flag, View.GONE)
-            views.setTextViewText(R.id.widget_small_name, context.getString(R.string.widget_empty))
-            views.setTextColor(R.id.widget_small_name, colorMuted)
-        } else {
-            val display = ServerDisplayMapper.map(node)
-            views.setViewVisibility(R.id.widget_small_flag, View.VISIBLE)
-            views.setImageViewBitmap(
-                R.id.widget_small_flag,
-                WidgetFlagBitmaps.get(context, display.flag),
-            )
-            views.setTextViewText(
-                R.id.widget_small_name,
-                display.title.ifBlank { "Сервер" },
-            )
-            views.setTextColor(R.id.widget_small_name, colorText)
-        }
         return views
     }
 
-    private suspend fun buildLargeViews(context: Context): RemoteViews {
+    private suspend fun buildLargeViews(context: Context, widgetId: Int): RemoteViews {
         val preferences = AppPreferences(context)
         val nodes = preferences.nodes.first()
         val selectedId = preferences.selectedNodeId.first()
@@ -314,6 +290,7 @@ object VpnHomeWidgetUpdater {
                 context = context,
                 connectionElapsedMs = elapsedMs,
                 anim = VpnHomeWidgetAnimator.state,
+                plateDp = largePlateDp(context, widgetId),
             ),
         )
 
@@ -392,6 +369,62 @@ object VpnHomeWidgetUpdater {
 
     private fun pageCount(nodeCount: Int): Int =
         if (nodeCount <= 0) 0 else (nodeCount + PAGE_SIZE - 1) / PAGE_SIZE
+
+    /**
+     * Размер пластины по реальной ячейке виджета (dp из AppWidgetOptions),
+     * чтобы на разных экранах кнопка не «съезжала» относительно layout.
+     * outer ≈ plate × 1.43 (кольца в [WidgetConnectButtonRenderer]).
+     */
+    private fun largePlateDp(context: Context, widgetId: Int): Float {
+        val opts = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId)
+        // Берём max-размер ячейки: иначе битмап меньше ImageView и лаунчер апскейлит (мыло).
+        val w = widgetSizeDp(
+            opts,
+            AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,
+            AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
+            fallback = 250,
+        )
+        val h = widgetSizeDp(
+            opts,
+            AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,
+            AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,
+            fallback = 110,
+        )
+        val leftW = w * 0.38f - 8f
+        val btnH = h - 16f - 32f
+        val box = minOf(leftW, btnH).coerceAtLeast(56f)
+        return (box / OUTER_OVER_PLATE).coerceIn(48f, 96f)
+    }
+
+    private fun smallPlateDp(context: Context, widgetId: Int): Float {
+        val opts = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId)
+        val w = widgetSizeDp(
+            opts,
+            AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,
+            AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
+            fallback = 70,
+        )
+        val h = widgetSizeDp(
+            opts,
+            AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,
+            AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,
+            fallback = 70,
+        )
+        val box = minOf(w, h) - 12f
+        return (box.coerceAtLeast(40f) / OUTER_OVER_PLATE).coerceIn(28f, 72f)
+    }
+
+    private fun widgetSizeDp(
+        opts: android.os.Bundle,
+        minKey: String,
+        maxKey: String,
+        fallback: Int,
+    ): Int {
+        val min = opts.getInt(minKey, 0)
+        val max = opts.getInt(maxKey, 0)
+        val picked = maxOf(min, max)
+        return if (picked > 0) picked else fallback
+    }
 
     private fun broadcastPendingIntent(
         context: Context,

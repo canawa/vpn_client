@@ -20,15 +20,23 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Статичный рендер [ClevConnectButton] для RemoteViews — те же кольца и 3D-колодец.
+ *
+ * Рисуем с [QUALITY]× supersampling и отдаём hi-res битмап в ImageView (fitCenter
+ * уменьшает — это чётче, чем апскейл тонких жёлтых колец «ПОДКЛЮЧЕНО»).
  */
 object WidgetConnectButtonRenderer {
     /** Диаметр пластины (large / small). */
     const val PLATE_DP = 72f
-    const val PLATE_DP_SMALL = 56f
+    /** Компактная пластина для 1×1 виджета. */
+    const val PLATE_DP_SMALL = 36f
     private const val REF_PLATE_DP = 150f
     private const val REF_RING_PAD_DP = 36f
     private const val REF_OUTER_PAD_DP = 28f
     private const val REF_HALO_PAD_DP = 20f
+    /** Множитель разрешения относительно density (2× достаточно для xxhdpi виджетов). */
+    private const val QUALITY = 2f
+    /** Потолок стороны битмапа — RemoteViews / binder. */
+    private const val MAX_BITMAP_PX = 512
 
     private val mocha = 0xFF9A9AA3.toInt()
     private val logoYellow = 0xFFFAC300.toInt()
@@ -44,26 +52,35 @@ object WidgetConnectButtonRenderer {
     ): Bitmap {
         val density = context.resources.displayMetrics.density
         val scale = plateDp / REF_PLATE_DP
-        val plate = plateDp * density
-        val ring = plate + REF_RING_PAD_DP * scale * density
-        val outer = ring + REF_OUTER_PAD_DP * scale * density
-        val halo = ring + REF_HALO_PAD_DP * scale * density
-        val size = outer.toInt().coerceAtLeast(1)
+        val logicalOuter = (plateDp + (REF_RING_PAD_DP + REF_OUTER_PAD_DP) * scale) * density
+        val q = (QUALITY).coerceAtLeast(1f).let { want ->
+            val capped = MAX_BITMAP_PX / logicalOuter.coerceAtLeast(1f)
+            want.coerceAtMost(capped).coerceAtLeast(1f)
+        }
+        val plate = plateDp * density * q
+        val ring = plate + REF_RING_PAD_DP * scale * density * q
+        val outer = ring + REF_OUTER_PAD_DP * scale * density * q
+        val halo = ring + REF_HALO_PAD_DP * scale * density * q
+        val size = outer.toInt().coerceAtLeast(1).coerceAtMost(MAX_BITMAP_PX)
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val cx = size / 2f
         val cy = size / 2f
-        val densityScaled = density * scale
+        val densityScaled = density * scale * q
 
         if (anim.burstAlpha > 0.01f) {
             drawBurst(canvas, cx, cy, ring, anim.burstAlpha, densityScaled)
         }
-        drawHaloRings(canvas, cx, cy, halo, densityScaled, anim.haloPulse)
+        val on = anim.labelMode == WidgetConnectAnimState.LabelMode.On
+        val busy = anim.labelMode == WidgetConnectAnimState.LabelMode.Busy
+        if (on || anim.plateOn > 0.5f) {
+            drawConnectedGlowRings(canvas, cx, cy, ring, halo, densityScaled, anim.plateOn)
+        } else {
+            drawHaloRings(canvas, cx, cy, halo, densityScaled, anim.haloPulse)
+        }
         drawStatusRing(canvas, cx, cy, ring, densityScaled, anim)
         drawPlate(canvas, cx, cy, plate, anim.plateOn)
-        val busy = anim.labelMode == WidgetConnectAnimState.LabelMode.Busy
-        val on = anim.labelMode == WidgetConnectAnimState.LabelMode.On
-        drawContent(context, canvas, cx, cy, plate, density, on, busy, connectionElapsedMs)
+        drawContent(context, canvas, cx, cy, plate, densityScaled, on, busy, connectionElapsedMs)
         return bitmap
     }
 
@@ -88,6 +105,50 @@ object WidgetConnectButtonRenderer {
             )
             canvas.drawCircle(cx, cy, r * expand, paint)
         }
+    }
+
+    /** Мягкое двойное свечение вокруг включённой кнопки (без тонких «лесенок»). */
+    private fun drawConnectedGlowRings(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        ringDiameter: Float,
+        haloDiameter: Float,
+        density: Float,
+        plateOn: Float,
+    ) {
+        val a = plateOn.coerceIn(0f, 1f)
+        val outerR = haloDiameter / 2f * 1.02f
+        val midR = ringDiameter / 2f * 1.10f
+        val stroke = (2.2f * density).coerceAtLeast(2.5f)
+
+        // Мягкий ореол (fill, не hairline stroke)
+        val soft = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+            style = Paint.Style.FILL
+            shader = RadialGradient(
+                cx, cy, outerR,
+                intArrayOf(
+                    ColorUtils.setAlphaComponent(0xFFFFC400.toInt(), 0),
+                    ColorUtils.setAlphaComponent(0xFFFFC400.toInt(), (0.22f * a * 255).toInt()),
+                    ColorUtils.setAlphaComponent(0xFFFAC300.toInt(), (0.10f * a * 255).toInt()),
+                    ColorUtils.setAlphaComponent(0xFFFAC300.toInt(), 0),
+                ),
+                floatArrayOf(0.55f, 0.78f, 0.90f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+        }
+        canvas.drawCircle(cx, cy, outerR, soft)
+
+        val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeWidth = stroke
+        }
+        ringPaint.color = ColorUtils.setAlphaComponent(0xFFFFC400.toInt(), (0.92f * a * 255).toInt())
+        canvas.drawCircle(cx, cy, midR, ringPaint)
+        ringPaint.strokeWidth = (stroke * 0.75f).coerceAtLeast(2f)
+        ringPaint.color = ColorUtils.setAlphaComponent(0xFFFAC300.toInt(), (0.55f * a * 255).toInt())
+        canvas.drawCircle(cx, cy, outerR * 0.94f, ringPaint)
     }
 
     private fun drawHaloRings(
@@ -120,6 +181,26 @@ object WidgetConnectButtonRenderer {
     ) {
         val r = diameter / 2f
         val oval = RectF(cx - r, cy - r, cx + r, cy + r)
+        val connected = anim.plateOn > 0.85f && anim.ringFill >= 0.999f
+
+        if (connected) {
+            // Золотой обод + сплошное жёлтое кольцо статуса (толще минимума — без пикселизации)
+            val bezel = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = (4.5f * density).coerceAtLeast(5f)
+                color = 0xFFD48900.toInt()
+            }
+            canvas.drawCircle(cx, cy, r, bezel)
+            val yellow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = (2.6f * density).coerceAtLeast(3f)
+                strokeCap = Paint.Cap.ROUND
+                color = 0xFFFAC300.toInt()
+            }
+            canvas.drawCircle(cx, cy, r, yellow)
+            return
+        }
+
         val base = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = 3f * density
@@ -131,7 +212,7 @@ object WidgetConnectButtonRenderer {
             val colors = intArrayOf(0xFFFAC300.toInt(), 0xFFE39A00.toInt(), 0xFFFAC300.toInt())
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                strokeWidth = 2f * density
+                strokeWidth = 2.4f * density
                 strokeCap = Paint.Cap.ROUND
                 shader = SweepGradient(cx, cy, colors, null).also { shader ->
                     val m = Matrix()
@@ -162,7 +243,6 @@ object WidgetConnectButtonRenderer {
         }
 
         if (anim.showSpinner) {
-            // Полный круг с вращающимся «хвостом» — как indeterminate progress.
             canvas.save()
             canvas.rotate(anim.spinAngle, cx, cy)
             val colors = intArrayOf(
@@ -189,17 +269,6 @@ object WidgetConnectButtonRenderer {
             }
             canvas.drawCircle(cx, cy, r, paint)
             canvas.restore()
-        } else if (anim.ringFill >= 0.999f) {
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = 2f * density
-                strokeCap = Paint.Cap.ROUND
-                color = ColorUtils.setAlphaComponent(0xFFFFFFFF.toInt(), (0.35f * 255).toInt())
-            }
-            canvas.save()
-            canvas.rotate(anim.spinAngle, cx, cy)
-            canvas.drawArc(oval, -90f, 28f, false, paint)
-            canvas.restore()
         }
     }
 
@@ -207,17 +276,19 @@ object WidgetConnectButtonRenderer {
         val r = diameter / 2f
         val left = cx - r
         val top = cy - r
+        val t = plateOn.coerceIn(0f, 1f)
 
-        val bezelHi = lerpColor(0xFF4A4A54.toInt(), 0xFFFFE082.toInt(), plateOn * 0.7f)
-        val bezelLo = lerpColor(0xFF141418.toInt(), 0xFFD48900.toInt(), plateOn * 0.85f)
-        val wellTop = lerpColor(0xFF07070A.toInt(), 0xFFA87400.toInt(), plateOn * 0.7f)
-        val wellBot = lerpColor(0xFF22222C.toInt(), 0xFFE8B020.toInt(), plateOn * 0.85f)
-        val floorHi = lerpColor(0xFF2C2C36.toInt(), plateYellow, plateOn)
-        val floorLo = lerpColor(0xFF16161C.toInt(), plateAmber, plateOn)
-        val insetShadowAlpha = 0.55f * (1f - plateOn * 0.35f)
-        val rimGlowAlpha = 0.06f + plateOn * 0.06f
+        // Как в ClevConnectButton: мягкий золотой колодец без пересвета/banding
+        val bezelHi = lerpColor(0xFF4A4A54.toInt(), 0xFFFFE082.toInt(), t * 0.7f)
+        val bezelLo = lerpColor(0xFF141418.toInt(), 0xFFD48900.toInt(), t * 0.85f)
+        val wellTop = lerpColor(0xFF07070A.toInt(), 0xFFA87400.toInt(), t * 0.7f)
+        val wellBot = lerpColor(0xFF22222C.toInt(), 0xFFE8B020.toInt(), t * 0.85f)
+        val floorHi = lerpColor(0xFF2C2C36.toInt(), plateYellow, t)
+        val floorLo = lerpColor(0xFF16161C.toInt(), plateAmber, t)
+        val insetShadowAlpha = 0.55f * (1f - t * 0.35f)
+        val rimGlowAlpha = 0.06f + t * 0.06f
 
-        val bezelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val bezelPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
             shader = LinearGradient(
                 left, top, left + diameter, top + diameter,
                 bezelHi, bezelLo, Shader.TileMode.CLAMP,
@@ -226,7 +297,7 @@ object WidgetConnectButtonRenderer {
         canvas.drawCircle(cx, cy, r, bezelPaint)
 
         val wellInset = diameter * 0.055f
-        val wellPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val wellPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
             shader = LinearGradient(
                 left + diameter * 0.15f, top,
                 left + diameter * 0.85f, top + diameter,
@@ -235,30 +306,32 @@ object WidgetConnectButtonRenderer {
         }
         canvas.drawCircle(cx, cy, r - wellInset, wellPaint)
 
-        val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = diameter * 0.07f
-            shader = SweepGradient(
-                cx, cy,
-                intArrayOf(
-                    0x00000000,
-                    ColorUtils.setAlphaComponent(0xFF000000.toInt(), (insetShadowAlpha * 255).toInt()),
-                    ColorUtils.setAlphaComponent(0xFF000000.toInt(), (insetShadowAlpha * 255).toInt()),
-                    0x00000000,
-                    0x00000000,
-                ),
-                floatArrayOf(0f, 0.35f, 0.55f, 0.75f, 1f),
-            )
+        if (insetShadowAlpha > 0.04f) {
+            val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = diameter * 0.07f
+                shader = SweepGradient(
+                    cx, cy,
+                    intArrayOf(
+                        0x00000000,
+                        ColorUtils.setAlphaComponent(0xFF000000.toInt(), (insetShadowAlpha * 255).toInt()),
+                        ColorUtils.setAlphaComponent(0xFF000000.toInt(), (insetShadowAlpha * 255).toInt()),
+                        0x00000000,
+                        0x00000000,
+                    ),
+                    floatArrayOf(0f, 0.35f, 0.55f, 0.75f, 1f),
+                )
+            }
+            canvas.drawCircle(cx, cy, r - wellInset, shadowPaint)
         }
-        canvas.drawCircle(cx, cy, r - wellInset, shadowPaint)
 
         val floorInset = diameter * 0.13f
         val floorR = r - floorInset
-        val floorPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val floorPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
             shader = RadialGradient(
                 left + diameter * 0.38f,
                 top + diameter * 0.34f,
-                floorR * 0.9f,
+                floorR * 1.05f,
                 floorHi,
                 floorLo,
                 Shader.TileMode.CLAMP,
@@ -295,43 +368,48 @@ object WidgetConnectButtonRenderer {
         }
         val gap = if (on) 7f * density else 6f * density
 
-        val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+        val textPaint = TextPaint(
+            Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG or Paint.LINEAR_TEXT_FLAG,
+        ).apply {
             typeface = WidgetFonts.bold(context)
             textAlign = Paint.Align.LEFT
             letterSpacing = 0f
             isFakeBoldText = false
+            isFilterBitmap = true
         }
 
         if (on) {
-            textPaint.color = ColorUtils.setAlphaComponent(0xFF000000.toInt(), (0.45f * 255).toInt())
-            textPaint.textSize = plate * 0.058f
             val label = context.getString(R.string.clev_connected)
-            fitTextSize(textPaint, label, plate * 0.84f)
+            // Чуть крупнее + умеренный tracking — читаемее на маленьком виджете
+            textPaint.color = ColorUtils.setAlphaComponent(0xFF000000.toInt(), (0.45f * 255).toInt())
+            textPaint.textSize = plate * 0.062f
+            textPaint.letterSpacing = 0.18f
+            fitTextSize(textPaint, label, plate * 0.90f, minPx = 11f)
             val labelFm = textPaint.fontMetrics
             val labelH = labelFm.descent - labelFm.ascent
 
-            textPaint.textSize = plate * 0.11f
+            textPaint.letterSpacing = 0f
+            textPaint.textSize = plate * 0.125f
             val timer = formatSession(connectionElapsedMs)
-            fitTextSize(textPaint, timer, plate * 0.84f)
+            fitTextSize(textPaint, timer, plate * 0.86f, minPx = 14f)
             val timerFm = textPaint.fontMetrics
             val timerH = timerFm.descent - timerFm.ascent
             val timerGap = 3f * density
 
-            // Блок по центру пластины: icon + gap + label + gap + timer
-            textPaint.textSize = plate * 0.058f
-            fitTextSize(textPaint, label, plate * 0.84f)
             val blockH = iconSize + gap + labelH + timerGap + timerH
             var y = cy - blockH / 2f
             drawPowerIcon(context, canvas, cx, y + iconSize / 2f, iconSize, iconColor)
             y += iconSize + gap
             textPaint.color = ColorUtils.setAlphaComponent(0xFF000000.toInt(), (0.45f * 255).toInt())
-            textPaint.textSize = plate * 0.058f
-            fitTextSize(textPaint, label, plate * 0.84f)
+            textPaint.letterSpacing = 0.18f
+            textPaint.textSize = plate * 0.062f
+            fitTextSize(textPaint, label, plate * 0.90f, minPx = 11f)
             drawOpticalCenteredText(canvas, label, cx, y - textPaint.fontMetrics.ascent, textPaint)
             y += labelH + timerGap
-            textPaint.color = ColorUtils.setAlphaComponent(0xFF000000.toInt(), (0.7f * 255).toInt())
-            textPaint.textSize = plate * 0.11f
-            fitTextSize(textPaint, timer, plate * 0.84f)
+            textPaint.letterSpacing = 0f
+            textPaint.color = ColorUtils.setAlphaComponent(0xFF000000.toInt(), (0.72f * 255).toInt())
+            textPaint.textSize = plate * 0.125f
+            fitTextSize(textPaint, timer, plate * 0.86f, minPx = 14f)
             drawOpticalCenteredText(canvas, timer, cx, y - textPaint.fontMetrics.ascent, textPaint)
         } else {
             textPaint.color = mocha
@@ -341,7 +419,7 @@ object WidgetConnectButtonRenderer {
                 context.getString(R.string.clev_start)
             }
             textPaint.textSize = plate * if (busy) 0.055f else 0.078f
-            fitTextSize(textPaint, label, plate * 0.84f)
+            fitTextSize(textPaint, label, plate * 0.84f, minPx = if (busy) 10f else 12f)
             val fm = textPaint.fontMetrics
             val labelH = fm.descent - fm.ascent
             val blockH = iconSize + gap + labelH
@@ -352,8 +430,13 @@ object WidgetConnectButtonRenderer {
         }
     }
 
-    private fun fitTextSize(paint: TextPaint, text: String, maxWidth: Float) {
-        while (paint.measureText(text) > maxWidth && paint.textSize > 8f) {
+    private fun fitTextSize(
+        paint: TextPaint,
+        text: String,
+        maxWidth: Float,
+        minPx: Float = 8f,
+    ) {
+        while (paint.measureText(text) > maxWidth && paint.textSize > minPx) {
             paint.textSize *= 0.96f
         }
     }

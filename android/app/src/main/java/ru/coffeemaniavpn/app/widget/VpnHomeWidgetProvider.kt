@@ -30,6 +30,16 @@ class VpnHomeWidgetProvider : AppWidgetProvider() {
         super.onDisabled(context)
     }
 
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle?,
+    ) {
+        AppLog.i("VpnHomeWidget optionsChanged id=$appWidgetId")
+        VpnHomeWidgetUpdater.update(context, intArrayOf(appWidgetId))
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         if (
