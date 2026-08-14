@@ -192,7 +192,7 @@ fun XenoScreenHeader(
             Text(
                 text = title,
                 color = Color(0xFFF2F5F4),
-                fontFamily = BebasNeueFamily,
+                fontFamily = OswaldFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 32.sp,
                 lineHeight = 32.sp,

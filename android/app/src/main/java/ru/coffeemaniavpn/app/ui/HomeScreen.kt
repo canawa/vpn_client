@@ -119,15 +119,14 @@ fun HomeScreen(
                         else -> stringResource(R.string.xeno_status_disconnected)
                     }.uppercase(),
                     color = if (isConnected) Color(0xFF00D4A8) else Color(0xFF6B7672),
-                    fontFamily = BebasNeueFamily,
+                    fontFamily = OswaldFamily,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 30.sp,
-                    lineHeight = 30.sp,
-                    letterSpacing = 1.8.sp, // 6% of 30
+                    fontSize = 32.sp,
+                    lineHeight = 40.sp,
+                    letterSpacing = 1.92.sp, // 6% of 32
                     textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(36.dp),
+                    maxLines = 1,
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))

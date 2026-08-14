@@ -54,30 +54,28 @@ fun XenoConnectButton(
         active -> Color(0xFF00D4A8)
         else -> Color(0xFF6B7672)
     }
-    // Figma disconnected plate: bg #141B18, border 1.5 #222B28
     val plate = Color(0xFF141B18)
-    val plateBorder = if (active) Color(0xFF00D4A8) else Color(0xFF222B28)
+    val plateBorder = when {
+        connected -> Color(0xFF00D4A8)
+        busy -> Color(0xFF222B28)
+        else -> Color(0xFF222B28)
+    }
     val plateBorderWidth = if (connected) 3.5.dp else 1.5.dp
 
-    // Ring geometry (Figma / video)
     val squareSize = 6.dp
     val squareRadius = 1.dp
     val orbitGap = 22.dp
     val orbitPad = orbitGap + squareSize
     val totalSize = size + orbitPad * 2
-    val dotCount = 30
-    val headCount = 4
-    val trailLen = 11 // squares behind each head
     val teal = Color(0xFF00D4A8)
-    val trackIdle = Color(0xFF566460).copy(alpha = 0.5f)
-    val trackActive = teal.copy(alpha = 0.22f)
+    val trackIdle = Color(0xFF566460).copy(alpha = 0.45f)
 
-    // Video: ~8s per full clockwise lap
-    val spin by rememberInfiniteTransition(label = "xenoSpin").animateFloat(
+    // Connecting/Connected: continuous clockwise spin (~8s / lap)
+    val spin by rememberInfiniteTransition(label = "xenoOrbitSpin").animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 8000, easing = LinearEasing),
+            animation = tween(durationMillis = 8_000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "spin",
@@ -94,8 +92,7 @@ fun XenoConnectButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (active) {
-            val glowAlpha = if (connected) 1f else 0.55f
+        if (connected) {
             Canvas(modifier = Modifier.size(totalSize)) {
                 val cx = this.size.width / 2f
                 val cy = this.size.height / 2f
@@ -103,9 +100,9 @@ fun XenoConnectButton(
                 drawCircle(
                     brush = Brush.radialGradient(
                         colorStops = arrayOf(
-                            0.00f to teal.copy(alpha = 0.42f * glowAlpha),
-                            0.42f to teal.copy(alpha = 0.22f * glowAlpha),
-                            0.70f to teal.copy(alpha = 0.08f * glowAlpha),
+                            0.00f to teal.copy(alpha = 0.42f),
+                            0.42f to teal.copy(alpha = 0.22f),
+                            0.70f to teal.copy(alpha = 0.08f),
                             1.00f to Color.Transparent,
                         ),
                         center = Offset(cx, cy),
@@ -124,8 +121,6 @@ fun XenoConnectButton(
             val square = squareSize.toPx()
             val corner = squareRadius.toPx()
             val orbit = plateR + orbitGap.toPx() + square / 2f
-            val stepDeg = 360f / dotCount
-            val trackColor = if (active) trackActive else trackIdle
 
             fun drawDot(angleDeg: Float, color: Color, scale: Float = 1f) {
                 val rad = Math.toRadians(angleDeg.toDouble())
@@ -140,34 +135,53 @@ fun XenoConnectButton(
                 )
             }
 
-            // 1) Static track — stays put; only color shifts when active
-            for (i in 0 until dotCount) {
-                // 12 o'clock start: Compose 0° = 3 o'clock → offset -90°
-                drawDot(angleDeg = -90f + i * stepDeg, color = trackColor)
-            }
-
-            // 2) 4 heads @ 90° + comet tracers (busy + connected)
-            // Clockwise motion: spin increases; trail is behind → smaller angle
-            if (active) {
-                for (h in 0 until headCount) {
-                    val headDeg = -90f + spin + h * 90f
-                    for (t in 0 until trailLen) {
-                        val trailDeg = headDeg - t * stepDeg
-                        val frac = t / trailLen.toFloat()
-                        val alpha = (1f - frac).toDouble().pow(1.6).toFloat().coerceIn(0.04f, 1f)
-                        val scale = (1f - frac * 0.7f).coerceIn(0.3f, 1f)
-                        if (t == 0) {
-                            // Soft bloom under head
+            when {
+                // Connecting + Connected: 4 dense comet trails @ 90°, rotating clockwise
+                busy || connected -> {
+                    val headCount = 4
+                    val trailLen = 22
+                    val stepDeg = 3.2f // tight spacing → solid-looking head
+                    for (h in 0 until headCount) {
+                        val headDeg = -90f + spin + h * 90f
+                        for (t in 0 until trailLen) {
+                            // Trail behind head → counter to clockwise motion
+                            val trailDeg = headDeg - t * stepDeg
+                            val frac = t / (trailLen - 1).toFloat()
+                            // Dense bright block for first ~30%, then fade/thin out
+                            val alpha = when {
+                                t <= 4 -> 1f
+                                else -> (1f - ((t - 4) / (trailLen - 5f))).toDouble()
+                                    .pow(1.35)
+                                    .toFloat()
+                                    .coerceIn(0.06f, 1f)
+                            }
+                            val scale = when {
+                                t <= 3 -> 1.05f
+                                else -> (1f - frac * 0.78f).coerceIn(0.22f, 1f)
+                            }
+                            if (t == 0) {
+                                drawDot(
+                                    angleDeg = trailDeg,
+                                    color = teal.copy(alpha = 0.38f),
+                                    scale = 2.05f,
+                                )
+                            }
                             drawDot(
                                 angleDeg = trailDeg,
-                                color = teal.copy(alpha = 0.28f),
-                                scale = 1.85f,
+                                color = teal.copy(alpha = alpha),
+                                scale = scale,
                             )
                         }
+                    }
+                }
+                // Idle: dim static track
+                else -> {
+                    val dotCount = 36
+                    val stepDeg = 360f / dotCount
+                    for (i in 0 until dotCount) {
                         drawDot(
-                            angleDeg = trailDeg,
-                            color = teal.copy(alpha = alpha),
-                            scale = scale,
+                            angleDeg = -90f + i * stepDeg,
+                            color = trackIdle,
                         )
                     }
                 }
