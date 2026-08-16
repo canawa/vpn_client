@@ -109,4 +109,20 @@
     <string name="devices_count_unknown">Устройств: —</string>
     <string name="devices_count_unlimited">Устройств: ∞</string>
     <string name="devices_count">Устройств: %1$d</string>
+
+    <string name="tv_import_title">Отправка на телевизор</string>
+    <string name="tv_import_sending">Отправляем ссылку на телевизор…</string>
+    <string name="tv_import_success">Ссылка отправлена на телевизор. Можно вернуться к TV.</string>
+    <string name="tv_import_no_subscription">На телефоне нет ссылки подписки. Добавьте её в ClevVPN и отсканируйте QR снова</string>
+    <string name="tv_import_bad_host">Некорректный адрес телевизора</string>
+    <string name="tv_import_bad_params">Некорректная ссылка для отправки на телевизор. Отсканируйте QR ещё раз.</string>
+    <string name="tv_import_bad_url">Нужна ссылка подписки вида http:// или https://</string>
+    <string name="tv_import_rejected_url">Телевизор не принял ссылку. Проверьте подписку на телефоне.</string>
+    <string name="tv_import_forbidden">Сессия устарела. Отсканируйте QR на TV ещё раз.</string>
+    <string name="tv_import_network">Не удалось связаться с телевизором. Телефон и TV должны быть в одной Wi‑Fi сети, экран QR на TV должен быть открыт.</string>
+    <string name="tv_import_http_error">Телевизор не принял ссылку (код %1$d).</string>
+    <string name="tv_import_done">Готово</string>
+    <string name="tv_import_close">Закрыть</string>
+    <string name="tv_import_paste_hint">https://… ссылка подписки</string>
+    <string name="tv_import_send">Отправить на TV</string>
 </resources>

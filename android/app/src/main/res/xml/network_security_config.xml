@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext нужен для:
+  1) POST на TV по http://192.168.x.x (диплинк tv-import)
+  2) http:// ссылок подписки (панели иногда без TLS)
+
+  Android Network Security Config не умеет CIDR по IP — разрешаем cleartext в base,
+  а для TV дополнительно валидируем private IPv4 до POST (TvImportHostValidator).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

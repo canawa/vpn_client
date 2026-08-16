@@ -12,12 +12,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.BuildConfig
@@ -27,6 +30,8 @@ import ru.coffeemaniavpn.app.deeplink.DeepLinkEffect
 import ru.coffeemaniavpn.app.ui.AppShell
 import ru.coffeemaniavpn.app.ui.CoffemaniaTheme
 import ru.coffeemaniavpn.app.ui.MainViewModel
+import ru.coffeemaniavpn.app.ui.TvImportScreen
+import ru.coffeemaniavpn.app.ui.TvImportUiState
 import ru.coffeemaniavpn.app.util.AppLocale
 import ru.coffeemaniavpn.app.util.AppLog
 import ru.coffeemaniavpn.app.vpn.VpnManager
@@ -77,6 +82,7 @@ class MainActivity : AppCompatActivity() {
                 val configuration = LocalConfiguration.current
                 key(configuration.locales.toLanguageTags()) {
                     val state by viewModel.uiState.collectAsState()
+                    val tvImport by viewModel.tvImportState.collectAsState()
                     CoffemaniaTheme {
                         LaunchedEffect(Unit) {
                             viewModel.connectRequests.collect { node ->
@@ -91,28 +97,39 @@ class MainActivity : AppCompatActivity() {
                             requestConnect()
                         }
 
-                        AppShell(
-                            state = state,
-                            onRefreshSubscription = viewModel::refreshSubscription,
-                            onSelectNode = viewModel::selectNode,
-                            onConnectToNode = viewModel::requestConnectToNode,
-                            onToggleFavorite = viewModel::toggleFavorite,
-                            onPingNode = viewModel::pingNode,
-                            onConnectClick = ::requestConnect,
-                            onDisconnectClick = VpnManager::disconnect,
-                            onRefreshPing = viewModel::pingAllNodes,
-                            onRefreshConfig = viewModel::refreshConfig,
-                            onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
-                            onReorderFilters = viewModel::setHomeFilterOrder,
-                            onDeleteSubscriptionClick = viewModel::deleteSubscription,
-                            onSaveConnectionSettings = viewModel::saveConnectionSettings,
-                            onUpdateConnectionSettings = viewModel::updateConnectionSettings,
-                            onAddCustomRule = viewModel::addCustomRule,
-                            onRemoveCustomRule = viewModel::removeCustomRule,
-                            onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
-                            onTrafficRoutingModeChange = viewModel::setTrafficRoutingMode,
-                            onLanguageChange = ::changeLanguage,
-                        )
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AppShell(
+                                state = state,
+                                onRefreshSubscription = viewModel::refreshSubscription,
+                                onSelectNode = viewModel::selectNode,
+                                onConnectToNode = viewModel::requestConnectToNode,
+                                onToggleFavorite = viewModel::toggleFavorite,
+                                onPingNode = viewModel::pingNode,
+                                onConnectClick = ::requestConnect,
+                                onDisconnectClick = VpnManager::disconnect,
+                                onRefreshPing = viewModel::pingAllNodes,
+                                onRefreshConfig = viewModel::refreshConfig,
+                                onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
+                                onReorderFilters = viewModel::setHomeFilterOrder,
+                                onDeleteSubscriptionClick = viewModel::deleteSubscription,
+                                onSaveConnectionSettings = viewModel::saveConnectionSettings,
+                                onUpdateConnectionSettings = viewModel::updateConnectionSettings,
+                                onAddCustomRule = viewModel::addCustomRule,
+                                onRemoveCustomRule = viewModel::removeCustomRule,
+                                onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
+                                onTrafficRoutingModeChange = viewModel::setTrafficRoutingMode,
+                                onLanguageChange = ::changeLanguage,
+                            )
+                            if (tvImport !is TvImportUiState.Hidden) {
+                                TvImportScreen(
+                                    state = tvImport,
+                                    onDismiss = viewModel::dismissTvImport,
+                                    onDraftUrlChange = viewModel::onTvImportDraftUrlChange,
+                                    onSendDraftUrl = viewModel::sendTvImportDraftUrl,
+                                    onAutoFinish = viewModel::dismissTvImport,
+                                )
+                            }
+                        }
                     }
                 }
             }

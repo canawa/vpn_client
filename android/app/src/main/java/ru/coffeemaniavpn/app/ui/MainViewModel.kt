@@ -40,9 +40,13 @@ import ru.coffeemaniavpn.app.data.SubscriptionParser
 import ru.coffeemaniavpn.app.data.SubscriptionRepository
 import ru.coffeemaniavpn.app.data.TrafficRoutingMode
 import org.json.JSONObject
+import ru.coffeemaniavpn.app.data.TvImportClient
+import ru.coffeemaniavpn.app.data.TvImportSubmitResult
 import ru.coffeemaniavpn.app.deeplink.DeepLinkAction
 import ru.coffeemaniavpn.app.deeplink.DeepLinkEffect
 import ru.coffeemaniavpn.app.deeplink.DeepLinkParser
+import ru.coffeemaniavpn.app.deeplink.TvImportHostValidator
+import kotlinx.coroutines.flow.asStateFlow
 import ru.coffeemaniavpn.app.ktx.readClipboardText
 import ru.coffeemaniavpn.app.util.AppLog
 import ru.coffeemaniavpn.app.vpn.KillSwitchVpnService
@@ -96,6 +100,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val message = MutableStateFlow<String?>(null)
     private val error = MutableStateFlow<String?>(null)
     private val startupCrash = MutableStateFlow<String?>(null)
+    private val tvImportUi = MutableStateFlow<TvImportUiState>(TvImportUiState.Hidden)
+    val tvImportState: StateFlow<TvImportUiState> = tvImportUi.asStateFlow()
+    private var tvImportJob: Job? = null
     private var subscriptionAutoUpdateJob: Job? = null
     private var pendingConnectNodeId: String? = null
 
@@ -369,6 +376,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun processDeepLink(uri: Uri, onEffect: (DeepLinkEffect) -> Unit) {
         val action = DeepLinkParser.parse(uri) ?: run {
+            if (uri.host.equals("tv-import", ignoreCase = true)) {
+                AppLog.w("processDeepLink tv-import invalid params uri=$uri")
+                tvImportUi.value = TvImportUiState.Error(
+                    target = null,
+                    message = appStr(R.string.tv_import_bad_params),
+                )
+                return
+            }
             AppLog.w("processDeepLink unsupported uri=$uri")
             error.value = invalidSubscriptionLink()
             return
@@ -402,6 +417,110 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 onEffect = onEffect,
             )
             is DeepLinkAction.Routing -> saveRoutingFromDeepLink(action.profileJson, action.enable)
+            is DeepLinkAction.TvImport -> startTvImport(action)
+        }
+    }
+
+    fun dismissTvImport() {
+        tvImportJob?.cancel()
+        tvImportJob = null
+        tvImportUi.value = TvImportUiState.Hidden
+    }
+
+    fun onTvImportDraftUrlChange(value: String) {
+        when (val current = tvImportUi.value) {
+            is TvImportUiState.NoSubscription ->
+                tvImportUi.value = current.copy(draftUrl = value)
+            is TvImportUiState.Error ->
+                tvImportUi.value = current.copy(draftUrl = value)
+            else -> Unit
+        }
+    }
+
+    fun sendTvImportDraftUrl() {
+        val current = tvImportUi.value
+        val target = when (current) {
+            is TvImportUiState.NoSubscription -> current.target
+            is TvImportUiState.Error -> current.target
+            else -> null
+        } ?: return
+        val draft = when (current) {
+            is TvImportUiState.NoSubscription -> current.draftUrl
+            is TvImportUiState.Error -> current.draftUrl
+            else -> ""
+        }.trim()
+        if (!isHttpSubscriptionUrl(draft)) {
+            tvImportUi.value = TvImportUiState.Error(
+                target = target,
+                message = appStr(R.string.tv_import_bad_url),
+                allowManualUrl = true,
+                draftUrl = draft,
+            )
+            return
+        }
+        submitTvImport(target, draft)
+    }
+
+    private fun startTvImport(action: DeepLinkAction.TvImport) {
+        val target = TvImportTarget(
+            host = action.host,
+            port = action.port,
+            token = action.token,
+        )
+        AppLog.i("startTvImport host=${target.host} port=${target.port} tokenLen=${target.token.length}")
+        if (!TvImportHostValidator.isAllowed(target.host)) {
+            tvImportUi.value = TvImportUiState.Error(
+                target = null,
+                message = appStr(R.string.tv_import_bad_host),
+            )
+            return
+        }
+        tvImportJob?.cancel()
+        tvImportJob = viewModelScope.launch {
+            val saved = preferences.subscriptionUrl.first().trim()
+                .ifBlank { subscriptionUrlInput.value.trim() }
+            if (!isHttpSubscriptionUrl(saved)) {
+                AppLog.w("startTvImport: no saved subscription url")
+                tvImportUi.value = TvImportUiState.NoSubscription(target = target)
+                return@launch
+            }
+            submitTvImport(target, saved)
+        }
+    }
+
+    private fun submitTvImport(target: TvImportTarget, subscriptionUrl: String) {
+        tvImportJob?.cancel()
+        tvImportJob = viewModelScope.launch {
+            tvImportUi.value = TvImportUiState.Sending(target)
+            val result = withContext(Dispatchers.IO) {
+                TvImportClient.submit(
+                    host = target.host,
+                    port = target.port,
+                    token = target.token,
+                    subscriptionUrl = subscriptionUrl,
+                )
+            }
+            tvImportUi.value = when (result) {
+                TvImportSubmitResult.Success -> TvImportUiState.Success(target)
+                is TvImportSubmitResult.RejectedUrl -> TvImportUiState.Error(
+                    target = target,
+                    message = appStr(R.string.tv_import_rejected_url),
+                    allowManualUrl = true,
+                    draftUrl = subscriptionUrl,
+                )
+                is TvImportSubmitResult.Forbidden -> TvImportUiState.Error(
+                    target = target,
+                    message = appStr(R.string.tv_import_forbidden),
+                )
+                TvImportSubmitResult.NetworkError -> TvImportUiState.Error(
+                    target = target,
+                    message = appStr(R.string.tv_import_network),
+                )
+                is TvImportSubmitResult.HttpError -> TvImportUiState.Error(
+                    target = target,
+                    message = appStr(R.string.tv_import_http_error, result.code),
+                )
+            }
         }
     }
 

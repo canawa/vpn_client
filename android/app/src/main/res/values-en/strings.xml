@@ -108,4 +108,20 @@
     <string name="devices_count_unknown">Devices: —</string>
     <string name="devices_count_unlimited">Devices: ∞</string>
     <string name="devices_count">Devices: %1$d</string>
+
+    <string name="tv_import_title">Send to TV</string>
+    <string name="tv_import_sending">Sending link to the TV…</string>
+    <string name="tv_import_success">Link sent to the TV. You can return to the TV.</string>
+    <string name="tv_import_no_subscription">No subscription link on this phone. Add it in ClevVPN and scan the QR again</string>
+    <string name="tv_import_bad_host">Invalid TV address</string>
+    <string name="tv_import_bad_params">Invalid TV transfer link. Scan the QR again.</string>
+    <string name="tv_import_bad_url">Subscription link must start with http:// or https://</string>
+    <string name="tv_import_rejected_url">The TV rejected the link. Check the subscription on your phone.</string>
+    <string name="tv_import_forbidden">Session expired. Scan the QR on the TV again.</string>
+    <string name="tv_import_network">Could not reach the TV. Phone and TV must be on the same Wi‑Fi, and the QR screen must be open on the TV.</string>
+    <string name="tv_import_http_error">The TV rejected the link (code %1$d).</string>
+    <string name="tv_import_done">Done</string>
+    <string name="tv_import_close">Close</string>
+    <string name="tv_import_paste_hint">https://… subscription link</string>
+    <string name="tv_import_send">Send to TV</string>
 </resources>

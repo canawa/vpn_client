@@ -17,6 +17,13 @@ sealed class DeepLinkAction {
         val profileJson: String,
         val enable: Boolean,
     ) : DeepLinkAction()
+
+    /** Отправка сохранённой подписки на TV (локальный HTTP). */
+    data class TvImport(
+        val host: String,
+        val port: Int,
+        val token: String,
+    ) : DeepLinkAction()
 }
 
 enum class DeepLinkEffect {

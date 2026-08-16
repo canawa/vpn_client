@@ -38,9 +38,30 @@ object DeepLinkParser {
                 decodeImportPayload(encoded)?.let { DeepLinkAction.Import(it) }
             }
             "routing" -> parseRouting(path)
+            "tv-import" -> parseTvImport(uri)
             "" -> parseLegacyPath(path)
             else -> parseLegacyPath(listOf(host, path).filter { it.isNotBlank() }.joinToString("/"))
         }
+    }
+
+    /**
+     * clevvpn://tv-import?host=&port=&token=
+     * clevvpn://tv-import/?host=&port=&token=
+     */
+    private fun parseTvImport(uri: Uri): DeepLinkAction? {
+        val host = uri.getQueryParameter("host")?.trim().orEmpty()
+        val portRaw = uri.getQueryParameter("port")?.trim().orEmpty()
+        val token = uri.getQueryParameter("token")?.trim().orEmpty()
+        val port = portRaw.toIntOrNull()
+        if (host.isEmpty() || port == null || port !in 1..65535) {
+            AppLog.w("DeepLinkParser tv-import: bad host/port host=$host portRaw=$portRaw")
+            return null
+        }
+        if (token.isEmpty() || token.length > 64 || token.any { it.isWhitespace() }) {
+            AppLog.w("DeepLinkParser tv-import: bad token len=${token.length}")
+            return null
+        }
+        return DeepLinkAction.TvImport(host = host, port = port, token = token)
     }
 
     private fun parseLegacyPath(path: String): DeepLinkAction? = when {
