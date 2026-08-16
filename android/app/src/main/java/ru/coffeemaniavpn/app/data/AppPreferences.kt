@@ -218,8 +218,22 @@ class AppPreferences(private val context: Context) {
     }
 
     suspend fun loadConnectionSettingsIntoMemory() {
-        val settings = context.dataStore.data.first().toConnectionSettings()
-        ConnectionSettingsStore.update(settings)
+        val prefsSnapshot = context.dataStore.data.first()
+        var settings = prefsSnapshot.toConnectionSettings()
+        val defaultsVersion = prefsSnapshot[KEY_ROUTING_DEFAULTS_VERSION] ?: 0
+        if (defaultsVersion < VpnSensitiveDefaults.VERSION) {
+            settings = VpnSensitiveDefaults.apply(settings, context.packageManager)
+            saveConnectionSettings(settings)
+            context.dataStore.edit { prefs ->
+                prefs[KEY_ROUTING_DEFAULTS_VERSION] = VpnSensitiveDefaults.VERSION
+            }
+            val mode = TrafficRoutingMode.fromStored(prefsSnapshot[KEY_TRAFFIC_ROUTING_MODE])
+            if (mode != TrafficRoutingMode.CUSTOM) {
+                setTrafficRoutingMode(TrafficRoutingMode.CUSTOM)
+            }
+        } else {
+            ConnectionSettingsStore.update(settings)
+        }
     }
 
     val favoriteNodeIds: Flow<Set<String>> = context.dataStore.data
@@ -304,8 +318,10 @@ class AppPreferences(private val context: Context) {
             SplitTunnelSitesMode.valueOf(this[KEY_SPLIT_SITES_MODE] ?: SplitTunnelSitesMode.ProxyOnly.name)
         }.getOrDefault(SplitTunnelSitesMode.ProxyOnly)
         val appsMode = runCatching {
-            SplitTunnelAppsMode.valueOf(this[KEY_SPLIT_APPS_MODE] ?: SplitTunnelAppsMode.IncludeOnly.name)
-        }.getOrDefault(SplitTunnelAppsMode.IncludeOnly)
+            SplitTunnelAppsMode.valueOf(
+                this[KEY_SPLIT_APPS_MODE] ?: SplitTunnelAppsMode.ExcludeSelected.name,
+            )
+        }.getOrDefault(SplitTunnelAppsMode.ExcludeSelected)
 
         val customRules = runCatching {
             json.decodeFromString<List<RoutingRule>>(this[KEY_CUSTOM_RULES].orEmpty().ifBlank { "[]" })
@@ -314,11 +330,11 @@ class AppPreferences(private val context: Context) {
         }
 
         return ConnectionSettingsState(
-            sitesEnabled = this[KEY_SPLIT_SITES_ENABLED] ?: false,
+            sitesEnabled = this[KEY_SPLIT_SITES_ENABLED] ?: true,
             sitesMode = sitesMode,
             siteDomains = domains,
             customRules = customRules,
-            appsEnabled = this[KEY_SPLIT_APPS_ENABLED] ?: false,
+            appsEnabled = this[KEY_SPLIT_APPS_ENABLED] ?: true,
             appsMode = appsMode,
             appPackages = packages,
             killSwitchEnabled = this[KEY_KILL_SWITCH_ENABLED] ?: false,
@@ -347,6 +363,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_SPLIT_APP_PACKAGES = stringPreferencesKey("split_app_packages")
         private val KEY_KILL_SWITCH_ENABLED = booleanPreferencesKey("kill_switch_enabled")
         private val KEY_PRESET_RU_DIRECT = booleanPreferencesKey("preset_ru_direct")
+        private val KEY_ROUTING_DEFAULTS_VERSION = intPreferencesKey("routing_defaults_version")
         private val KEY_PRESET_ADS_BLOCK = booleanPreferencesKey("preset_ads_block")
         private val KEY_APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
         private val KEY_SUB_AUTO_UPDATE_HOURS = intPreferencesKey("sub_auto_update_hours")

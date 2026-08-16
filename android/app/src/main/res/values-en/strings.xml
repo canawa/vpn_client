@@ -23,8 +23,8 @@
     <string name="xeno_add_favorite">Add to favorites</string>
     <string name="xeno_remove_favorite">Remove from favorites</string>
     <string name="xeno_my">My</string>
-    <string name="xeno_auto">⚡ Auto</string>
-    <string name="xeno_auto_subtitle">Switches automatically by ping</string>
+    <string name="xeno_auto">XENO balancer</string>
+    <string name="xeno_auto_subtitle"></string>
     <string name="xeno_connecting">Connecting…</string>
     <string name="xeno_checking_ping">Pinging</string>
     <string name="xeno_connected">CONNECTED</string>
@@ -122,7 +122,7 @@
     <string name="clipboard_dismiss">Not now</string>
     <string name="subscription_not_ours_title">XENO VPN subscription required</string>
     <string name="subscription_not_ours_body">This link is not from our service. Get a subscription via Telegram or on the website.</string>
-    <string name="subscription_traffic_unlimited">unlimited</string>
+    <string name="subscription_traffic_unlimited">Unlimited</string>
     <string name="home_select_server">Select server</string>
     <string name="home_subscription_status">Subscription status</string>
     <string name="home_open_website">Open website</string>

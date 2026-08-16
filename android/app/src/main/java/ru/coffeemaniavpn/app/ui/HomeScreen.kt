@@ -256,7 +256,7 @@ private fun selectedServerDisplay(state: MainUiState): ServerDisplay {
         selectedId == LoadBalancer.AUTO_NODE_ID -> ServerDisplay(
             flag = FlagUtils.DEFAULT_FLAG_EMOJI,
             title = stringResource(R.string.xeno_auto),
-            subtitle = stringResource(R.string.xeno_auto_subtitle),
+            subtitle = "",
             protocolLabel = "",
             pingText = "",
             pingMs = null,
@@ -274,11 +274,17 @@ private fun selectedServerDisplay(state: MainUiState): ServerDisplay {
                 )
             } else {
                 ServerDisplayMapper.map(node, state.nodePings[node.id]).let { d ->
-                    d.copy(
-                        subtitle = d.protocolLabel.ifBlank {
-                            d.group?.takeIf { it.isNotBlank() } ?: d.subtitle
-                        },
-                    )
+                    val detail = buildString {
+                        if (d.protocolLabel.isNotBlank()) append(d.protocolLabel)
+                        if (d.subtitle.isNotBlank()) {
+                            if (isNotEmpty()) append(" | ")
+                            append(d.subtitle)
+                        }
+                        if (isEmpty()) {
+                            d.group?.takeIf { it.isNotBlank() }?.let { append(it) }
+                        }
+                    }
+                    d.copy(subtitle = detail)
                 }
             }
         }

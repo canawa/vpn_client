@@ -156,7 +156,7 @@ private fun XenoStartScreen(
         modifier = modifier
             .fillMaxSize()
             .background(colors.milkFoam)
-            .padding(start = 22.dp, end = 22.dp, top = 64.dp, bottom = 40.dp),
+            .padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 40.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         XenoLogoMark()
@@ -292,7 +292,7 @@ private fun XenoSubscribeChoiceScreen(
         modifier = modifier
             .fillMaxSize()
             .background(colors.milkFoam)
-            .padding(start = 22.dp, end = 22.dp, top = 64.dp, bottom = 40.dp),
+            .padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 40.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {

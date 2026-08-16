@@ -144,8 +144,7 @@ private fun XenoSettingsMain(
     val context = LocalContext.current
     var copied by remember { mutableStateOf(false) }
     var showReplaceConfirm by remember { mutableStateOf(false) }
-    val activeRules = state.connectionSettings.customRules.count { it.isEnabled }
-    val smartRoutingOn = state.trafficRoutingMode == TrafficRoutingMode.CUSTOM
+    val activeRules = state.connectionSettings.activeSmartRoutingCount(state.trafficRoutingMode)
     val cabinetUrl = SubscriptionUrlValidator.websiteUrl("settings_cabinet")
     val botUrl = SubscriptionUrlValidator.telegramBotUrl("settings_bot")
     val supportUrl = state.subscriptionInfo?.supportURL?.takeIf { it.isNotBlank() }
@@ -191,16 +190,10 @@ private fun XenoSettingsMain(
             }
 
             XenoSettingsSection(title = stringResource(R.string.xeno_settings_connection)) {
-                XenoSettingsNavToggleRow(
+                XenoSettingsNavRow(
                     title = stringResource(R.string.xeno_smart_routing),
                     subtitle = stringResource(R.string.xeno_smart_routing_hint, activeRules),
                     icon = Icons.AutoMirrored.Outlined.AltRoute,
-                    checked = smartRoutingOn,
-                    onCheckedChange = { enabled ->
-                        onTrafficRoutingModeChange(
-                            if (enabled) TrafficRoutingMode.CUSTOM else TrafficRoutingMode.GLOBAL,
-                        )
-                    },
                     onOpen = onOpenRouting,
                 )
                 XenoSettingsDivider()
@@ -463,58 +456,45 @@ private fun XenoSettingsToggleRow(
     }
 }
 
-/** Left side opens the page; switch only toggles — avoids nested clickable conflicts. */
+/** Opens routing settings. */
 @Composable
-private fun XenoSettingsNavToggleRow(
+private fun XenoSettingsNavRow(
     title: String,
     subtitle: String?,
     icon: ImageVector,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
     onOpen: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onOpen)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .clickable(onClick = onOpen),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            XenoSettingsRowIcon(icon)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    color = XenoText,
-                    fontFamily = InterFontFamily,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                )
-                subtitle?.let {
-                    Text(
-                        text = it,
-                        color = XenoMuted,
-                        fontFamily = InterFontFamily,
-                        fontSize = 12.sp,
-                    )
-                }
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = XenoMuted,
-                modifier = Modifier.size(20.dp),
+        XenoSettingsRowIcon(icon)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = XenoText,
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 15.sp,
             )
+            subtitle?.let {
+                Text(
+                    text = it,
+                    color = XenoMuted,
+                    fontFamily = InterFontFamily,
+                    fontSize = 12.sp,
+                )
+            }
         }
-        XenoAnimatedSwitch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = XenoMuted,
+            modifier = Modifier.size(20.dp),
         )
     }
 }

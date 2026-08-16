@@ -234,6 +234,10 @@ private fun XenoRoutingAppsPane(
     var selected by remember(settings.appPackages) { mutableStateOf(settings.appPackages) }
 
     LaunchedEffect(Unit) {
+        // App routing is always on — no master toggle in UI.
+        if (!settings.appsEnabled) {
+            onUpdate { it.copy(appsEnabled = true) }
+        }
         isLoading = true
         apps = withContext(Dispatchers.Default) {
             InstalledAppsLoader.load(context.packageManager, context.packageName)
@@ -245,15 +249,22 @@ private fun XenoRoutingAppsPane(
     }
 
     fun persist(packages: Set<String> = selected) {
-        onUpdate { it.copy(appPackages = packages) }
+        onUpdate { it.copy(appsEnabled = true, appPackages = packages) }
     }
 
-    val filtered = remember(apps, query) {
-        if (query.isBlank()) apps
-        else apps.filter {
-            it.label.contains(query, ignoreCase = true) ||
-                it.packageName.contains(query, ignoreCase = true)
+    val filtered = remember(apps, query, selected) {
+        val base = if (query.isBlank()) {
+            apps
+        } else {
+            apps.filter {
+                it.label.contains(query, ignoreCase = true) ||
+                    it.packageName.contains(query, ignoreCase = true)
+            }
         }
+        base.sortedWith(
+            compareByDescending<InstalledAppItem> { it.packageName in selected }
+                .thenBy { it.label.lowercase() },
+        )
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -263,30 +274,6 @@ private fun XenoRoutingAppsPane(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            XenoSettingsPlate {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.xeno_split_tunneling),
-                            color = XenoText,
-                            fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
-                        )
-                        Text(
-                            stringResource(R.string.xeno_split_tunneling_hint),
-                            color = XenoMuted,
-                            fontFamily = InterFontFamily,
-                            fontSize = 12.sp,
-                        )
-                    }
-                    XenoAnimatedSwitch(
-                        checked = settings.appsEnabled,
-                        onCheckedChange = { enabled -> onUpdate { it.copy(appsEnabled = enabled) } },
-                    )
-                }
-            }
-
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 XenoModeCard(
                     title = stringResource(R.string.xeno_bypass),
@@ -316,7 +303,7 @@ private fun XenoRoutingAppsPane(
                 )
             }
 
-            if (onReconnectNow != null && settings.appsEnabled) {
+            if (onReconnectNow != null) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -352,92 +339,88 @@ private fun XenoRoutingAppsPane(
             }
         }
 
-        if (!settings.appsEnabled) {
-            Spacer(modifier = Modifier.height(20.dp))
-        } else {
-            Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-            XenoAppsSearchField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = stringResource(R.string.xeno_search_apps),
-                modifier = Modifier.padding(horizontal = 20.dp),
+        XenoAppsSearchField(
+            value = query,
+            onValueChange = { query = it },
+            placeholder = stringResource(R.string.xeno_search_apps),
+            modifier = Modifier.padding(horizontal = 20.dp),
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(
+                    R.string.xeno_selected_apps_count,
+                    selected.size,
+                    apps.size,
+                ),
+                color = XenoMuted,
+                fontFamily = InterFontFamily,
+                fontSize = 13.sp,
+                modifier = Modifier.weight(1f),
             )
+            if (selected.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.xeno_clear),
+                    color = XenoTeal,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    modifier = Modifier.clickable {
+                        selected = emptySet()
+                        persist(emptySet())
+                    },
+                )
+            }
+        }
 
-            Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
+        if (isLoading) {
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .weight(1f),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = stringResource(
-                        R.string.xeno_selected_apps_count,
-                        selected.size,
-                        apps.size,
-                    ),
+                    stringResource(R.string.xeno_apps_loading),
                     color = XenoMuted,
                     fontFamily = InterFontFamily,
                     fontSize = 13.sp,
-                    modifier = Modifier.weight(1f),
                 )
-                if (selected.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.xeno_clear),
-                        color = XenoTeal,
-                        fontFamily = InterFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                        modifier = Modifier.clickable {
-                            selected = emptySet()
-                            persist(emptySet())
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(filtered, key = { it.packageName }) { app ->
+                    val isOn = app.packageName in selected
+                    XenoAppRow(
+                        label = app.label,
+                        packageName = app.packageName,
+                        selected = isOn,
+                        onClick = {
+                            selected = if (isOn) {
+                                selected - app.packageName
+                            } else {
+                                selected + app.packageName
+                            }
+                            persist(selected)
                         },
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        stringResource(R.string.xeno_apps_loading),
-                        color = XenoMuted,
-                        fontFamily = InterFontFamily,
-                        fontSize = 13.sp,
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(filtered, key = { it.packageName }) { app ->
-                        val isOn = app.packageName in selected
-                        XenoAppRow(
-                            label = app.label,
-                            packageName = app.packageName,
-                            selected = isOn,
-                            onClick = {
-                                selected = if (isOn) {
-                                    selected - app.packageName
-                                } else {
-                                    selected + app.packageName
-                                }
-                                persist(selected)
-                            },
-                        )
-                    }
                 }
             }
         }
@@ -672,10 +655,18 @@ private fun XenoRoutingDomainsPane(
     var filter by remember { mutableStateOf(XenoDomainFilter.All) }
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val domainsOn = settings.sitesEnabled || state.trafficRoutingMode == TrafficRoutingMode.CUSTOM
     val tunnelCount = rules.count { it.target == RoutingRuleTarget.Proxy }
     val directCount = rules.count { it.target == RoutingRuleTarget.Direct }
     val blockCount = rules.count { it.target == RoutingRuleTarget.Block }
+
+    LaunchedEffect(Unit) {
+        if (state.trafficRoutingMode != TrafficRoutingMode.CUSTOM) {
+            onTrafficRoutingModeChange(TrafficRoutingMode.CUSTOM)
+        }
+        if (!settings.sitesEnabled) {
+            onUpdate { it.copy(sitesEnabled = true) }
+        }
+    }
 
     val filtered = remember(rules, filter) {
         when (filter) {
@@ -694,30 +685,19 @@ private fun XenoRoutingDomainsPane(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         XenoSettingsPlate {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.xeno_domain_rules),
-                        color = XenoText,
-                        fontFamily = InterFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
-                    )
-                    Text(
-                        stringResource(R.string.xeno_domain_rules_hint),
-                        color = XenoMuted,
-                        fontFamily = InterFontFamily,
-                        fontSize = 12.sp,
-                    )
-                }
-                XenoAnimatedSwitch(
-                    checked = domainsOn,
-                    onCheckedChange = { enabled ->
-                        onTrafficRoutingModeChange(
-                            if (enabled) TrafficRoutingMode.CUSTOM else TrafficRoutingMode.GLOBAL,
-                        )
-                        onUpdate { it.copy(sitesEnabled = enabled) }
-                    },
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    stringResource(R.string.xeno_domain_rules),
+                    color = XenoText,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                )
+                Text(
+                    stringResource(R.string.xeno_domain_rules_hint),
+                    color = XenoMuted,
+                    fontFamily = InterFontFamily,
+                    fontSize = 12.sp,
                 )
             }
         }

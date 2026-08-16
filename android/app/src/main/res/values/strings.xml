@@ -25,8 +25,8 @@
     <string name="xeno_remove_favorite">Убрать из избранного</string>
     <string name="xeno_ping_server">Пропинговать</string>
     <string name="xeno_my">Мои</string>
-    <string name="xeno_auto">⚡ Авто</string>
-    <string name="xeno_auto_subtitle">Переключается автоматически по пингу</string>
+    <string name="xeno_auto">Балансировщик XENO</string>
+    <string name="xeno_auto_subtitle"></string>
     <string name="xeno_connecting">Подключение…</string>
     <string name="xeno_checking_ping">Пингуем</string>
     <string name="xeno_connected">ПОДКЛЮЧЕНО</string>
@@ -133,7 +133,7 @@
     <string name="clipboard_dismiss">Не сейчас</string>
     <string name="subscription_not_ours_title">Нужна подписка XENO VPN</string>
     <string name="subscription_not_ours_body">Эта ссылка не от нашего сервиса. Оформите подписку через Telegram или на сайте.</string>
-    <string name="subscription_traffic_unlimited">безлимит</string>
+    <string name="subscription_traffic_unlimited">Безлимит</string>
     <string name="home_select_server">Выбор сервера</string>
     <string name="home_subscription_status">Статус подписки</string>
     <string name="home_open_website">Открыть сайт</string>

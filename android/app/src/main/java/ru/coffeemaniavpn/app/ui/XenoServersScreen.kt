@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
+import ru.coffeemaniavpn.app.data.LoadBalancer
 import ru.coffeemaniavpn.app.data.PingState
 
 /** Figma: number Inter Medium 14 / #00D4A8 + "ms" Inter Medium 10 / #6B7672 */
@@ -103,7 +104,7 @@ private fun XenoPingValue(
 fun XenoServersScreen(
     state: MainUiState,
     onSelectNode: (String) -> Unit,
-    @Suppress("UNUSED_PARAMETER") onSelectAutoBalancer: () -> Unit,
+    onSelectAutoBalancer: () -> Unit,
     onConnectToNode: (String) -> Unit,
     @Suppress("UNUSED_PARAMETER") onToggleFavorite: (String) -> Unit,
     @Suppress("UNUSED_PARAMETER") onPingNode: (String) -> Unit,
@@ -165,6 +166,8 @@ fun XenoServersScreen(
 
                 item {
                     val shape = RoundedCornerShape(16.dp)
+                    val autoPingMs = LoadBalancer.bestPingMs(state.nodes, state.nodePings)
+                    val autoSelected = state.selectedNodeId == LoadBalancer.AUTO_NODE_ID
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -172,6 +175,27 @@ fun XenoServersScreen(
                             .background(colors.cappuccino)
                             .border(1.dp, colors.latte, shape),
                     ) {
+                        XenoLocationRow(
+                            display = ServerDisplay(
+                                flag = "eu",
+                                title = stringResource(R.string.xeno_auto),
+                                subtitle = "",
+                                protocolLabel = "",
+                                pingText = autoPingMs?.let { "$it мс" }.orEmpty(),
+                                pingMs = autoPingMs,
+                            ),
+                            selected = autoSelected,
+                            onClick = onSelectAutoBalancer,
+                            onDoubleClick = { onConnectToNode(LoadBalancer.AUTO_NODE_ID) },
+                        )
+                        if (filteredNodes.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(colors.latte),
+                            )
+                        }
                         filteredNodes.forEachIndexed { index, node ->
                             val display = ServerDisplayMapper.map(node, state.nodePings[node.id])
                             XenoLocationRow(
@@ -189,7 +213,7 @@ fun XenoServersScreen(
                                 )
                             }
                         }
-                        if (filteredNodes.isEmpty()) {
+                        if (filteredNodes.isEmpty() && state.nodes.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.xeno_no_server),
                                 color = colors.mocha,
@@ -284,7 +308,13 @@ private fun XenoLocationRow(
                 fontSize = 15.sp,
                 maxLines = 1,
             )
-            val sub = display.protocolLabel
+            val sub = buildString {
+                if (display.protocolLabel.isNotBlank()) append(display.protocolLabel)
+                if (display.subtitle.isNotBlank()) {
+                    if (isNotEmpty()) append(" | ")
+                    append(display.subtitle)
+                }
+            }
             if (sub.isNotBlank()) {
                 Text(
                     text = sub,
@@ -305,11 +335,7 @@ private fun XenoLocationRow(
             )
             if (selected && pingMs != null) {
                 XenoSignalBars(
-                    strength = when {
-                        pingMs < 50 -> 3
-                        pingMs < 100 -> 2
-                        else -> 1
-                    },
+                    strength = xenoPingSignalStrength(pingMs),
                     color = Color(0xFF00D4A8),
                 )
             }

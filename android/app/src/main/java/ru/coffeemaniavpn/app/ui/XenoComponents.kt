@@ -108,19 +108,19 @@ fun XenoLogoMark(
             Text(
                 text = "XENO",
                 color = Color(0xFFF2F5F4),
-                fontFamily = if (inCapsule) BytesizedFamily else JetBrainsMonoFamily,
+                fontFamily = BytesizedFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = when {
                     inCapsule -> 30.sp
-                    useCompact -> 15.sp
-                    else -> 22.sp
+                    useCompact -> 18.sp
+                    else -> 28.sp
                 },
                 lineHeight = when {
                     inCapsule -> 30.sp
-                    useCompact -> 15.sp
-                    else -> 22.sp
+                    useCompact -> 18.sp
+                    else -> 28.sp
                 },
-                letterSpacing = if (inCapsule) 0.6.sp else 2.sp,
+                letterSpacing = if (inCapsule) 0.6.sp else 1.sp,
                 maxLines = 1,
                 softWrap = false,
             )
@@ -183,12 +183,11 @@ fun XenoScreenHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp)
+            .padding(top = 12.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            XenoLogoMark(compact = true)
-            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = title,
                 color = Color(0xFFF2F5F4),
@@ -436,6 +435,13 @@ fun XenoSignalBars(
     }
 }
 
+/** 3 ≤100 ms · 2 ≤200 ms · 1 ≤300 ms · иначе 1. */
+fun xenoPingSignalStrength(pingMs: Int): Int = when {
+    pingMs <= 100 -> 3
+    pingMs <= 200 -> 2
+    else -> 1
+}
+
 @Composable
 fun XenoServerCard(
     flagCode: String,
@@ -495,11 +501,7 @@ fun XenoServerCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     XenoSignalBars(
-                        strength = when {
-                            pingMs < 50 -> 3
-                            pingMs < 100 -> 2
-                            else -> 1
-                        },
+                        strength = xenoPingSignalStrength(pingMs),
                         color = Color(0xFF00D4A8),
                     )
                     Text(

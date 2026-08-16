@@ -27,7 +27,7 @@ enum class TrafficRoutingMode {
     ;
 
     companion object {
-        val DEFAULT = GLOBAL
+        val DEFAULT = CUSTOM
 
         val selectable: List<TrafficRoutingMode> = listOf(GLOBAL, CUSTOM)
 

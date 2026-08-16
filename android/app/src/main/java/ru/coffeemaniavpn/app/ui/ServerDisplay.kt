@@ -138,7 +138,12 @@ object ServerDisplayMapper {
                 node.host.isNotBlank() -> node.host
                 else -> "Сервер"
             }
-            else -> titleParts.joinToString(" | ")
+            else -> titleParts.first()
+        }
+        val nameSubtitle = if (autoSelect || titleParts.size < 2) {
+            ""
+        } else {
+            titleParts.drop(1).joinToString(" · ")
         }
 
         val (pingText, pingMs) = when (ping) {
@@ -151,7 +156,7 @@ object ServerDisplayMapper {
         return ServerDisplay(
             flag = resolveFlagCode(flag, trimmed, title, group),
             title = title,
-            subtitle = "",
+            subtitle = nameSubtitle,
             protocolLabel = if (node.isHysteria2) "Hysteria2" else "VLESS",
             pingText = pingText,
             pingMs = pingMs,

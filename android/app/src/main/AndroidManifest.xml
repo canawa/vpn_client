@@ -71,10 +71,8 @@
                 android:value="vpn" />
         </service>
 
-        <!-- TEMP: QS tile hidden — set enabled="true" to restore -->
         <service
             android:name=".vpn.VpnQuickTileService"
-            android:enabled="false"
             android:exported="true"
             android:icon="@drawable/ic_logo_notif"
             android:label="@string/qs_vpn_tile_label"

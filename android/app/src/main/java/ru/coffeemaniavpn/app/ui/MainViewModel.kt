@@ -167,16 +167,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             Triple(crash, clip, foreign)
         },
     ) { savedData, vpnData, localData, settingsData, extras ->
-        val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
+        val (savedUrl, rawNodes, rawSelectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, downlinkBps, uplinkBps, _) = vpnData
         val (loading, pinging, pings, info, localError) = localData
         val (crash, clipUrl, foreignPrompt) = extras
+        val nodes = LoadBalancer.connectableNodes(rawNodes)
+        val selectedNodeId = when {
+            rawSelectedNodeId == LoadBalancer.AUTO_NODE_ID -> LoadBalancer.AUTO_NODE_ID
+            rawSelectedNodeId != null && nodes.any { it.id == rawSelectedNodeId } -> rawSelectedNodeId
+            nodes.isNotEmpty() -> LoadBalancer.AUTO_NODE_ID
+            else -> null
+        }
 
         MainUiState(
             // Only persisted URL unlocks Home/connect — draft input must not open the app.
             subscriptionUrl = savedUrl.trim(),
             nodes = nodes,
-            selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
+            selectedNodeId = selectedNodeId,
             vpnStatus = vpnStatus,
             connectionElapsedMs = connectionElapsedMs,
             downlinkBytesPerSec = downlinkBps,
@@ -493,15 +500,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     SubscriptionParser.parse(trimmed)
                 }
                 if (nodes.isEmpty()) error(invalidSubscriptionLink())
+                val connectable = LoadBalancer.connectableNodes(nodes)
+                if (connectable.isEmpty()) error(invalidSubscriptionLink())
                 preferences.saveSubscription(
                     LOCAL_IMPORT_URL,
-                    nodes,
-                    nodes.first().id,
+                    connectable,
+                    LoadBalancer.AUTO_NODE_ID,
                     null,
                 )
                 subscriptionUrlInput.value = LOCAL_IMPORT_URL
-                message.value = appStr(R.string.msg_servers_imported, nodes.size)
-                AppLog.i("importSubscriptionPayload ok nodes=${nodes.size}")
+                message.value = appStr(R.string.msg_servers_imported, connectable.size)
+                AppLog.i("importSubscriptionPayload ok nodes=${connectable.size}")
                 if (connectAfter && prepareConnect(showErrors = true)) {
                     onEffect(DeepLinkEffect.RequestConnect)
                 }
@@ -614,10 +623,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             repository.fetchSubscription(url)
         }
         val selected = uiState.value.selectedNodeId?.takeIf { id ->
-            result.nodes.any { it.id == id }
-        } ?: result.nodes.first().id
-        preferences.saveSubscription(url, result.nodes, selected, result.info)
-        return result.nodes.size
+            id == LoadBalancer.AUTO_NODE_ID || result.nodes.any { it.id == id && !LoadBalancer.isRemoteAutoNode(it) }
+        } ?: LoadBalancer.AUTO_NODE_ID
+        val nodes = LoadBalancer.connectableNodes(result.nodes)
+        preferences.saveSubscription(url, nodes, selected, result.info)
+        return nodes.size
     }
 
     private suspend fun autoRefreshSubscriptionSilent() {
@@ -733,7 +743,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (nodeId == LoadBalancer.AUTO_NODE_ID) {
             selectAutoBalancer()
             val node = resolveConnectNode() ?: return
-            emitConnectRequest(node)
+            emitConnectRequest(node, LoadBalancer.AUTO_NODE_ID)
             return
         }
 
