@@ -226,7 +226,6 @@ fun ClevConnectButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 150.dp,
-    isPinging: Boolean = false,
 ) {
     val colors = coffemaniaColors()
     val uiStatus = when {
@@ -235,8 +234,7 @@ fun ClevConnectButton(
         vpnStatus == VpnStatus.Starting || vpnStatus == VpnStatus.Stopping -> ConnectUiStatus.Busy
         else -> ConnectUiStatus.Off
     }
-    val showPing = isPinging && uiStatus == ConnectUiStatus.Off
-    val showRingSpinner = uiStatus == ConnectUiStatus.Busy || showPing
+    val showRingSpinner = uiStatus == ConnectUiStatus.Busy
 
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -291,13 +289,12 @@ fun ClevConnectButton(
         }
     }
 
-    val spinDuration = if (showPing) ClevMotion.busySpinPingMs else ClevMotion.busySpinConnectMs
     val infinite = rememberInfiniteTransition(label = "spin")
     val spin by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            tween(spinDuration, easing = LinearEasing),
+            tween(ClevMotion.busySpinConnectMs, easing = LinearEasing),
             RepeatMode.Restart,
         ),
         label = "spinAngle",
@@ -380,22 +377,15 @@ fun ClevConnectButton(
             }
 
             if (showRingSpinner) {
-                val spinnerColors = if (showPing) {
-                    listOf(
-                        Color.Transparent,
-                        Color(0xFFFAC300).copy(alpha = 0.25f),
-                        Color(0xFFFAC300),
-                    )
-                } else {
-                    listOf(
-                        Color.Transparent,
-                        Color(0xFFE39A00).copy(alpha = 0.5f),
-                        Color.White,
-                    )
-                }
                 rotate(spin) {
                     drawArc(
-                        brush = Brush.sweepGradient(spinnerColors),
+                        brush = Brush.sweepGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color(0xFFE39A00).copy(alpha = 0.5f),
+                                Color.White,
+                            ),
+                        ),
                         startAngle = -90f,
                         sweepAngle = 72f,
                         useCenter = false,
@@ -499,7 +489,7 @@ fun ClevConnectButton(
                     contentDescription = null,
                     tint = when {
                         uiStatus == ConnectUiStatus.On -> Color.Black.copy(alpha = 0.75f)
-                        showPing || uiStatus == ConnectUiStatus.Busy -> colors.logoYellow
+                        uiStatus == ConnectUiStatus.Busy -> colors.logoYellow
                         else -> colors.mocha
                     },
                     modifier = Modifier.size(size * 0.22f),
@@ -522,11 +512,10 @@ fun ClevConnectButton(
                     )
                 } else {
                     val label = when {
-                        showPing -> stringResource(R.string.clev_checking_ping)
                         uiStatus == ConnectUiStatus.Busy -> stringResource(R.string.clev_connecting)
                         else -> stringResource(R.string.clev_start)
                     }
-                    val isLongLabel = showPing || uiStatus == ConnectUiStatus.Busy
+                    val isLongLabel = uiStatus == ConnectUiStatus.Busy
                     Text(
                         text = label,
                         modifier = Modifier

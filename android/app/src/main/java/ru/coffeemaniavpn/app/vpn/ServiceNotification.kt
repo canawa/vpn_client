@@ -29,7 +29,6 @@ class ServiceNotification(private val service: Service) {
         NotificationCompat.Builder(service, channelId)
             .setShowWhen(false)
             .setOngoing(true)
-            .setContentTitle(service.getString(R.string.vpn_notification_title))
             .setOnlyAlertOnce(true)
             .setSmallIcon(R.drawable.ic_logo_notif)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -68,21 +67,15 @@ class ServiceNotification(private val service: Service) {
                 ),
             )
         }
-        val title = service.getString(R.string.vpn_notification_title)
-        val preview = serverLine.ifBlank { statusLine }
-        val style = NotificationCompat.InboxStyle()
-            .setBigContentTitle(title)
-        if (serverLine.isNotBlank()) {
-            style.addLine(serverLine)
-        }
-        if (statusLine.isNotBlank()) {
-            style.addLine(statusLine)
-        }
+        val title = serverLine.ifBlank { statusLine }
+        val text = if (serverLine.isNotBlank()) statusLine else ""
+        val style = NotificationCompat.BigTextStyle()
+            .bigText(listOf(serverLine, statusLine).filter { it.isNotBlank() }.joinToString("\n"))
         service.startForeground(
             notificationId,
             builder
                 .setContentTitle(title)
-                .setContentText(preview)
+                .setContentText(text)
                 .setStyle(style)
                 .build(),
         )

@@ -189,7 +189,6 @@ fun HomeScreen(
                     vpnStatus = state.vpnStatus,
                     connectionElapsedMs = state.connectionElapsedMs,
                     enabled = connectEnabled,
-                    isPinging = state.isPinging && !isConnected,
                     onClick = {
                         if (isConnected) onDisconnectClick() else onConnectClick()
                     },
