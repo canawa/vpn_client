@@ -186,6 +186,23 @@ object FlagUtils {
         return null
     }
 
+    /** ISO 3166-1 alpha-2 / emoji → флаг-эмодзи (cz → 🇨🇿). */
+    fun countryCodeToEmoji(flagOrCode: String): String {
+        val code = resolveCountryCodeOrDefault(flagOrCode)
+        if (code.length != 2) return DEFAULT_FLAG_EMOJI
+        val a = code[0].lowercaseChar()
+        val b = code[1].lowercaseChar()
+        if (a !in 'a'..'z' || b !in 'a'..'z') return DEFAULT_FLAG_EMOJI
+        return String(
+            intArrayOf(
+                regionalIndicatorBase + (a - 'a'),
+                regionalIndicatorBase + (b - 'a'),
+            ),
+            0,
+            2,
+        )
+    }
+
     /** Код страны или ЕС, если определить не удалось. */
     fun resolveCountryCodeOrDefault(flagOrCode: String): String =
         resolveCountryCode(flagOrCode)

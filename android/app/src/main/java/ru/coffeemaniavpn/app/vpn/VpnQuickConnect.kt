@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.MainActivity
 import ru.coffeemaniavpn.app.data.AppPreferences
+import ru.coffeemaniavpn.app.data.LoadBalancer
 import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.util.AppLog
 
@@ -54,12 +55,18 @@ object VpnQuickConnect {
 
     suspend fun resolveSelectedNode(context: Context): ProxyNode? {
         val preferences = AppPreferences(context.applicationContext)
-        val nodes = preferences.nodes.first()
+        val nodes = LoadBalancer.connectableNodes(preferences.nodes.first())
         if (nodes.isEmpty()) return null
         val info = preferences.subscriptionInfo.first()
         if (info?.isExpired() == true) return null
         val selectedId = preferences.selectedNodeId.first()
-        return nodes.find { it.id == selectedId } ?: nodes.firstOrNull()
+        val pings = emptyMap<String, ru.coffeemaniavpn.app.data.PingState>()
+        if (selectedId == LoadBalancer.AUTO_NODE_ID) {
+            return LoadBalancer.pickBest(nodes, pings)
+        }
+        val selected = nodes.find { it.id == selectedId }
+        if (selected != null) return selected
+        return LoadBalancer.pickBest(nodes, pings)
     }
 
     private fun openApp(context: Context, requestConnect: Boolean) {

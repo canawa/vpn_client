@@ -345,7 +345,7 @@ class AppPreferences(private val context: Context) {
 
     companion object {
         /** Bump when saved node shape changes (e.g. rawOutboundJson, grpc transport). */
-        const val NODES_CACHE_VERSION = 2
+        const val NODES_CACHE_VERSION = 3
 
         private val KEY_SUBSCRIPTION_URL = stringPreferencesKey("subscription_url")
         private val KEY_NODES_CACHE_VERSION = intPreferencesKey("nodes_cache_version")

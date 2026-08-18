@@ -98,7 +98,6 @@ class MainActivity : AppCompatActivity() {
                             onSelectAutoBalancer = viewModel::selectAutoBalancer,
                             onConnectToNode = viewModel::requestConnectToNode,
                             onToggleFavorite = viewModel::toggleFavorite,
-                            onPingNode = viewModel::pingNode,
                             onConnectClick = ::requestConnect,
                             onDisconnectClick = VpnManager::disconnect,
                             onRefreshPing = viewModel::pingAllNodes,

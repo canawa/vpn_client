@@ -21,12 +21,12 @@
     <string name="xeno_add_favorite">Добавить в избранное</string>
     <string name="xeno_remove_favorite">Убрать из избранного</string>
     <string name="xeno_my">Мои</string>
-    <string name="xeno_auto">Балансировщик XENO</string>
+    <string name="xeno_auto">Оптимальный сервер</string>
     <string name="xeno_auto_subtitle"></string>
     <string name="xeno_connecting">Подключение…</string>
     <string name="xeno_checking_ping">Пингуем</string>
     <string name="xeno_connected">ПОДКЛЮЧЕНО</string>
-    <string name="xeno_auto_fastest">Авто — самый быстрый сервер</string>
+    <string name="xeno_auto_fastest">Оптимальный — самый быстрый сервер</string>
     <string name="xeno_start">Старт</string>
     <string name="xeno_cat_bypass">Обходы</string>
     <string name="xeno_cat_speed">Скорость</string>

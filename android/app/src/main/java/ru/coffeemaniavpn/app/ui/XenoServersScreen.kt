@@ -18,10 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -40,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.LoadBalancer
-import ru.coffeemaniavpn.app.data.PingState
 
 /** Figma: number Inter Medium 14 / #00D4A8 + "ms" Inter Medium 10 / #6B7672 */
 @Composable
@@ -107,7 +109,7 @@ fun XenoServersScreen(
     onSelectAutoBalancer: () -> Unit,
     onConnectToNode: (String) -> Unit,
     @Suppress("UNUSED_PARAMETER") onToggleFavorite: (String) -> Unit,
-    @Suppress("UNUSED_PARAMETER") onPingNode: (String) -> Unit,
+    onPingAll: () -> Unit,
     onRefreshAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -144,6 +146,22 @@ fun XenoServersScreen(
                 filteredNodes.size.coerceAtMost(nodeCount),
                 nodeCount,
             ),
+            trailing = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    XenoHeaderIconButton(
+                        icon = Icons.Filled.Bolt,
+                        contentDescription = stringResource(R.string.xeno_ping_server),
+                        onClick = onPingAll,
+                        enabled = !state.isPinging && nodeCount > 0,
+                    )
+                    XenoHeaderIconButton(
+                        icon = Icons.Outlined.Refresh,
+                        contentDescription = stringResource(R.string.xeno_refresh_subscription),
+                        onClick = onRefreshAll,
+                        enabled = !state.isLoading,
+                    )
+                }
+            },
         )
 
         PullToRefreshBox(
@@ -165,9 +183,30 @@ fun XenoServersScreen(
                 }
 
                 item {
-                    val shape = RoundedCornerShape(16.dp)
                     val autoPingMs = LoadBalancer.bestPingMs(state.nodes, state.nodePings)
                     val autoSelected = state.selectedNodeId == LoadBalancer.AUTO_NODE_ID
+                    val pingLoading = state.isPinging && autoPingMs == null
+                    XenoAutoBalancerCard(
+                        pingMs = autoPingMs,
+                        pingLoading = pingLoading,
+                        selected = autoSelected,
+                        onClick = onSelectAutoBalancer,
+                        onDoubleClick = { onConnectToNode(LoadBalancer.AUTO_NODE_ID) },
+                    )
+                }
+
+                item {
+                    Text(
+                        text = stringResource(R.string.xeno_locations),
+                        color = Color(0xFF6B7672),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    )
+                }
+
+                item {
+                    val shape = RoundedCornerShape(16.dp)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -175,54 +214,105 @@ fun XenoServersScreen(
                             .background(colors.cappuccino)
                             .border(1.dp, colors.latte, shape),
                     ) {
-                        XenoLocationRow(
-                            display = ServerDisplay(
-                                flag = "eu",
-                                title = stringResource(R.string.xeno_auto),
-                                subtitle = "",
-                                protocolLabel = "",
-                                pingText = autoPingMs?.let { "$it мс" }.orEmpty(),
-                                pingMs = autoPingMs,
-                            ),
-                            selected = autoSelected,
-                            onClick = onSelectAutoBalancer,
-                            onDoubleClick = { onConnectToNode(LoadBalancer.AUTO_NODE_ID) },
-                        )
-                        if (filteredNodes.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(1.dp)
-                                    .background(colors.latte),
-                            )
-                        }
-                        filteredNodes.forEachIndexed { index, node ->
-                            val display = ServerDisplayMapper.map(node, state.nodePings[node.id])
-                            XenoLocationRow(
-                                display = display,
-                                selected = state.selectedNodeId == node.id,
-                                onClick = { onSelectNode(node.id) },
-                                onDoubleClick = { onConnectToNode(node.id) },
-                            )
-                            if (index < filteredNodes.lastIndex) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .background(colors.latte),
-                                )
-                            }
-                        }
-                        if (filteredNodes.isEmpty() && state.nodes.isEmpty()) {
+                        if (filteredNodes.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.xeno_no_server),
                                 color = colors.mocha,
                                 fontSize = 13.sp,
                                 modifier = Modifier.padding(16.dp),
                             )
+                        } else {
+                            filteredNodes.forEachIndexed { index, node ->
+                                val display = ServerDisplayMapper.map(node, state.nodePings[node.id])
+                                XenoLocationRow(
+                                    display = display,
+                                    selected = state.selectedNodeId == node.id,
+                                    onClick = { onSelectNode(node.id) },
+                                    onDoubleClick = { onConnectToNode(node.id) },
+                                )
+                                if (index < filteredNodes.lastIndex) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(colors.latte),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun XenoAutoBalancerCard(
+    pingMs: Int?,
+    pingLoading: Boolean,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onDoubleClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    val teal = Color(0xFF00D4A8)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(if (selected) Color(0xFF102820) else Color(0xFF141B18))
+            .border(1.dp, teal.copy(alpha = if (selected) 1f else 0.55f), shape)
+            .combinedClickable(onClick = onClick, onDoubleClick = onDoubleClick)
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFF04342C))
+                .border(1.dp, Color(0x331AD4A8), RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Bolt,
+                contentDescription = null,
+                tint = teal,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.xeno_auto),
+                color = teal,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                maxLines = 1,
+            )
+            Text(
+                text = stringResource(R.string.xeno_servers_auto_subtitle),
+                color = Color(0xFF6B7672),
+                fontSize = 12.sp,
+                maxLines = 2,
+            )
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            XenoPingValue(
+                pingMs = pingMs,
+                loading = pingLoading,
+            )
+            if (pingMs != null) {
+                Text(
+                    text = stringResource(R.string.xeno_best),
+                    color = teal,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    letterSpacing = 0.8.sp,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
         }
     }

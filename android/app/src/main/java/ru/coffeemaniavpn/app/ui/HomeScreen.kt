@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.LoadBalancer
+import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.data.formatTrafficRate
+import ru.coffeemaniavpn.app.vpn.VpnAutoReconnect
 import ru.coffeemaniavpn.app.vpn.VpnStatus
 
 @Composable
@@ -253,16 +255,16 @@ fun HomeScreen(
 private fun selectedServerDisplay(state: MainUiState): ServerDisplay {
     val selectedId = state.selectedNodeId
     return when {
-        selectedId == LoadBalancer.AUTO_NODE_ID -> ServerDisplay(
-            flag = FlagUtils.DEFAULT_FLAG_EMOJI,
-            title = stringResource(R.string.xeno_auto),
-            subtitle = "",
-            protocolLabel = "",
-            pingText = "",
-            pingMs = null,
-        )
+        selectedId == LoadBalancer.AUTO_NODE_ID -> autoBalancerDisplay(state)
         else -> {
-            val node = state.nodes.find { it.id == selectedId } ?: state.nodes.firstOrNull()
+            val tunnelActive =
+                state.vpnStatus == VpnStatus.Starting || state.vpnStatus == VpnStatus.Started
+            val connected = VpnAutoReconnect.connectedNode()
+                ?.takeIf { node -> state.nodes.any { it.id == node.id } }
+            val node = when {
+                tunnelActive && connected != null -> connected
+                else -> state.nodes.find { it.id == selectedId } ?: state.nodes.firstOrNull()
+            }
             if (node == null) {
                 ServerDisplay(
                     flag = FlagUtils.DEFAULT_FLAG_EMOJI,
@@ -273,21 +275,66 @@ private fun selectedServerDisplay(state: MainUiState): ServerDisplay {
                     pingMs = null,
                 )
             } else {
-                ServerDisplayMapper.map(node, state.nodePings[node.id]).let { d ->
-                    val detail = buildString {
-                        if (d.protocolLabel.isNotBlank()) append(d.protocolLabel)
-                        if (d.subtitle.isNotBlank()) {
-                            if (isNotEmpty()) append(" | ")
-                            append(d.subtitle)
-                        }
-                        if (isEmpty()) {
-                            d.group?.takeIf { it.isNotBlank() }?.let { append(it) }
-                        }
-                    }
-                    d.copy(subtitle = detail)
-                }
+                mappedNodeDisplay(node, state)
             }
         }
+    }
+}
+
+@Composable
+private fun autoBalancerDisplay(state: MainUiState): ServerDisplay {
+    val connecting = state.vpnStatus == VpnStatus.Starting || state.vpnStatus == VpnStatus.Started
+    val picked = if (connecting) resolvedAutoNode(state) else null
+    if (picked == null) {
+        return ServerDisplay(
+            flag = FlagUtils.DEFAULT_FLAG_EMOJI,
+            title = stringResource(R.string.xeno_auto),
+            subtitle = stringResource(R.string.xeno_servers_auto_subtitle),
+            protocolLabel = "",
+            pingText = "",
+            pingMs = null,
+        )
+    }
+    val mapped = ServerDisplayMapper.map(picked, state.nodePings[picked.id])
+    return ServerDisplay(
+        flag = mapped.flag,
+        title = stringResource(R.string.xeno_auto),
+        subtitle = nodeChoiceLabel(mapped),
+        protocolLabel = mapped.protocolLabel,
+        pingText = mapped.pingText,
+        pingMs = mapped.pingMs,
+    )
+}
+
+private fun resolvedAutoNode(state: MainUiState): ProxyNode? {
+    val connected = VpnAutoReconnect.connectedNode()
+        ?.takeIf { node -> state.nodes.any { it.id == node.id } }
+        ?.takeUnless { LoadBalancer.isOnWifi() && LoadBalancer.isLteServer(it) }
+    return connected ?: LoadBalancer.pickBest(state.nodes, state.nodePings)
+}
+
+private fun mappedNodeDisplay(node: ProxyNode, state: MainUiState): ServerDisplay {
+    return ServerDisplayMapper.map(node, state.nodePings[node.id]).let { d ->
+        val detail = buildString {
+            if (d.protocolLabel.isNotBlank()) append(d.protocolLabel)
+            if (d.subtitle.isNotBlank()) {
+                if (isNotEmpty()) append(" | ")
+                append(d.subtitle)
+            }
+            if (isEmpty()) {
+                d.group?.takeIf { it.isNotBlank() }?.let { append(it) }
+            }
+        }
+        d.copy(subtitle = detail)
+    }
+}
+
+private fun nodeChoiceLabel(display: ServerDisplay): String {
+    val extra = display.subtitle.trim()
+    return if (extra.isNotBlank() && extra != display.title) {
+        "${display.title} · $extra"
+    } else {
+        display.title
     }
 }
 

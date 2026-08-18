@@ -53,7 +53,7 @@ object VpnHomeWidgetUpdater {
     )
 
     private val colorText = Color.parseColor("#F2F2F5")
-    private val colorMuted = Color.parseColor("#8A8A93")
+    private val colorMuted = Color.parseColor("#6B7672")
     private val colorYellow = Color.parseColor("#FFC400")
 
     fun updateAll(context: Context) {
@@ -67,15 +67,22 @@ object VpnHomeWidgetUpdater {
             val smallIds = manager.getAppWidgetIds(
                 ComponentName(appContext, VpnHomeWidgetSmallProvider::class.java),
             )
-            if (largeIds.isEmpty() && smallIds.isEmpty()) return@launch
+            val buttonIds = manager.getAppWidgetIds(
+                ComponentName(appContext, VpnHomeWidgetButtonProvider::class.java),
+            )
+            if (largeIds.isEmpty() && smallIds.isEmpty() && buttonIds.isEmpty()) return@launch
             val largeViews = if (largeIds.isNotEmpty()) buildLargeViews(appContext) else null
             val smallViews = if (smallIds.isNotEmpty()) buildSmallViews(appContext) else null
+            val buttonViews = if (buttonIds.isNotEmpty()) buildButtonViews(appContext) else null
             withContext(Dispatchers.Main) {
                 largeViews?.let { views ->
                     largeIds.forEach { id -> manager.updateAppWidget(id, views) }
                 }
                 smallViews?.let { views ->
                     smallIds.forEach { id -> manager.updateAppWidget(id, views) }
+                }
+                buttonViews?.let { views ->
+                    buttonIds.forEach { id -> manager.updateAppWidget(id, views) }
                 }
             }
         }
@@ -91,7 +98,10 @@ object VpnHomeWidgetUpdater {
         val smallIds = manager.getAppWidgetIds(
             ComponentName(appContext, VpnHomeWidgetSmallProvider::class.java),
         )
-        if (largeIds.isEmpty() && smallIds.isEmpty()) return
+        val buttonIds = manager.getAppWidgetIds(
+            ComponentName(appContext, VpnHomeWidgetButtonProvider::class.java),
+        )
+        if (largeIds.isEmpty() && smallIds.isEmpty() && buttonIds.isEmpty()) return
         val elapsed = VpnManager.connectionElapsedMs.value
         if (largeIds.isNotEmpty()) {
             val bitmap = WidgetConnectButtonRenderer.render(
@@ -104,7 +114,12 @@ object VpnHomeWidgetUpdater {
                 setImageViewBitmap(R.id.widget_connect, bitmap)
                 setOnClickPendingIntent(
                     R.id.widget_connect,
-                    broadcastPendingIntent(appContext, ACTION_TOGGLE, requestCode = 100),
+                    broadcastPendingIntent(
+                        appContext,
+                        ACTION_TOGGLE,
+                        requestCode = 100,
+                        receiver = VpnHomeWidgetProvider::class.java,
+                    ),
                 )
             }
             withContext(Dispatchers.Main) {
@@ -122,24 +137,50 @@ object VpnHomeWidgetUpdater {
                 setImageViewBitmap(R.id.widget_connect, bitmap)
                 setOnClickPendingIntent(
                     R.id.widget_connect,
-                    broadcastPendingIntent(appContext, ACTION_TOGGLE, requestCode = 110),
+                    broadcastPendingIntent(
+                        appContext,
+                        ACTION_TOGGLE,
+                        requestCode = 110,
+                        receiver = VpnHomeWidgetSmallProvider::class.java,
+                    ),
                 )
             }
             withContext(Dispatchers.Main) {
                 manager.partiallyUpdateAppWidget(smallIds, views)
             }
         }
+        if (buttonIds.isNotEmpty()) {
+            val bitmap = WidgetConnectButtonRenderer.render(
+                context = appContext,
+                connectionElapsedMs = elapsed,
+                anim = anim,
+                maxTotalDp = WidgetConnectButtonRenderer.BUTTON_TOTAL_DP,
+            )
+            val views = RemoteViews(appContext.packageName, R.layout.widget_vpn_button).apply {
+                setImageViewBitmap(R.id.widget_connect, bitmap)
+                setOnClickPendingIntent(
+                    R.id.widget_connect,
+                    broadcastPendingIntent(
+                        appContext,
+                        ACTION_TOGGLE,
+                        requestCode = 120,
+                        receiver = VpnHomeWidgetButtonProvider::class.java,
+                    ),
+                )
+            }
+            withContext(Dispatchers.Main) {
+                manager.partiallyUpdateAppWidget(buttonIds, views)
+            }
+        }
     }
 
     fun hasWidgets(context: Context): Boolean {
         val manager = AppWidgetManager.getInstance(context.applicationContext)
-        val large = manager.getAppWidgetIds(
-            ComponentName(context.applicationContext, VpnHomeWidgetProvider::class.java),
-        )
-        val small = manager.getAppWidgetIds(
-            ComponentName(context.applicationContext, VpnHomeWidgetSmallProvider::class.java),
-        )
-        return large.isNotEmpty() || small.isNotEmpty()
+        val app = context.applicationContext
+        val large = manager.getAppWidgetIds(ComponentName(app, VpnHomeWidgetProvider::class.java))
+        val small = manager.getAppWidgetIds(ComponentName(app, VpnHomeWidgetSmallProvider::class.java))
+        val button = manager.getAppWidgetIds(ComponentName(app, VpnHomeWidgetButtonProvider::class.java))
+        return large.isNotEmpty() || small.isNotEmpty() || button.isNotEmpty()
     }
 
     fun update(context: Context, appWidgetIds: IntArray) {
@@ -160,6 +201,18 @@ object VpnHomeWidgetUpdater {
             val appContext = context.applicationContext
             val manager = AppWidgetManager.getInstance(appContext)
             val views = buildSmallViews(appContext)
+            withContext(Dispatchers.Main) {
+                appWidgetIds.forEach { id -> manager.updateAppWidget(id, views) }
+            }
+        }
+    }
+
+    fun updateButton(context: Context, appWidgetIds: IntArray) {
+        if (appWidgetIds.isEmpty()) return
+        App.applicationScope.launch(Dispatchers.IO) {
+            val appContext = context.applicationContext
+            val manager = AppWidgetManager.getInstance(appContext)
+            val views = buildButtonViews(appContext)
             withContext(Dispatchers.Main) {
                 appWidgetIds.forEach { id -> manager.updateAppWidget(id, views) }
             }
@@ -228,6 +281,29 @@ object VpnHomeWidgetUpdater {
         AppLog.i("VpnHomeWidget page $current -> $next")
     }
 
+    private suspend fun buildButtonViews(context: Context): RemoteViews {
+        val elapsedMs = VpnManager.connectionElapsedMs.value
+        val views = RemoteViews(context.packageName, R.layout.widget_vpn_button)
+        val toggle = broadcastPendingIntent(
+            context,
+            ACTION_TOGGLE,
+            requestCode = 120,
+            receiver = VpnHomeWidgetButtonProvider::class.java,
+        )
+        views.setOnClickPendingIntent(R.id.widget_connect, toggle)
+        views.setOnClickPendingIntent(R.id.widget_button_root, toggle)
+        views.setImageViewBitmap(
+            R.id.widget_connect,
+            WidgetConnectButtonRenderer.render(
+                context = context,
+                connectionElapsedMs = elapsedMs,
+                anim = VpnHomeWidgetAnimator.state,
+                maxTotalDp = WidgetConnectButtonRenderer.BUTTON_TOTAL_DP,
+            ),
+        )
+        return views
+    }
+
     private suspend fun buildSmallViews(context: Context): RemoteViews {
         val preferences = AppPreferences(context)
         val nodes = preferences.nodes.first()
@@ -238,7 +314,12 @@ object VpnHomeWidgetUpdater {
         val views = RemoteViews(context.packageName, R.layout.widget_vpn_small)
         views.setOnClickPendingIntent(
             R.id.widget_connect,
-            broadcastPendingIntent(context, ACTION_TOGGLE, requestCode = 110),
+            broadcastPendingIntent(
+                context,
+                ACTION_TOGGLE,
+                requestCode = 110,
+                receiver = VpnHomeWidgetSmallProvider::class.java,
+            ),
         )
         views.setOnClickPendingIntent(
             R.id.widget_small_server,
@@ -301,7 +382,12 @@ object VpnHomeWidgetUpdater {
 
         views.setOnClickPendingIntent(
             R.id.widget_connect,
-            broadcastPendingIntent(context, ACTION_TOGGLE, requestCode = 100),
+            broadcastPendingIntent(
+                context,
+                ACTION_TOGGLE,
+                requestCode = 100,
+                receiver = VpnHomeWidgetProvider::class.java,
+            ),
         )
         views.setOnClickPendingIntent(
             R.id.widget_logo,
@@ -309,11 +395,21 @@ object VpnHomeWidgetUpdater {
         )
         views.setOnClickPendingIntent(
             R.id.widget_prev,
-            broadcastPendingIntent(context, ACTION_PREV, requestCode = 101),
+            broadcastPendingIntent(
+                context,
+                ACTION_PREV,
+                requestCode = 101,
+                receiver = VpnHomeWidgetProvider::class.java,
+            ),
         )
         views.setOnClickPendingIntent(
             R.id.widget_next,
-            broadcastPendingIntent(context, ACTION_NEXT, requestCode = 102),
+            broadcastPendingIntent(
+                context,
+                ACTION_NEXT,
+                requestCode = 102,
+                receiver = VpnHomeWidgetProvider::class.java,
+            ),
         )
         views.setOnClickPendingIntent(
             R.id.widget_root,
@@ -366,6 +462,7 @@ object VpnHomeWidgetUpdater {
                     context,
                     ACTION_SELECT,
                     requestCode = 200 + slot,
+                    receiver = VpnHomeWidgetProvider::class.java,
                     extras = { putExtra(EXTRA_SLOT, slot) },
                 ),
             )
@@ -409,9 +506,10 @@ object VpnHomeWidgetUpdater {
         context: Context,
         action: String,
         requestCode: Int,
+        receiver: Class<*>,
         extras: (Intent.() -> Unit)? = null,
     ): PendingIntent {
-        val intent = Intent(context, VpnHomeWidgetProvider::class.java).apply {
+        val intent = Intent(context, receiver).apply {
             this.action = action
             extras?.invoke(this)
         }

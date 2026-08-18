@@ -83,6 +83,8 @@ data class MainUiState(
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val LOCAL_IMPORT_URL = "deeplink://imported"
+        /** Happ-like: pull a fresh node list when the app comes back, not once every 6 hours. */
+        private const val RESUME_SUBSCRIPTION_REFRESH_MIN_MS = 5 * 60 * 1000L
     }
 
     private fun appStr(@StringRes resId: Int, vararg args: Any): String =
@@ -626,7 +628,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             id == LoadBalancer.AUTO_NODE_ID || result.nodes.any { it.id == id && !LoadBalancer.isRemoteAutoNode(it) }
         } ?: LoadBalancer.AUTO_NODE_ID
         val nodes = LoadBalancer.connectableNodes(result.nodes)
+        // Same host after a panel restore must still re-ping — DataStore may emit the same ids.
+        lastAutoPingedNodeIds = emptySet()
         preferences.saveSubscription(url, nodes, selected, result.info)
+        AppLog.i(
+            "fetchAndSaveSubscription saved nodes=${nodes.size} " +
+                nodes.joinToString { it.name }.take(400),
+        )
         return nodes.size
     }
 
@@ -650,8 +658,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (url.isBlank() || url == LOCAL_IMPORT_URL) return
         val last = preferences.subscriptionLastAutoRefreshAt.first()
         val elapsed = System.currentTimeMillis() - last
-        if (last == 0L || elapsed >= interval.durationMs) {
-            AppLog.i("autoRefreshSubscription on resume elapsed=${elapsed}ms interval=${interval.label}")
+        val thresholdMs = minOf(interval.durationMs, RESUME_SUBSCRIPTION_REFRESH_MIN_MS)
+        if (last == 0L || elapsed >= thresholdMs) {
+            AppLog.i(
+                "autoRefreshSubscription on resume elapsed=${elapsed}ms " +
+                    "threshold=${thresholdMs}ms interval=${interval.label}",
+            )
             autoRefreshSubscriptionSilent()
         }
     }
@@ -706,9 +718,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectNode(nodeId: String) {
-        viewModelScope.launch {
-            preferences.setSelectedNodeId(nodeId)
-        }
+        applyNodeSelection(nodeId, connectIfStopped = false)
     }
 
     fun toggleFavorite(nodeId: String) {
@@ -738,18 +748,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun requestConnectToNode(nodeId: String) {
         clearMessages()
-        if (!prepareConnect()) return
+        applyNodeSelection(nodeId, connectIfStopped = true)
+    }
 
-        if (nodeId == LoadBalancer.AUTO_NODE_ID) {
-            selectAutoBalancer()
-            val node = resolveConnectNode() ?: return
-            emitConnectRequest(node, LoadBalancer.AUTO_NODE_ID)
-            return
+    private fun applyNodeSelection(nodeId: String, connectIfStopped: Boolean) {
+        val target = resolveNodeForSelection(nodeId)
+        val status = VpnManager.status.value
+        val connectedId = VpnAutoReconnect.connectedNode()?.id
+        val switchingTunnel =
+            status != VpnStatus.Stopped && target != null && connectedId != target.id
+        val startingFresh = status == VpnStatus.Stopped && connectIfStopped
+        if ((switchingTunnel || startingFresh) && !prepareConnect()) return
+
+        viewModelScope.launch {
+            preferences.setSelectedNodeId(nodeId)
+            if (target == null) return@launch
+            if (startingFresh || switchingTunnel) {
+                emitConnectRequest(target, nodeId)
+            }
         }
+    }
 
-        val node = uiState.value.nodes.find { it.id == nodeId } ?: return
-        selectNode(nodeId)
-        emitConnectRequest(node, nodeId)
+    private fun resolveNodeForSelection(nodeId: String): ProxyNode? {
+        val state = uiState.value
+        if (nodeId == LoadBalancer.AUTO_NODE_ID) {
+            return LoadBalancer.pickBest(state.nodes, state.nodePings)
+                ?: state.nodes.firstOrNull()
+        }
+        return state.nodes.find { it.id == nodeId }
     }
 
     private fun emitConnectRequest(node: ProxyNode, nodeId: String = node.id) {
@@ -758,8 +784,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 viewModelScope.launch { _connectRequests.emit(node) }
             }
             VpnStatus.Started -> {
-                val connectedId = VpnAutoReconnect.connectedNode()?.id
-                if (connectedId == nodeId) return
+                if (VpnAutoReconnect.connectedNode()?.id == node.id) return
                 pendingConnectNodeId = nodeId
                 VpnManager.disconnect()
             }
@@ -889,9 +914,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectAutoBalancer() {
-        viewModelScope.launch {
-            preferences.setSelectedNodeId(LoadBalancer.AUTO_NODE_ID)
-        }
+        applyNodeSelection(LoadBalancer.AUTO_NODE_ID, connectIfStopped = false)
     }
 
     fun refreshServersAndPing() {

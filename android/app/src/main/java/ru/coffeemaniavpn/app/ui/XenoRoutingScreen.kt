@@ -730,25 +730,35 @@ private fun XenoRoutingDomainsPane(
             )
         }
 
-        filtered.forEach { rule ->
-            XenoDomainRuleRow(
-                rule = rule,
-                onCycleTarget = {
-                    val next = when (rule.target) {
-                        RoutingRuleTarget.Direct -> RoutingRuleTarget.Proxy
-                        RoutingRuleTarget.Proxy -> RoutingRuleTarget.Block
-                        RoutingRuleTarget.Block -> RoutingRuleTarget.Direct
-                    }
-                    onUpdate { current ->
-                        current.copy(
-                            customRules = current.customRules.map {
-                                if (it.id == rule.id) it.copy(target = next) else it
-                            },
-                        )
-                    }
-                },
-                onRemove = { onRemoveCustomRule(rule.id) },
+        if (filtered.isEmpty()) {
+            Text(
+                text = stringResource(R.string.xeno_rules_empty),
+                color = XenoMuted,
+                fontFamily = InterFontFamily,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(vertical = 4.dp),
             )
+        } else {
+            filtered.forEach { rule ->
+                XenoDomainRuleRow(
+                    rule = rule,
+                    onCycleTarget = {
+                        val next = when (rule.target) {
+                            RoutingRuleTarget.Direct -> RoutingRuleTarget.Proxy
+                            RoutingRuleTarget.Proxy -> RoutingRuleTarget.Block
+                            RoutingRuleTarget.Block -> RoutingRuleTarget.Direct
+                        }
+                        onUpdate { current ->
+                            current.copy(
+                                customRules = current.customRules.map {
+                                    if (it.id == rule.id) it.copy(target = next) else it
+                                },
+                            )
+                        }
+                    },
+                    onRemove = { onRemoveCustomRule(rule.id) },
+                )
+            }
         }
 
         XenoDashedAddRuleButton(

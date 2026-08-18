@@ -22,6 +22,9 @@ object VpnManager {
     @Volatile
     var userInitiatedDisconnect: Boolean = false
 
+    @Volatile
+    private var pendingReconnectNode: ProxyNode? = null
+
     private val _status = MutableStateFlow(VpnStatus.Stopped)
     val status = _status.asStateFlow()
 
@@ -155,6 +158,13 @@ object VpnManager {
         }
     }
 
+    /** Смена узла: остановить туннель и поднять его на [node] без kill switch. */
+    fun switchToNode(node: ProxyNode) {
+        AppLog.i("VpnManager.switchToNode ${node.name}")
+        pendingReconnectNode = node
+        disconnect(userInitiated = true)
+    }
+
     fun disconnect(userInitiated: Boolean = true) {
         AppLog.i("VpnManager.disconnect userInitiated=$userInitiated")
         if (userInitiated) {
@@ -174,6 +184,14 @@ object VpnManager {
 
     internal fun onVpnFullyStopped() {
         VpnDiagnostics.snapshot("fully-stopped")
+        val next = pendingReconnectNode
+        pendingReconnectNode = null
+        if (next != null) {
+            AppLog.i("VpnManager reconnect after switch node=${next.name}")
+            userInitiatedDisconnect = false
+            connect(next)
+            return
+        }
         val engageKillSwitch = !userInitiatedDisconnect
         App.applicationScope.launch(Dispatchers.IO) {
             App.awaitSettingsReady()

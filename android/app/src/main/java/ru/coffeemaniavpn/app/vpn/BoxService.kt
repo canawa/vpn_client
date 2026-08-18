@@ -380,7 +380,8 @@ class BoxService(
 
             val node = VpnAutoReconnect.connectedNode() ?: return "" to statusLine
             val display = ru.coffeemaniavpn.app.ui.ServerDisplayMapper.map(node)
-            val serverLine = listOf(display.flag, display.title)
+            val flag = ru.coffeemaniavpn.app.ui.FlagUtils.countryCodeToEmoji(display.flag)
+            val serverLine = listOf(flag, display.title)
                 .filter { it.isNotBlank() }
                 .joinToString(" ")
                 .ifBlank { node.name.trim() }

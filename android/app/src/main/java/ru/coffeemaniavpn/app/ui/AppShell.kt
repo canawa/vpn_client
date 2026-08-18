@@ -36,7 +36,6 @@ fun AppShell(
     onSelectAutoBalancer: () -> Unit,
     onConnectToNode: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
-    onPingNode: (String) -> Unit,
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onRefreshPing: () -> Unit,
@@ -129,7 +128,7 @@ fun AppShell(
                         onSelectAutoBalancer = onSelectAutoBalancer,
                         onConnectToNode = onConnectToNode,
                         onToggleFavorite = onToggleFavorite,
-                        onPingNode = onPingNode,
+                        onPingAll = onRefreshPing,
                         onRefreshAll = onRefreshServersAndPing,
                         modifier = Modifier.fillMaxSize(),
                     )

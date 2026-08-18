@@ -1,6 +1,7 @@
 package ru.coffeemaniavpn.app.data
 
 import android.content.Context
+import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import ru.coffeemaniavpn.app.util.AppLog
@@ -26,6 +27,14 @@ class SubscriptionRepository(
         }.getOrElse {
             error("Вставьте верную ссылку подписки")
         }
+        requestBuilder.cacheControl(
+            CacheControl.Builder()
+                .noCache()
+                .noStore()
+                .build(),
+        )
+        requestBuilder.header("Cache-Control", "no-cache, no-store")
+        requestBuilder.header("Pragma", "no-cache")
         DeviceIdentity.subscriptionHeaders(context).forEach { (name, value) ->
             requestBuilder.header(name, value)
         }
@@ -75,6 +84,7 @@ class SubscriptionRepository(
             )
             AppLog.i(
                 "fetchSubscription ok nodes=${nodes.size} " +
+                    "hosts=${nodes.joinToString { "${it.name}->${it.host}:${it.port}" }.take(500)} " +
                     "announceCandidates=${announceCandidates.size} " +
                     "deviceLimit=${info?.deviceLimit} " +
                     "announceLen=${info?.announce?.length ?: 0} " +

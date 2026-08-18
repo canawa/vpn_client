@@ -174,6 +174,33 @@ fun XenoGridIconButton(
 }
 
 @Composable
+fun XenoHeaderIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(shape)
+            .background(Color(0xFF141B18))
+            .border(1.dp, Color(0xFF222B28), shape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (enabled) Color(0xFF00D4A8) else Color(0xFF566460),
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
 fun XenoScreenHeader(
     title: String,
     subtitle: String? = null,

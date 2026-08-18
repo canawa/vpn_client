@@ -86,6 +86,9 @@ object XrayRoutingApplier {
                         put("geosite:CATEGORY-RU")
                         put("geosite:TLD-RU")
                         put("geosite:CATEGORY-GOV-RU")
+                        VpnSensitiveDefaults.directDomains.forEach { domain ->
+                            put("domain:$domain")
+                        }
                     },
                     outboundTag = "direct",
                 ),

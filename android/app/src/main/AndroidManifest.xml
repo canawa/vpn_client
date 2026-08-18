@@ -41,6 +41,11 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="xenovpn" />
             </intent-filter>
+            <!-- Long-press QS tile opens the app instead of system app settings. -->
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
 
         <service
@@ -85,7 +90,7 @@
                 android:value="true" />
         </service>
 
-        <!-- TEMP: widgets disabled — set enabled="true" to restore -->
+        <!-- Large / small widgets stay disabled; only 1×1 connect button is available -->
         <receiver
             android:name=".widget.VpnHomeWidgetProvider"
             android:enabled="false"
@@ -116,6 +121,19 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/vpn_home_widget_small_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.VpnHomeWidgetButtonProvider"
+            android:exported="true"
+            android:label="@string/widget_label_button">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="ru.coffeemaniavpn.app.widget.ACTION_TOGGLE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vpn_home_widget_button_info" />
         </receiver>
     </application>
 </manifest>

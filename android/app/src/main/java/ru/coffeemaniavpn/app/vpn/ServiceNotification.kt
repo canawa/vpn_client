@@ -11,6 +11,7 @@ import androidx.core.app.ServiceCompat
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.MainActivity
 import ru.coffeemaniavpn.app.R
+import ru.coffeemaniavpn.app.util.AppLocale
 
 class ServiceNotification(private val service: Service) {
     private val notificationId = 1
@@ -28,7 +29,6 @@ class ServiceNotification(private val service: Service) {
         NotificationCompat.Builder(service, channelId)
             .setShowWhen(false)
             .setOngoing(true)
-            .setContentTitle(service.getString(R.string.vpn_notification_title))
             .setOnlyAlertOnce(true)
             .setSmallIcon(R.drawable.ic_logo_notif)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -42,31 +42,21 @@ class ServiceNotification(private val service: Service) {
                     flags,
                 ),
             )
-            .addAction(
-                NotificationCompat.Action.Builder(
-                    android.R.drawable.ic_menu_close_clear_cancel,
-                    service.getString(R.string.vpn_stop),
-                    PendingIntent.getService(
-                        service,
-                        1,
-                        Intent(service, VPNService::class.java).setAction(VpnAction.SERVICE_CLOSE),
-                        flags,
-                    ),
-                ).build(),
-            )
     }
+
+    private fun loc(id: Int): String = AppLocale.wrap(App.instance).getString(id)
 
     fun show(serverLine: String, statusLine: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             App.notificationManager.createNotificationChannel(
                 NotificationChannel(
                     channelId,
-                    service.getString(R.string.vpn_notification_channel),
+                    loc(R.string.vpn_notification_channel),
                     NotificationManager.IMPORTANCE_LOW,
                 ),
             )
         }
-        val title = service.getString(R.string.vpn_notification_title)
+        val title = loc(R.string.vpn_notification_title)
         val preview = serverLine.ifBlank { statusLine }
         val style = NotificationCompat.InboxStyle()
             .setBigContentTitle(title)
@@ -76,6 +66,18 @@ class ServiceNotification(private val service: Service) {
         if (statusLine.isNotBlank()) {
             style.addLine(statusLine)
         }
+        val stopIntent = PendingIntent.getService(
+            service,
+            1,
+            Intent(service, VPNService::class.java).setAction(VpnAction.SERVICE_CLOSE),
+            flags,
+        )
+        builder.clearActions()
+        builder.addAction(
+            android.R.drawable.ic_menu_close_clear_cancel,
+            loc(R.string.vpn_stop),
+            stopIntent,
+        )
         service.startForeground(
             notificationId,
             builder

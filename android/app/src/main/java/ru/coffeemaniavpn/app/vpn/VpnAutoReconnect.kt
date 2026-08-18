@@ -2,11 +2,16 @@ package ru.coffeemaniavpn.app.vpn
 
 import android.net.Network
 import android.net.VpnService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.coffeemaniavpn.app.App
+import ru.coffeemaniavpn.app.data.AppPreferences
+import ru.coffeemaniavpn.app.data.LoadBalancer
 import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.util.AppLog
 
@@ -71,10 +76,30 @@ internal object VpnAutoReconnect {
 
     private fun onNetworkAvailable(network: Network?) {
         if (network == null) return
-        if (VpnManager.status.value != VpnStatus.Stopped) return
-        if (!shouldReconnect()) return
-        AppLog.i("VpnAutoReconnect network restored, scheduling reconnect")
-        schedule()
+        App.applicationScope.launch(Dispatchers.IO) {
+            maybeLeaveLteOnWifi()
+            if (VpnManager.status.value != VpnStatus.Stopped) return@launch
+            if (!shouldReconnect()) return@launch
+            AppLog.i("VpnAutoReconnect network restored, scheduling reconnect")
+            withContext(Dispatchers.Main) { schedule() }
+        }
+    }
+
+    /** На Wi‑Fi автовыбор не должен оставаться на LTE-сервере. */
+    private suspend fun maybeLeaveLteOnWifi() {
+        if (!LoadBalancer.isOnWifi()) return
+        val current = connectedNode() ?: return
+        if (!LoadBalancer.isLteServer(current)) return
+        val status = VpnManager.status.value
+        if (status != VpnStatus.Started && status != VpnStatus.Starting) return
+        val prefs = AppPreferences(App.instance)
+        if (prefs.selectedNodeId.first() != LoadBalancer.AUTO_NODE_ID) return
+        val next = LoadBalancer.pickBest(prefs.nodes.first(), emptyMap()) ?: return
+        if (next.id == current.id) return
+        AppLog.i("WiFi: AUTO leaving LTE ${current.name} -> ${next.name}")
+        withContext(Dispatchers.Main) {
+            VpnManager.switchToNode(next)
+        }
     }
 
     private fun shouldReconnect(): Boolean {
@@ -88,7 +113,15 @@ internal object VpnAutoReconnect {
         cancelScheduled()
         reconnectJob = App.applicationScope.launch {
             waitUntilStopped()
-            val node = lastNode ?: return@launch
+            var node = lastNode ?: return@launch
+            if (LoadBalancer.isOnWifi() && LoadBalancer.isLteServer(node)) {
+                val prefs = AppPreferences(App.instance)
+                if (prefs.selectedNodeId.first() == LoadBalancer.AUTO_NODE_ID) {
+                    node = LoadBalancer.pickBest(prefs.nodes.first(), emptyMap()) ?: return@launch
+                    lastNode = node
+                    AppLog.i("VpnAutoReconnect WiFi: skip LTE, use ${node.name}")
+                }
+            }
             if (!shouldReconnect()) return@launch
 
             val delayMs = nextDelay()

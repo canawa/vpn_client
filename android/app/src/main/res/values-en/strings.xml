@@ -23,12 +23,12 @@
     <string name="xeno_add_favorite">Add to favorites</string>
     <string name="xeno_remove_favorite">Remove from favorites</string>
     <string name="xeno_my">My</string>
-    <string name="xeno_auto">XENO balancer</string>
+    <string name="xeno_auto">Optimal server</string>
     <string name="xeno_auto_subtitle"></string>
     <string name="xeno_connecting">Connecting…</string>
     <string name="xeno_checking_ping">Pinging</string>
     <string name="xeno_connected">CONNECTED</string>
-    <string name="xeno_auto_fastest">Auto — fastest server</string>
+    <string name="xeno_auto_fastest">Optimal — fastest server</string>
     <string name="xeno_start">Start</string>
     <string name="xeno_cat_bypass">Bypass</string>
     <string name="xeno_cat_speed">Speed</string>
@@ -126,8 +126,8 @@
     <string name="home_select_server">Select server</string>
     <string name="home_subscription_status">Subscription status</string>
     <string name="home_open_website">Open website</string>
-    <string name="servers_load_balancer">Load balancer</string>
-    <string name="servers_load_balancer_hint">Auto-selects the fastest server (excluding Russia)</string>
+    <string name="servers_load_balancer">Optimal server</string>
+    <string name="servers_load_balancer_hint">We’ll pick the fastest server</string>
     <string name="servers_pull_refresh">Pull down to refresh</string>
     <string name="settings_copy_subscription">Copy subscription</string>
     <string name="settings_copied">Copied</string>
@@ -148,8 +148,8 @@
     <string name="xeno_servers_subtitle">%1$d of %2$d locations · 1 subscription</string>
     <string name="xeno_search_location">Search location or node</string>
     <string name="xeno_locations">Locations</string>
-    <string name="xeno_servers_auto">Auto</string>
-    <string name="xeno_servers_auto_subtitle">Lowest latency</string>
+    <string name="xeno_servers_auto">Optimal</string>
+    <string name="xeno_servers_auto_subtitle">we’ll pick the fastest server</string>
     <string name="xeno_best">BEST</string>
     <string name="xeno_settings_title">SETTINGS</string>
     <string name="xeno_settings_connection">CONNECTION</string>

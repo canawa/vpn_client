@@ -7,7 +7,7 @@ import android.content.pm.PackageManager
  * (банки, госуслуги и т.п.) — по умолчанию в обход туннеля.
  */
 object VpnSensitiveDefaults {
-    const val VERSION = 1
+    const val VERSION = 2
 
     val appPackages: Set<String> = setOf(
         // Банки
@@ -97,26 +97,25 @@ object VpnSensitiveDefaults {
             }.getOrDefault(false)
         }.toSet()
 
-        val existingDomainValues = current.customRules
-            .map { it.value.lowercase() }
-            .toSet()
-        val missingDomainRules = directDomains
-            .filter { it.lowercase() !in existingDomainValues }
-            .map { domain ->
-                RoutingRule(
-                    value = domain,
-                    matcher = RoutingRuleMatcher.DomainSuffix,
-                    target = RoutingRuleTarget.Direct,
-                    isEnabled = true,
-                )
-            }
+        val seededDomains = directDomains.map { it.lowercase() }.toSet()
+        val cleanedRules = current.customRules.filterNot { rule ->
+            rule.matcher == RoutingRuleMatcher.DomainSuffix &&
+                rule.target == RoutingRuleTarget.Direct &&
+                rule.value.lowercase().removePrefix("www.").removePrefix(".") in seededDomains
+        }
+        val cleanedSiteDomains = current.siteDomains.filterNot { raw ->
+            raw.lowercase().removePrefix("www.").removePrefix(".") in seededDomains
+        }
 
         return current.copy(
             appsEnabled = true,
             appsMode = SplitTunnelAppsMode.ExcludeSelected,
             appPackages = current.appPackages + installedSensitive,
             sitesEnabled = true,
-            customRules = current.customRules + missingDomainRules,
+            siteDomains = cleanedSiteDomains,
+            customRules = cleanedRules,
+            presetRuDirect = true,
+            presetAdsBlock = false,
         )
     }
 }
