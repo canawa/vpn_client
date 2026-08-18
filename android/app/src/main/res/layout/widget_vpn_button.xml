@@ -15,5 +15,6 @@
         android:clickable="true"
         android:contentDescription="@string/widget_connect"
         android:focusable="true"
-        android:scaleType="fitCenter" />
+        android:scaleType="fitCenter"
+        android:src="@drawable/widget_preview_button" />
 </FrameLayout>

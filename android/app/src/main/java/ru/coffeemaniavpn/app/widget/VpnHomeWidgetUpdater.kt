@@ -57,7 +57,6 @@ object VpnHomeWidgetUpdater {
     private val colorYellow = Color.parseColor("#FFC400")
 
     fun updateAll(context: Context) {
-        VpnHomeWidgetAnimator.ensureStarted(context)
         App.applicationScope.launch(Dispatchers.IO) {
             val appContext = context.applicationContext
             val manager = AppWidgetManager.getInstance(appContext)
@@ -86,101 +85,6 @@ object VpnHomeWidgetUpdater {
                 }
             }
         }
-    }
-
-    /** Только кнопка — для покадровой анимации (partial update). */
-    suspend fun updateConnectButton(context: Context, anim: WidgetConnectAnimState) {
-        val appContext = context.applicationContext
-        val manager = AppWidgetManager.getInstance(appContext)
-        val largeIds = manager.getAppWidgetIds(
-            ComponentName(appContext, VpnHomeWidgetProvider::class.java),
-        )
-        val smallIds = manager.getAppWidgetIds(
-            ComponentName(appContext, VpnHomeWidgetSmallProvider::class.java),
-        )
-        val buttonIds = manager.getAppWidgetIds(
-            ComponentName(appContext, VpnHomeWidgetButtonProvider::class.java),
-        )
-        if (largeIds.isEmpty() && smallIds.isEmpty() && buttonIds.isEmpty()) return
-        val elapsed = VpnManager.connectionElapsedMs.value
-        if (largeIds.isNotEmpty()) {
-            val bitmap = WidgetConnectButtonRenderer.render(
-                context = appContext,
-                connectionElapsedMs = elapsed,
-                anim = anim,
-                plateDp = WidgetConnectButtonRenderer.PLATE_DP,
-            )
-            val views = RemoteViews(appContext.packageName, R.layout.widget_vpn_large).apply {
-                setImageViewBitmap(R.id.widget_connect, bitmap)
-                setOnClickPendingIntent(
-                    R.id.widget_connect,
-                    broadcastPendingIntent(
-                        appContext,
-                        ACTION_TOGGLE,
-                        requestCode = 100,
-                        receiver = VpnHomeWidgetProvider::class.java,
-                    ),
-                )
-            }
-            withContext(Dispatchers.Main) {
-                manager.partiallyUpdateAppWidget(largeIds, views)
-            }
-        }
-        if (smallIds.isNotEmpty()) {
-            val bitmap = WidgetConnectButtonRenderer.render(
-                context = appContext,
-                connectionElapsedMs = elapsed,
-                anim = anim,
-                plateDp = WidgetConnectButtonRenderer.PLATE_DP_SMALL,
-            )
-            val views = RemoteViews(appContext.packageName, R.layout.widget_vpn_small).apply {
-                setImageViewBitmap(R.id.widget_connect, bitmap)
-                setOnClickPendingIntent(
-                    R.id.widget_connect,
-                    broadcastPendingIntent(
-                        appContext,
-                        ACTION_TOGGLE,
-                        requestCode = 110,
-                        receiver = VpnHomeWidgetSmallProvider::class.java,
-                    ),
-                )
-            }
-            withContext(Dispatchers.Main) {
-                manager.partiallyUpdateAppWidget(smallIds, views)
-            }
-        }
-        if (buttonIds.isNotEmpty()) {
-            val bitmap = WidgetConnectButtonRenderer.render(
-                context = appContext,
-                connectionElapsedMs = elapsed,
-                anim = anim,
-                maxTotalDp = WidgetConnectButtonRenderer.BUTTON_TOTAL_DP,
-            )
-            val views = RemoteViews(appContext.packageName, R.layout.widget_vpn_button).apply {
-                setImageViewBitmap(R.id.widget_connect, bitmap)
-                setOnClickPendingIntent(
-                    R.id.widget_connect,
-                    broadcastPendingIntent(
-                        appContext,
-                        ACTION_TOGGLE,
-                        requestCode = 120,
-                        receiver = VpnHomeWidgetButtonProvider::class.java,
-                    ),
-                )
-            }
-            withContext(Dispatchers.Main) {
-                manager.partiallyUpdateAppWidget(buttonIds, views)
-            }
-        }
-    }
-
-    fun hasWidgets(context: Context): Boolean {
-        val manager = AppWidgetManager.getInstance(context.applicationContext)
-        val app = context.applicationContext
-        val large = manager.getAppWidgetIds(ComponentName(app, VpnHomeWidgetProvider::class.java))
-        val small = manager.getAppWidgetIds(ComponentName(app, VpnHomeWidgetSmallProvider::class.java))
-        val button = manager.getAppWidgetIds(ComponentName(app, VpnHomeWidgetButtonProvider::class.java))
-        return large.isNotEmpty() || small.isNotEmpty() || button.isNotEmpty()
     }
 
     fun update(context: Context, appWidgetIds: IntArray) {
@@ -297,7 +201,6 @@ object VpnHomeWidgetUpdater {
             WidgetConnectButtonRenderer.render(
                 context = context,
                 connectionElapsedMs = elapsedMs,
-                anim = VpnHomeWidgetAnimator.state,
                 maxTotalDp = WidgetConnectButtonRenderer.BUTTON_TOTAL_DP,
             ),
         )
@@ -338,7 +241,6 @@ object VpnHomeWidgetUpdater {
             WidgetConnectButtonRenderer.render(
                 context = context,
                 connectionElapsedMs = elapsedMs,
-                anim = VpnHomeWidgetAnimator.state,
                 plateDp = WidgetConnectButtonRenderer.PLATE_DP_SMALL,
             ),
         )
@@ -421,7 +323,6 @@ object VpnHomeWidgetUpdater {
             WidgetConnectButtonRenderer.render(
                 context = context,
                 connectionElapsedMs = elapsedMs,
-                anim = VpnHomeWidgetAnimator.state,
             ),
         )
 

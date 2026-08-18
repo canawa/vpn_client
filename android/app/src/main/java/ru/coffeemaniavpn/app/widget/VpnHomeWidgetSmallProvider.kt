@@ -14,21 +14,12 @@ class VpnHomeWidgetSmallProvider : AppWidgetProvider() {
         appWidgetIds: IntArray,
     ) {
         AppLog.i("VpnHomeWidgetSmall onUpdate ids=${appWidgetIds.size}")
-        VpnHomeWidgetAnimator.ensureStarted(context)
         VpnHomeWidgetUpdater.updateSmall(context, appWidgetIds)
     }
 
     override fun onEnabled(context: Context) {
         AppLog.i("VpnHomeWidgetSmall onEnabled")
-        VpnHomeWidgetAnimator.ensureStarted(context)
         VpnHomeWidgetUpdater.updateAll(context)
-    }
-
-    override fun onDisabled(context: Context) {
-        if (!VpnHomeWidgetUpdater.hasWidgets(context)) {
-            VpnHomeWidgetAnimator.stop()
-        }
-        super.onDisabled(context)
     }
 
     override fun onReceive(context: Context, intent: Intent) {

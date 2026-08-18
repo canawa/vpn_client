@@ -39,7 +39,6 @@ class App : Application() {
         applyStoredLanguage()
         VpnManager.init()
         PingNetworkBypass.ensureListening(this)
-        runCatching { ru.coffeemaniavpn.app.widget.VpnHomeWidgetAnimator.ensureStarted(this) }
 
         applicationScope.launch(Dispatchers.IO) {
             runCatching {
