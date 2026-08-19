@@ -7,7 +7,7 @@ import android.content.pm.PackageManager
  * (банки, госуслуги и т.п.) — по умолчанию в обход туннеля.
  */
 object VpnSensitiveDefaults {
-    const val VERSION = 2
+    const val VERSION = 3
 
     val appPackages: Set<String> = setOf(
         // Банки
@@ -35,19 +35,41 @@ object VpnSensitiveDefaults {
         "ru.letobank.Prometheus",
         "com.bss.vbrrpay",
         "logo.com.mbanking",
-        // Госуслуги / госсектор
+        "com.gpncard.gpnkp",
+        // Госуслуги / госсектор / ФНС
         "ru.gosuslugi.app.gosuslugi",
+        "ru.gosuslugi.goskey",
         "ru.rostel",
         "ru.mos.udobno",
         "ru.mos.portal",
         "com.bpc.svbp.android",
         "ru.nalog",
-        // Платежи / маркетплейсы с жёстким анти-VPN
+        "ru.gnivc.lkip",
+        "ru.fns.mysign",
+        "ru.fns.lkfl",
+        "ru.gorparkovki.federal",
+        "com.rosdomofon.rdua",
+        // Маркетплейсы / ритейл
         "ru.wildberries.client",
         "com.wildberries.ru",
         "ru.ozon.app.android",
         "ru.dns.shop.android",
         "com.avito.android",
+        "ru.tander.magnit",
+        "ru.pyaterochka.app.browser",
+        "ru.sbcs.store",
+        "com.apegroup.mcdonaldsrussia",
+        // Яндекс / VK / почта
+        "com.yandex.browser",
+        "ru.yandex.music",
+        "ru.yandex.taxi",
+        "ru.kinopoisk",
+        "ru.mail.mailapp",
+        "com.vkontakte.android",
+        "ru.vk.store",
+        "ru.oneme.app",
+        // Карты / прочее
+        "ru.dublgis.dgismobile",
         // Мессенджеры банковских уведомлений / экосистемы
         "ru.sberbank.sberbankid",
         "ru.max.android",

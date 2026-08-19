@@ -10,6 +10,10 @@ object SubscriptionUrlValidator {
         "cl.xenovpn.top",
         "sub.xenovpn.top",
         "panel.xenovpn.top",
+        "dfg.pw",
+        "www.dfg.pw",
+        "apichecking.com",
+        "www.apichecking.com",
     )
 
     fun looksLikeSubscriptionUrl(text: String): Boolean {
@@ -32,7 +36,10 @@ object SubscriptionUrlValidator {
         val host = runCatching { Uri.parse(trimmed).host?.lowercase() }.getOrNull()
             ?: return false
         if (host in ourHosts) return true
-        return host.endsWith(".xenovpn.top") || host.endsWith(".titi.su")
+        return host.endsWith(".xenovpn.top") ||
+            host.endsWith(".titi.su") ||
+            host.endsWith(".dfg.pw") ||
+            host.endsWith(".apichecking.com")
     }
 
     fun websiteUrl(utmCampaign: String = "app"): String =
