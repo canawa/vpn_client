@@ -63,6 +63,16 @@ object LoadBalancer {
     fun hasBypassServers(nodes: List<ProxyNode>): Boolean =
         nodes.any { ServerCategory.BYPASS.matches(it.name) }
 
+    /** BS-сервера: всё, что связано с обходом «белых списков» (по маркировке в имени). */
+    fun isBsServer(node: ProxyNode): Boolean =
+        ServerCategory.BYPASS.matches(node.name)
+
+    fun connectableNormalNodes(nodes: List<ProxyNode>): List<ProxyNode> =
+        connectableNodes(nodes).filterNot(::isBsServer)
+
+    fun connectableBsNodes(nodes: List<ProxyNode>): List<ProxyNode> =
+        connectableNodes(nodes).filter(::isBsServer)
+
     /** Лучший пинг среди серверов подписки (без remote-auto, без России; на Wi‑Fi без LTE). */
     fun pickBest(nodes: List<ProxyNode>, pings: Map<String, PingState>): ProxyNode? {
         val pool = connectableNodes(nodes)
@@ -87,4 +97,11 @@ object LoadBalancer {
         val best = pickBest(nodes, pings) ?: return null
         return (pings[best.id] as? PingState.Result)?.latencyMs
     }
+
+    /** BEST среди NORMAL_POOL: BS-сервера не рассматриваем. */
+    fun pickBestNormal(nodes: List<ProxyNode>, pings: Map<String, PingState>): ProxyNode? =
+        pickBest(nodes.filterNot(::isBsServer), pings)
+
+    fun bestPingMsNormal(nodes: List<ProxyNode>, pings: Map<String, PingState>): Int? =
+        bestPingMs(nodes.filterNot(::isBsServer), pings)
 }

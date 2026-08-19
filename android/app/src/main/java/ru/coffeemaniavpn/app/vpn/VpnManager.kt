@@ -58,12 +58,14 @@ object VpnManager {
                 }
                 startElapsedTicker()
                 VpnAutoReconnect.onConnected()
+                VpnPoolBalancer.onVpnStarted()
             }
             VpnStatus.Stopped -> {
                 connectedSinceMs = null
                 _connectionElapsedMs.value = 0L
                 _trafficRates.value = VpnTrafficRates()
                 stopElapsedTicker()
+                VpnPoolBalancer.onVpnStopped()
             }
             else -> Unit
         }

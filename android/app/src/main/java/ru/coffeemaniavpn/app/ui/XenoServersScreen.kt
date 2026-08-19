@@ -183,7 +183,7 @@ fun XenoServersScreen(
                 }
 
                 item {
-                    val autoPingMs = LoadBalancer.bestPingMs(state.nodes, state.nodePings)
+                    val autoPingMs = LoadBalancer.bestPingMsNormal(state.nodes, state.nodePings)
                     val autoSelected = state.selectedNodeId == LoadBalancer.AUTO_NODE_ID
                     val pingLoading = state.isPinging && autoPingMs == null
                     XenoAutoBalancerCard(

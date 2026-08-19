@@ -62,7 +62,8 @@ object VpnQuickConnect {
         val selectedId = preferences.selectedNodeId.first()
         val pings = emptyMap<String, ru.coffeemaniavpn.app.data.PingState>()
         if (selectedId == LoadBalancer.AUTO_NODE_ID) {
-            return LoadBalancer.pickBest(nodes, pings)
+            // BS — только fallback, поэтому первично пробуем NORMAL.
+            return LoadBalancer.pickBestNormal(nodes, pings) ?: LoadBalancer.pickBest(nodes, pings)
         }
         val selected = nodes.find { it.id == selectedId }
         if (selected != null) return selected

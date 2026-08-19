@@ -772,7 +772,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun resolveNodeForSelection(nodeId: String): ProxyNode? {
         val state = uiState.value
         if (nodeId == LoadBalancer.AUTO_NODE_ID) {
-            return LoadBalancer.pickBest(state.nodes, state.nodePings)
+            // В новой системе BS — только fallback, поэтому для AUTO первично выбираем NORMAL.
+            val normal = LoadBalancer.connectableNormalNodes(state.nodes)
+            val bestNormal = LoadBalancer.pickBestNormal(normal, state.nodePings)
+            return bestNormal
+                ?: normal.firstOrNull()
+                // Если NORMAL_POOL пустой — тогда подключаемся к любому доступному (в т.ч. BS).
+                ?: LoadBalancer.pickBest(state.nodes, state.nodePings)
                 ?: state.nodes.firstOrNull()
         }
         return state.nodes.find { it.id == nodeId }
@@ -908,7 +914,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun resolveConnectNode(): ProxyNode? {
         val state = uiState.value
         if (state.selectedNodeId == LoadBalancer.AUTO_NODE_ID) {
-            return LoadBalancer.pickBest(state.nodes, state.nodePings)
+            // Для AUTO пока не ушли в health-check fallback — стараемся выбрать NORMAL.
+            val normal = LoadBalancer.connectableNormalNodes(state.nodes)
+            return LoadBalancer.pickBestNormal(normal, state.nodePings)
+                ?: normal.firstOrNull()
+                ?: LoadBalancer.pickBest(state.nodes, state.nodePings)
         }
         return state.nodes.find { it.id == state.selectedNodeId }
     }

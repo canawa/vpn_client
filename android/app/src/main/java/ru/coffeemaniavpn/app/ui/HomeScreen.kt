@@ -310,7 +310,7 @@ private fun resolvedAutoNode(state: MainUiState): ProxyNode? {
     val connected = VpnAutoReconnect.connectedNode()
         ?.takeIf { node -> state.nodes.any { it.id == node.id } }
         ?.takeUnless { LoadBalancer.isOnWifi() && LoadBalancer.isLteServer(it) }
-    return connected ?: LoadBalancer.pickBest(state.nodes, state.nodePings)
+    return connected ?: LoadBalancer.pickBestNormal(state.nodes, state.nodePings)
 }
 
 private fun mappedNodeDisplay(node: ProxyNode, state: MainUiState): ServerDisplay {

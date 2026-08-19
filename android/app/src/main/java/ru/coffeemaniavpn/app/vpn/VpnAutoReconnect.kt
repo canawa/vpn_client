@@ -90,6 +90,9 @@ internal object VpnAutoReconnect {
         if (!LoadBalancer.isOnWifi()) return
         val current = connectedNode() ?: return
         if (!LoadBalancer.isLteServer(current)) return
+        // В BS-режиме не делаем принудительных переключений только из-за типа сети:
+        // пул выбирается по реальному health-check в VpnPoolBalancer.
+        if (LoadBalancer.isBsServer(current)) return
         val status = VpnManager.status.value
         if (status != VpnStatus.Started && status != VpnStatus.Starting) return
         val prefs = AppPreferences(App.instance)
