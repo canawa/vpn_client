@@ -16,6 +16,8 @@ object LoadBalancer {
         "cellular",
         "mobile internet",
         "для мобиль",
+        "глушил",
+        "глушилка",
     )
 
     /** Узлы «Авто / автовыбор» из подписки — скрываем, вместо них свой балансировщик. */
@@ -63,9 +65,12 @@ object LoadBalancer {
     fun hasBypassServers(nodes: List<ProxyNode>): Boolean =
         nodes.any { ServerCategory.BYPASS.matches(it.name) }
 
-    /** BS-сервера: всё, что связано с обходом «белых списков» (по маркировке в имени). */
+    /**
+     * BS-пул (fallback при блокировках): обход белых списков, LTE/📶, глушилка.
+     * Тип сети (Wi‑Fi / LTE) сам по себе BS не включает.
+     */
     fun isBsServer(node: ProxyNode): Boolean =
-        ServerCategory.BYPASS.matches(node.name)
+        ServerCategory.BYPASS.matches(node.name) || isLteServer(node)
 
     fun connectableNormalNodes(nodes: List<ProxyNode>): List<ProxyNode> =
         connectableNodes(nodes).filterNot(::isBsServer)
@@ -73,12 +78,11 @@ object LoadBalancer {
     fun connectableBsNodes(nodes: List<ProxyNode>): List<ProxyNode> =
         connectableNodes(nodes).filter(::isBsServer)
 
-    /** Лучший пинг среди серверов подписки (без remote-auto, без России; на Wi‑Fi без LTE). */
+    /** Лучший пинг среди переданных узлов (без remote-auto, без России). */
     fun pickBest(nodes: List<ProxyNode>, pings: Map<String, PingState>): ProxyNode? {
         val pool = connectableNodes(nodes)
-        val eligible = if (isOnWifi()) pool.filterNot(::isLteServer) else pool
-        val candidates = eligible.filterNot(::isRussianServer)
-        val source = candidates.ifEmpty { eligible }
+        val candidates = pool.filterNot(::isRussianServer)
+        val source = candidates.ifEmpty { pool }
         if (source.isEmpty()) return null
 
         val withPing = source.mapNotNull { node ->
@@ -98,10 +102,10 @@ object LoadBalancer {
         return (pings[best.id] as? PingState.Result)?.latencyMs
     }
 
-    /** BEST среди NORMAL_POOL: BS-сервера не рассматриваем. */
+    /** BEST среди NORMAL_POOL: BS/LTE не рассматриваются, пока есть обычные. */
     fun pickBestNormal(nodes: List<ProxyNode>, pings: Map<String, PingState>): ProxyNode? =
-        pickBest(nodes.filterNot(::isBsServer), pings)
+        pickBest(connectableNormalNodes(nodes), pings)
 
     fun bestPingMsNormal(nodes: List<ProxyNode>, pings: Map<String, PingState>): Int? =
-        bestPingMs(nodes.filterNot(::isBsServer), pings)
+        bestPingMs(connectableNormalNodes(nodes), pings)
 }

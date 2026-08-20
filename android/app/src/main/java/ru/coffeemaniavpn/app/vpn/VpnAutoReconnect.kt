@@ -85,21 +85,20 @@ internal object VpnAutoReconnect {
         }
     }
 
-    /** На Wi‑Fi автовыбор не должен оставаться на LTE-сервере. */
+    /** На Wi‑Fi не переподключаемся к LTE/BS, если есть обычный сервер. */
     private suspend fun maybeLeaveLteOnWifi() {
         if (!LoadBalancer.isOnWifi()) return
         val current = connectedNode() ?: return
-        if (!LoadBalancer.isLteServer(current)) return
-        // В BS-режиме не делаем принудительных переключений только из-за типа сети:
-        // пул выбирается по реальному health-check в VpnPoolBalancer.
-        if (LoadBalancer.isBsServer(current)) return
+        if (!LoadBalancer.isBsServer(current)) return
         val status = VpnManager.status.value
         if (status != VpnStatus.Started && status != VpnStatus.Starting) return
         val prefs = AppPreferences(App.instance)
         if (prefs.selectedNodeId.first() != LoadBalancer.AUTO_NODE_ID) return
-        val next = LoadBalancer.pickBest(prefs.nodes.first(), emptyMap()) ?: return
+        // Возврат на NORMAL делает VpnPoolBalancer по health-check; здесь только
+        // не оставляем BS из-за «привычки» LTE→Wi‑Fi без проверки.
+        val next = LoadBalancer.pickBestNormal(prefs.nodes.first(), emptyMap()) ?: return
         if (next.id == current.id) return
-        AppLog.i("WiFi: AUTO leaving LTE ${current.name} -> ${next.name}")
+        AppLog.i("WiFi: AUTO leaving BS/LTE ${current.name} -> ${next.name}")
         withContext(Dispatchers.Main) {
             VpnManager.switchToNode(next)
         }
@@ -117,12 +116,16 @@ internal object VpnAutoReconnect {
         reconnectJob = App.applicationScope.launch {
             waitUntilStopped()
             var node = lastNode ?: return@launch
-            if (LoadBalancer.isOnWifi() && LoadBalancer.isLteServer(node)) {
+            if (LoadBalancer.isBsServer(node)) {
                 val prefs = AppPreferences(App.instance)
                 if (prefs.selectedNodeId.first() == LoadBalancer.AUTO_NODE_ID) {
-                    node = LoadBalancer.pickBest(prefs.nodes.first(), emptyMap()) ?: return@launch
-                    lastNode = node
-                    AppLog.i("VpnAutoReconnect WiFi: skip LTE, use ${node.name}")
+                    // При реконнекте сначала NORMAL; BS только если обычных нет.
+                    val preferred = LoadBalancer.pickBestNormal(prefs.nodes.first(), emptyMap())
+                    if (preferred != null) {
+                        node = preferred
+                        lastNode = node
+                        AppLog.i("VpnAutoReconnect prefer NORMAL over BS: ${node.name}")
+                    }
                 }
             }
             if (!shouldReconnect()) return@launch
