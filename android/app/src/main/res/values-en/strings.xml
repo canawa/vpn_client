@@ -14,6 +14,11 @@
     <string name="clev_tagline">Fast and reliable access without borders</string>
     <string name="clev_paste_key">Paste your access key</string>
     <string name="clev_paste_clipboard">Paste from clipboard</string>
+    <string name="clev_scan_qr">Scan QR</string>
+    <string name="qr_scan_title">Scan QR code</string>
+    <string name="qr_scan_hint">Point the camera at a subscription QR code</string>
+    <string name="qr_camera_denied">Camera access denied</string>
+    <string name="qr_camera_denied_hint">Allow camera access in app settings</string>
     <string name="clev_activate">Activate</string>
     <string name="clev_key_hint">The key is provided with your subscription</string>
     <string name="clev_all">All</string>

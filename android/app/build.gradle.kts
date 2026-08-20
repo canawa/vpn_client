@@ -101,6 +101,12 @@ dependencies {
     implementation("sh.calvin.reorderable:reorderable:2.4.3")
     implementation("io.coil-kt:coil-svg:2.7.0")
 
+    val cameraX = "1.4.1"
+    implementation("androidx.camera:camera-camera2:$cameraX")
+    implementation("androidx.camera:camera-lifecycle:$cameraX")
+    implementation("androidx.camera:camera-view:$cameraX")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
     testImplementation("junit:junit:4.13.2")
 
     debugImplementation("androidx.compose.ui:ui-tooling")

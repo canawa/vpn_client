@@ -44,6 +44,7 @@ import ru.coffeemaniavpn.app.data.TvImportClient
 import ru.coffeemaniavpn.app.data.TvImportSubmitResult
 import ru.coffeemaniavpn.app.deeplink.DeepLinkAction
 import ru.coffeemaniavpn.app.deeplink.DeepLinkEffect
+import ru.coffeemaniavpn.app.deeplink.SubscriptionQrParser
 import ru.coffeemaniavpn.app.deeplink.DeepLinkParser
 import ru.coffeemaniavpn.app.deeplink.TvImportHostValidator
 import kotlinx.coroutines.flow.asStateFlow
@@ -608,9 +609,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             error.value = invalidSubscriptionLink()
             return
         }
+        applySubscriptionLink(text, "pasteSubscriptionFromClipboard")
+    }
+
+    fun applySubscriptionFromQr(raw: String) {
+        val url = SubscriptionQrParser.parseSubscriptionUrl(raw)
+        if (url == null) {
+            error.value = invalidSubscriptionLink()
+            return
+        }
+        applySubscriptionLink(url, "applySubscriptionFromQr")
+    }
+
+    private fun applySubscriptionLink(text: String, logTag: String) {
         subscriptionUrlInput.value = text
         message.value = appStr(R.string.msg_link_pasted)
-        AppLog.i("pasteSubscriptionFromClipboard urlLen=${text.length}")
+        AppLog.i("$logTag urlLen=${text.length}")
         refreshConfig(showUrlRequiredError = false)
     }
 

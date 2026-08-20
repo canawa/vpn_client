@@ -15,6 +15,11 @@
     <string name="clev_tagline">Быстрый и стабильный доступ без границ</string>
     <string name="clev_paste_key">Вставьте ключ доступа</string>
     <string name="clev_paste_clipboard">Вставить из буфера</string>
+    <string name="clev_scan_qr">Сканировать QR</string>
+    <string name="qr_scan_title">Сканирование QR-кода</string>
+    <string name="qr_scan_hint">Наведите камеру на QR-код с ключом подписки</string>
+    <string name="qr_camera_denied">Нет доступа к камере</string>
+    <string name="qr_camera_denied_hint">Разрешите доступ к камере в настройках приложения</string>
     <string name="clev_activate">Активировать</string>
     <string name="clev_key_hint">Ключ выдаётся вместе с подпиской</string>
     <string name="clev_all">Все</string>

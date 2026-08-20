@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
@@ -87,6 +88,7 @@ fun HomeScreen(
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onPasteLinkClick: () -> Unit,
+    onScanQrClick: () -> Unit,
     onOpenSettings: () -> Unit,
     onSelectNode: (String) -> Unit,
     onConnectToNode: (String) -> Unit,
@@ -104,6 +106,7 @@ fun HomeScreen(
             isLoading = state.isLoading,
             error = state.error,
             onPasteLinkClick = onPasteLinkClick,
+            onScanQrClick = onScanQrClick,
         )
         return
     }
@@ -334,6 +337,7 @@ fun ActivationScreen(
     isLoading: Boolean,
     error: String?,
     onPasteLinkClick: () -> Unit,
+    onScanQrClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
@@ -379,28 +383,64 @@ fun ActivationScreen(
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(28.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(Brush.linearGradient(listOf(colors.yellow, colors.amber)))
-                .clickable(enabled = !isLoading, onClick = onPasteLinkClick)
-                .padding(vertical = 16.dp),
-            contentAlignment = Alignment.Center,
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    color = Color.Black,
-                    strokeWidth = 2.dp,
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.clev_paste_clipboard),
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Brush.linearGradient(listOf(colors.yellow, colors.amber)))
+                    .clickable(enabled = !isLoading, onClick = onPasteLinkClick)
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = Color.Black,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.clev_paste_clipboard),
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.5.dp, colors.espresso.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .background(colors.milkFoam)
+                    .clickable(enabled = !isLoading, onClick = onScanQrClick)
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QrCodeScanner,
+                        contentDescription = null,
+                        tint = colors.espresso,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.clev_scan_qr),
+                        color = colors.espresso,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
         error?.let {

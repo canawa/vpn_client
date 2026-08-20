@@ -30,6 +30,7 @@ import ru.coffeemaniavpn.app.deeplink.DeepLinkEffect
 import ru.coffeemaniavpn.app.ui.AppShell
 import ru.coffeemaniavpn.app.ui.CoffemaniaTheme
 import ru.coffeemaniavpn.app.ui.MainViewModel
+import ru.coffeemaniavpn.app.ui.QrScanScreen
 import ru.coffeemaniavpn.app.ui.TvImportScreen
 import ru.coffeemaniavpn.app.ui.TvImportUiState
 import ru.coffeemaniavpn.app.util.AppLocale
@@ -41,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModels()
     private var pendingConnectNode: ProxyNode? = null
     private var pendingQuickTileConnect by mutableStateOf(false)
+    private var showQrScanner by mutableStateOf(false)
 
     private val vpnPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -110,6 +112,7 @@ class MainActivity : AppCompatActivity() {
                                 onRefreshPing = viewModel::pingAllNodes,
                                 onRefreshConfig = viewModel::refreshConfig,
                                 onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
+                                onScanQrClick = { showQrScanner = true },
                                 onReorderFilters = viewModel::setHomeFilterOrder,
                                 onDeleteSubscriptionClick = viewModel::deleteSubscription,
                                 onSaveConnectionSettings = viewModel::saveConnectionSettings,
@@ -120,6 +123,15 @@ class MainActivity : AppCompatActivity() {
                                 onTrafficRoutingModeChange = viewModel::setTrafficRoutingMode,
                                 onLanguageChange = ::changeLanguage,
                             )
+                            if (showQrScanner) {
+                                QrScanScreen(
+                                    onDismiss = { showQrScanner = false },
+                                    onScanned = { raw ->
+                                        showQrScanner = false
+                                        viewModel.applySubscriptionFromQr(raw)
+                                    },
+                                )
+                            }
                             if (tvImport !is TvImportUiState.Hidden) {
                                 TvImportScreen(
                                     state = tvImport,
