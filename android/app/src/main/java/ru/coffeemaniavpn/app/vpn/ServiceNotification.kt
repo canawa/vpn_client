@@ -56,16 +56,11 @@ class ServiceNotification(private val service: Service) {
                 ),
             )
         }
-        val title = loc(R.string.vpn_notification_title)
-        val preview = serverLine.ifBlank { statusLine }
-        val style = NotificationCompat.InboxStyle()
+        val title = serverLine.ifBlank { statusLine }
+        val text = if (serverLine.isNotBlank()) statusLine else ""
+        val style = NotificationCompat.BigTextStyle()
             .setBigContentTitle(title)
-        if (serverLine.isNotBlank()) {
-            style.addLine(serverLine)
-        }
-        if (statusLine.isNotBlank()) {
-            style.addLine(statusLine)
-        }
+            .bigText(text)
         val stopIntent = PendingIntent.getService(
             service,
             1,
@@ -82,7 +77,7 @@ class ServiceNotification(private val service: Service) {
             notificationId,
             builder
                 .setContentTitle(title)
-                .setContentText(preview)
+                .setContentText(text)
                 .setStyle(style)
                 .build(),
         )

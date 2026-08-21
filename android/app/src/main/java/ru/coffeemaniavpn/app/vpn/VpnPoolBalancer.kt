@@ -11,6 +11,7 @@ import kotlinx.coroutines.sync.withLock
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.data.AppPreferences
 import ru.coffeemaniavpn.app.data.LoadBalancer
+import ru.coffeemaniavpn.app.data.PingNetworkBypass
 import ru.coffeemaniavpn.app.data.PingState
 import ru.coffeemaniavpn.app.data.ProxyNode
 import ru.coffeemaniavpn.app.data.ServerPinger
@@ -29,10 +30,11 @@ object VpnPoolBalancer {
     private val switchMutex = Mutex()
     private var loopJob: kotlinx.coroutines.Job? = null
 
-    private const val HEALTH_CHECK_INTERVAL_MS = 15_000L
+    private const val HEALTH_CHECK_INTERVAL_MS = 8_000L
     private const val CURRENT_NODE_FAIL_THRESHOLD = 2
     private const val VERIFY_SUCCESS_STREAK = 2
     private const val VERIFY_BETWEEN_CHECKS_MS = 1_500L
+    private const val TCP_PROBE_TIMEOUT_MS = 2_000
 
     private const val SWITCH_TIMEOUT_MS = 25_000L
     private const val POST_SWITCH_SETTLE_MS = 2_000L
@@ -41,6 +43,8 @@ object VpnPoolBalancer {
 
     private var currentFailStreak = 0
     private var lastBsNormalRecheckAtMs: Long = 0L
+    @Volatile
+    private var forceFailover = false
 
     fun onVpnStarted() {
         if (loopJob?.isActive == true) return
@@ -49,11 +53,20 @@ object VpnPoolBalancer {
         }
     }
 
+    fun isLoopActive(): Boolean = loopJob?.isActive == true
+
     fun onVpnStopped() {
+        if (VpnManager.switchingNode) return
         loopJob?.cancel()
         loopJob = null
         currentFailStreak = 0
+        forceFailover = false
         lastBsNormalRecheckAtMs = 0L
+    }
+
+    fun requestFailover() {
+        forceFailover = true
+        AppLog.w("VpnPoolBalancer failover requested")
     }
 
     private suspend fun runLoop() {
@@ -61,6 +74,7 @@ object VpnPoolBalancer {
         delay(2_000L)
         while (kotlin.coroutines.coroutineContext.isActive) {
             if (!isAutoMode()) {
+                AppLog.i("VpnPoolBalancer stop: not AUTO")
                 onVpnStopped()
                 return
             }
@@ -91,13 +105,19 @@ object VpnPoolBalancer {
                 }
             }
 
-            val ok = checkCurrentNodeHealth()
+            val ok = !forceFailover && checkCurrentNodeHealth()
             if (ok) {
                 currentFailStreak = 0
+                forceFailover = false
             } else {
-                currentFailStreak++
+                if (forceFailover) {
+                    currentFailStreak = CURRENT_NODE_FAIL_THRESHOLD
+                    forceFailover = false
+                } else {
+                    currentFailStreak++
+                }
                 if (currentFailStreak < CURRENT_NODE_FAIL_THRESHOLD) {
-                    delay(HEALTH_CHECK_INTERVAL_MS)
+                    waitHealthInterval()
                     continue
                 }
 
@@ -112,12 +132,23 @@ object VpnPoolBalancer {
                 }
 
                 if (!switched) {
+                    VpnManager.clearSwitchingNode()
                     VpnManager.setError("Нет рабочих серверов")
                 }
                 currentFailStreak = 0
             }
 
-            delay(HEALTH_CHECK_INTERVAL_MS)
+            waitHealthInterval()
+        }
+    }
+
+    private suspend fun waitHealthInterval() {
+        var waited = 0L
+        while (waited < HEALTH_CHECK_INTERVAL_MS && !forceFailover &&
+            kotlin.coroutines.coroutineContext.isActive
+        ) {
+            delay(500L)
+            waited += 500L
         }
     }
 
@@ -126,10 +157,30 @@ object VpnPoolBalancer {
         return prefs.selectedNodeId.first() == LoadBalancer.AUTO_NODE_ID
     }
 
-    /** Health-check текущего подключения: туннель прокидывает generate_204. */
-    private fun checkCurrentNodeHealth(): Boolean {
-        val delayMs = XrayCoreManager.measureDelayAny() ?: return false
-        return delayMs > 0L
+    /** Health-check: TCP до ноды (панель выключила inbound) + generate_204 через туннель. */
+    private suspend fun checkCurrentNodeHealth(): Boolean {
+        val current = VpnAutoReconnect.connectedNode() ?: return false
+        if (!current.isHysteria2) {
+            val tcpOk = withContext(Dispatchers.IO) {
+                PingNetworkBypass.tcpConnect(
+                    current.host,
+                    current.port,
+                    TCP_PROBE_TIMEOUT_MS,
+                ) != null
+            }
+            if (!tcpOk) {
+                AppLog.w(
+                    "VpnPoolBalancer TCP dead node=${current.name} ${current.host}:${current.port}",
+                )
+                return false
+            }
+        }
+        val delayMs = withContext(Dispatchers.IO) {
+            XrayCoreManager.measureDelayAny(tryFallbacks = false)
+        }
+        val ok = delayMs != null && delayMs > 0L
+        AppLog.i("VpnPoolBalancer health node=${current.name} delayMs=$delayMs ok=$ok")
+        return ok
     }
 
     private suspend fun verifyNodeHealthAfterSwitch(node: ProxyNode): Boolean {
@@ -172,7 +223,7 @@ object VpnPoolBalancer {
     }
 
     private suspend fun trySwitchToWorkingNormalThenBs(): Boolean {
-        val nodes = AppPreferences(App.instance).nodes.first()
+        val nodes = LoadBalancer.connectableNodes(AppPreferences(App.instance).nodes.first())
         val normal = nodes
             .filterNot { LoadBalancer.isBsServer(it) }
             .filterNot { LoadBalancer.isRussianServer(it) }
@@ -192,7 +243,7 @@ object VpnPoolBalancer {
     }
 
     private suspend fun trySwitchToWorkingBs(): Boolean {
-        val nodes = AppPreferences(App.instance).nodes.first()
+        val nodes = LoadBalancer.connectableNodes(AppPreferences(App.instance).nodes.first())
         val bs = nodes
             .filter { LoadBalancer.isBsServer(it) }
             .filterNot { LoadBalancer.isRussianServer(it) }
@@ -209,7 +260,7 @@ object VpnPoolBalancer {
     private suspend fun tryReturnToWorkingNormal(forceTest: Boolean): Boolean {
         // forceTest пока не меняет поведение (health-check один и тот же),
         // но оставлено для будущей hysteresis-логики.
-        val nodes = AppPreferences(App.instance).nodes.first()
+        val nodes = LoadBalancer.connectableNodes(AppPreferences(App.instance).nodes.first())
         val normal = nodes
             .filterNot { LoadBalancer.isBsServer(it) }
             .filterNot { LoadBalancer.isRussianServer(it) }
@@ -239,9 +290,8 @@ object VpnPoolBalancer {
             }
         }
 
-        // По твоей схеме BS включаем только когда НЕ работает весь NORMAL_POOL.
-        // Поэтому тестируем кандидатов по очереди до первого success (фактически — весь пул при необходимости).
-        val toTry = pingSorted
+        val currentId = VpnAutoReconnect.connectedNode()?.id
+        val toTry = pingSorted.filter { it.id != currentId }
 
         AppLog.i("VpnPoolBalancer $label testing candidates=${toTry.joinToString { it.name }}")
         for (node in toTry) {

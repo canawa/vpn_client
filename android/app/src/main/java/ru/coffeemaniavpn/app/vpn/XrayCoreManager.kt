@@ -9,17 +9,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.util.AppLog
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 object XrayCoreManager {
     private val initialized = AtomicBoolean(false)
     private var coreController: CoreController? = null
+    private val measureExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "xray-measure-delay").apply { isDaemon = true }
+    }
 
     private val HEALTH_CHECK_URLS = listOf(
         "https://www.gstatic.com/generate_204",
         "https://cp.cloudflare.com/generate_204",
         "https://connectivitycheck.gstatic.com/generate_204",
     )
+    private const val MEASURE_TIMEOUT_MS = 6_000L
 
     fun init(context: Context) {
         if (!initialized.compareAndSet(false, true)) return
@@ -77,17 +85,39 @@ object XrayCoreManager {
     }
 
     /** Задержка до URL через текущий прокси-outbound (мс), для проверки после подключения. */
-    fun measureDelay(url: String = HEALTH_CHECK_URLS.first()): Long? {
+    fun measureDelay(
+        url: String = HEALTH_CHECK_URLS.first(),
+        timeoutMs: Long = MEASURE_TIMEOUT_MS,
+    ): Long? {
         val controller = coreController ?: return null
         if (!controller.isRunning) return null
-        return runCatching { controller.measureDelay(url) }
-            .onFailure { AppLog.w("measureDelay failed url=$url", it) }
-            .getOrNull()
+        val future = measureExecutor.submit(
+            Callable {
+                runCatching { controller.measureDelay(url) }
+                    .onFailure { AppLog.w("measureDelay failed url=$url", it) }
+                    .getOrNull()
+            },
+        )
+        return try {
+            future.get(timeoutMs, TimeUnit.MILLISECONDS)?.takeIf { it > 0L }
+        } catch (_: TimeoutException) {
+            future.cancel(true)
+            AppLog.w("measureDelay timeout ${timeoutMs}ms url=$url")
+            null
+        } catch (t: Exception) {
+            future.cancel(true)
+            AppLog.w("measureDelay failed url=$url", t)
+            null
+        }
     }
 
-    /** Пробует несколько URL — gstatic иногда недоступен через часть серверов. */
-    fun measureDelayAny(): Long? {
-        for (url in HEALTH_CHECK_URLS) {
+    /**
+     * Пробует несколько URL — gstatic иногда недоступен через часть серверов.
+     * [tryFallbacks]=false — один URL, чтобы failover не ждал ~30 с.
+     */
+    fun measureDelayAny(tryFallbacks: Boolean = true): Long? {
+        val urls = if (tryFallbacks) HEALTH_CHECK_URLS else HEALTH_CHECK_URLS.take(1)
+        for (url in urls) {
             val delay = measureDelay(url)
             if (delay != null && delay > 0) return delay
         }

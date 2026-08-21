@@ -25,6 +25,10 @@ object VpnManager {
     @Volatile
     private var pendingReconnectNode: ProxyNode? = null
 
+    @Volatile
+    var switchingNode: Boolean = false
+        private set
+
     private val _status = MutableStateFlow(VpnStatus.Stopped)
     val status = _status.asStateFlow()
 
@@ -53,6 +57,7 @@ object VpnManager {
         }
         when (value) {
             VpnStatus.Started -> {
+                switchingNode = false
                 if (connectedSinceMs == null) {
                     connectedSinceMs = System.currentTimeMillis()
                 }
@@ -65,7 +70,9 @@ object VpnManager {
                 _connectionElapsedMs.value = 0L
                 _trafficRates.value = VpnTrafficRates()
                 stopElapsedTicker()
-                VpnPoolBalancer.onVpnStopped()
+                if (!switchingNode && pendingReconnectNode == null) {
+                    VpnPoolBalancer.onVpnStopped()
+                }
             }
             else -> Unit
         }
@@ -160,16 +167,21 @@ object VpnManager {
         }
     }
 
-    /** Смена узла: остановить туннель и поднять его на [node] без kill switch. */
+    /** Смена узла без «ручного отключения»: балансировщик должен перебрать следующие серверы. */
     fun switchToNode(node: ProxyNode) {
         AppLog.i("VpnManager.switchToNode ${node.name}")
+        switchingNode = true
         pendingReconnectNode = node
-        disconnect(userInitiated = true)
+        VpnAutoReconnect.rememberNode(node)
+        userInitiatedDisconnect = false
+        BoxService.stop(userInitiated = false)
     }
 
     fun disconnect(userInitiated: Boolean = true) {
         AppLog.i("VpnManager.disconnect userInitiated=$userInitiated")
         if (userInitiated) {
+            switchingNode = false
+            pendingReconnectNode = null
             markUserDisconnectRequested()
         } else {
             userInitiatedDisconnect = false
@@ -194,6 +206,12 @@ object VpnManager {
             connect(next)
             return
         }
+        val balancerActive = VpnPoolBalancer.isLoopActive()
+        switchingNode = false
+        if (balancerActive) {
+            AppLog.i("VpnManager skip auto-reconnect: pool balancer active")
+            return
+        }
         val engageKillSwitch = !userInitiatedDisconnect
         App.applicationScope.launch(Dispatchers.IO) {
             App.awaitSettingsReady()
@@ -205,5 +223,10 @@ object VpnManager {
         VpnAutoReconnect.onUnexpectedDisconnect()
 
         userInitiatedDisconnect = false
+    }
+
+    internal fun clearSwitchingNode() {
+        switchingNode = false
+        pendingReconnectNode = null
     }
 }

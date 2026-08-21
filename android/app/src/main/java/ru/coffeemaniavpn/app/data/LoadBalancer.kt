@@ -108,4 +108,15 @@ object LoadBalancer {
 
     fun bestPingMsNormal(nodes: List<ProxyNode>, pings: Map<String, PingState>): Int? =
         bestPingMs(connectableNormalNodes(nodes), pings)
+
+    /** Следующий сервер для AUTO, кроме уже мёртвых. Сначала NORMAL, потом BS. */
+    fun pickBestExcluding(
+        nodes: List<ProxyNode>,
+        pings: Map<String, PingState>,
+        excludeIds: Set<String>,
+    ): ProxyNode? {
+        val remaining = nodes.filterNot { it.id in excludeIds }
+        if (remaining.isEmpty()) return null
+        return pickBestNormal(remaining, pings) ?: pickBest(remaining, pings)
+    }
 }

@@ -26,6 +26,7 @@ internal object VpnAutoReconnect {
     private var reconnectJob: Job? = null
     private var attempt = 0
     private var networkWatcherStarted = false
+    private val failedNodeIds = linkedSetOf<String>()
 
     fun rememberNode(node: ProxyNode) {
         lastNode = node
@@ -37,11 +38,13 @@ internal object VpnAutoReconnect {
     fun clear() {
         lastNode = null
         attempt = 0
+        failedNodeIds.clear()
         cancelScheduled()
     }
 
     fun onConnected() {
         attempt = 0
+        lastNode?.id?.let { failedNodeIds.remove(it) }
         cancelScheduled()
     }
 
@@ -52,6 +55,10 @@ internal object VpnAutoReconnect {
     }
 
     fun onConnectFailed() {
+        if (VpnPoolBalancer.isLoopActive()) {
+            AppLog.w("VpnAutoReconnect skip connect-failed: pool balancer active")
+            return
+        }
         if (!shouldReconnect()) return
         AppLog.w("VpnAutoReconnect connect failed, scheduling retry")
         schedule()
@@ -104,6 +111,32 @@ internal object VpnAutoReconnect {
         }
     }
 
+    private suspend fun resolveReconnectNode(): ProxyNode? {
+        val failed = lastNode
+        val prefs = AppPreferences(App.instance)
+        val selected = prefs.selectedNodeId.first()
+        if (selected != LoadBalancer.AUTO_NODE_ID) return failed
+
+        failed?.id?.let { failedNodeIds.add(it) }
+        val nodes = prefs.nodes.first()
+        val next = LoadBalancer.pickBestExcluding(nodes, emptyMap(), failedNodeIds)
+        if (next != null) {
+            lastNode = next
+            AppLog.i(
+                "VpnAutoReconnect AUTO skipFailed=${failed?.name} -> ${next.name} " +
+                    "failedIds=${failedNodeIds.size}",
+            )
+            return next
+        }
+        failedNodeIds.clear()
+        val fallback = LoadBalancer.pickBestNormal(nodes, emptyMap())
+            ?: LoadBalancer.pickBest(nodes, emptyMap())
+            ?: failed
+        if (fallback != null) lastNode = fallback
+        AppLog.w("VpnAutoReconnect AUTO pool exhausted, fallback=${fallback?.name}")
+        return fallback
+    }
+
     private fun shouldReconnect(): Boolean {
         if (lastNode == null) return false
         if (VpnManager.userInitiatedDisconnect) return false
@@ -115,19 +148,7 @@ internal object VpnAutoReconnect {
         cancelScheduled()
         reconnectJob = App.applicationScope.launch {
             waitUntilStopped()
-            var node = lastNode ?: return@launch
-            if (LoadBalancer.isBsServer(node)) {
-                val prefs = AppPreferences(App.instance)
-                if (prefs.selectedNodeId.first() == LoadBalancer.AUTO_NODE_ID) {
-                    // При реконнекте сначала NORMAL; BS только если обычных нет.
-                    val preferred = LoadBalancer.pickBestNormal(prefs.nodes.first(), emptyMap())
-                    if (preferred != null) {
-                        node = preferred
-                        lastNode = node
-                        AppLog.i("VpnAutoReconnect prefer NORMAL over BS: ${node.name}")
-                    }
-                }
-            }
+            val node = resolveReconnectNode() ?: return@launch
             if (!shouldReconnect()) return@launch
 
             val delayMs = nextDelay()

@@ -15,7 +15,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 import ru.coffeemaniavpn.app.App
+import ru.coffeemaniavpn.app.data.AppPreferences
+import ru.coffeemaniavpn.app.data.LoadBalancer
 import ru.coffeemaniavpn.app.data.formatTrafficSpeedLine
 import ru.coffeemaniavpn.app.util.AppLog
 import ru.coffeemaniavpn.app.vpn.VpnDiagnostics
@@ -286,11 +289,21 @@ class BoxService(
                     failures++
                     VpnDiagnostics.snapshot("watchdog-failure-$failures")
                     if (failures >= WATCHDOG_FAILURE_THRESHOLD) {
-                        AppLog.w("BoxService watchdog: reconnecting after $failures failures")
-                        withContext(Dispatchers.Main) {
-                            VpnManager.disconnect(userInitiated = false)
+                        val auto = runCatching {
+                            AppPreferences(App.instance).selectedNodeId.first() ==
+                                LoadBalancer.AUTO_NODE_ID
+                        }.getOrDefault(false)
+                        if (auto) {
+                            AppLog.w("BoxService watchdog: AUTO failover after $failures failures")
+                            VpnPoolBalancer.requestFailover()
+                            failures = 0
+                        } else {
+                            AppLog.w("BoxService watchdog: reconnecting after $failures failures")
+                            withContext(Dispatchers.Main) {
+                                VpnManager.disconnect(userInitiated = false)
+                            }
+                            break
                         }
-                        break
                     }
                 }
                 delay(WATCHDOG_INTERVAL_MS)

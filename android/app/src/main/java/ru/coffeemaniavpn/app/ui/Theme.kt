@@ -79,8 +79,8 @@ object CoffemaniaColors {
     val ConnectDisabledIcon = TextSecondary
 
     fun pingColor(latencyMs: Int): Color = when {
-        latencyMs <= 90 -> Color(0xFF00D4A8) // good
-        latencyMs <= 150 -> Orange // yellow/amber
+        latencyMs <= 130 -> Color(0xFF00D4A8)
+        latencyMs <= 160 -> Orange
         else -> Red
     }
 }

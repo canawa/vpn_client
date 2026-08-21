@@ -462,10 +462,10 @@ fun XenoSignalBars(
     }
 }
 
-/** 3 ≤100 ms · 2 ≤200 ms · 1 ≤300 ms · иначе 1. */
+/** 3 ≤130 ms · 2 ≤160 ms · иначе 1. */
 fun xenoPingSignalStrength(pingMs: Int): Int = when {
-    pingMs <= 100 -> 3
-    pingMs <= 200 -> 2
+    pingMs <= 130 -> 3
+    pingMs <= 160 -> 2
     else -> 1
 }
 
