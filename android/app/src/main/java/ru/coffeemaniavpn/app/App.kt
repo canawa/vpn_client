@@ -18,6 +18,7 @@ import ru.coffeemaniavpn.app.data.AppPreferences
 import ru.coffeemaniavpn.app.util.AppLocale
 import ru.coffeemaniavpn.app.data.PingNetworkBypass
 import ru.coffeemaniavpn.app.util.AppLog
+import ru.coffeemaniavpn.app.vpn.NetworkLossNotifier
 import ru.coffeemaniavpn.app.vpn.VpnManager
 import ru.coffeemaniavpn.app.vpn.XrayCoreManager
 import java.io.File
@@ -37,6 +38,7 @@ class App : Application() {
         applyStoredLanguage()
         VpnManager.init()
         PingNetworkBypass.ensureListening(this)
+        NetworkLossNotifier.start()
         runCatching { ru.coffeemaniavpn.app.widget.VpnHomeWidgetAnimator.ensureStarted(this) }
 
         applicationScope.launch(Dispatchers.IO) {

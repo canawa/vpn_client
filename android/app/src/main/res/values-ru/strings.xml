@@ -5,6 +5,8 @@
     <string name="vpn_session_name">ClevVPN</string>
     <string name="vpn_notification_channel">VPN</string>
     <string name="vpn_notification_title">ClevVPN</string>
+    <string name="network_lost_notification_channel">Сеть</string>
+    <string name="network_lost_notification">Кажется, интернет пропал. Проверьте подключение</string>
     <string name="vpn_starting">Подключение…</string>
     <string name="vpn_connected">Подключено</string>
     <string name="vpn_stop">Отключить</string>
