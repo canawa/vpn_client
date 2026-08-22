@@ -336,9 +336,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val generation = ++pingGeneration
         pingJob = viewModelScope.launch {
             nodePings.value = nodes.associate { it.id to PingState.Loading }
+            val batchTimeoutMs = ServerPinger.estimatedBatchTimeoutMs(nodes.size)
             val watchdogs = nodes.map { node ->
                 launch {
-                    delay(ServerPinger.PER_NODE_TIMEOUT_MS + 500L)
+                    delay(batchTimeoutMs)
                     if (generation != pingGeneration) return@launch
                     if (nodePings.value[node.id] is PingState.Loading) {
                         nodePings.value = nodePings.value + (node.id to PingState.Unreachable)

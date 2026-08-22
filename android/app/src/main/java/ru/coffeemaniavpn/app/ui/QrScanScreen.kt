@@ -10,15 +10,20 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -34,9 +39,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -93,13 +108,16 @@ fun QrScanScreen(
                     }
                 },
             )
+            QrScanGuide(
+                modifier = Modifier.fillMaxSize(),
+            )
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                verticalArrangement = Arrangement.Center,
             ) {
                 Text(
                     text = stringResource(R.string.qr_camera_denied),
@@ -131,34 +149,109 @@ fun QrScanScreen(
                 tint = Color.White,
             )
         }
+    }
+}
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 32.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.Black.copy(alpha = 0.55f))
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(R.string.qr_scan_title),
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
+@Composable
+private fun QrScanGuide(
+    modifier: Modifier = Modifier,
+) {
+    val frameColor = Color(0xFFFFC400)
+    val dimColor = Color.Black.copy(alpha = 0.52f)
+    val cornerLength = 32.dp
+    val strokeWidth = 5.dp
+    val cornerRadius = 20.dp
+
+    BoxWithConstraints(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        val frameSize = minOf(maxWidth * 0.68f, 280.dp)
+        // Чуть выше центра, чтобы подсказка не уезжала к навбару.
+        val frameLift = maxHeight * 0.06f
+        val density = LocalDensity.current
+        val frameTopPx = with(density) {
+            ((maxHeight - frameSize) / 2f - frameLift).toPx()
+        }
+        val frameSidePx = with(density) { frameSize.toPx() }
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val left = (size.width - frameSidePx) / 2f
+            val top = frameTopPx
+            val frameRect = Rect(left, top, left + frameSidePx, top + frameSidePx)
+            val radius = cornerRadius.toPx()
+
+            val hole = Path().apply {
+                addRoundRect(RoundRect(frameRect, CornerRadius(radius, radius)))
+            }
+            clipPath(hole, clipOp = ClipOp.Difference) {
+                drawRect(dimColor)
+            }
+
+            val stroke = strokeWidth.toPx()
+            val arm = cornerLength.toPx()
+            val inset = stroke / 2f
+
+            fun drawCorner(x: Float, y: Float, dx: Float, dy: Float) {
+                drawLine(
+                    color = frameColor,
+                    start = Offset(x, y),
+                    end = Offset(x + dx * arm, y),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.qr_scan_hint),
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
+                drawLine(
+                    color = frameColor,
+                    start = Offset(x, y),
+                    end = Offset(x, y + dy * arm),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
                 )
             }
+
+            drawCorner(left + inset, top + inset, 1f, 1f)
+            drawCorner(left + frameSidePx - inset, top + inset, -1f, 1f)
+            drawCorner(left + inset, top + frameSidePx - inset, 1f, -1f)
+            drawCorner(left + frameSidePx - inset, top + frameSidePx - inset, -1f, -1f)
+
+            drawRoundRect(
+                color = frameColor.copy(alpha = 0.35f),
+                topLeft = Offset(left, top),
+                size = Size(frameSidePx, frameSidePx),
+                cornerRadius = CornerRadius(radius, radius),
+                style = Stroke(width = 2.dp.toPx()),
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = with(density) { (frameTopPx + frameSidePx).toDp() } + 20.dp)
+                .padding(horizontal = 28.dp)
+                .widthIn(max = 360.dp)
+                .background(
+                    color = Color.Black.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(16.dp),
+                )
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.qr_scan_title),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.qr_scan_hint),
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

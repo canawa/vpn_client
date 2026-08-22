@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,18 +19,24 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
 import ru.coffeemaniavpn.app.data.RoutingRuleTarget
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 import ru.coffeemaniavpn.app.data.TrafficRoutingMode
+import ru.coffeemaniavpn.app.vpn.NetworkLossNotifier
 
 @Composable
 fun AppShell(
@@ -56,6 +64,23 @@ fun AppShell(
 ) {
     var showSettings by remember { mutableStateOf(false) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
+    var showNetworkLostToast by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        NetworkLossNotifier.lostEvents.collect {
+            showNetworkLostToast = true
+        }
+    }
+    LaunchedEffect(Unit) {
+        NetworkLossNotifier.restoredEvents.collect {
+            showNetworkLostToast = false
+        }
+    }
+    LaunchedEffect(showNetworkLostToast) {
+        if (!showNetworkLostToast) return@LaunchedEffect
+        delay(4_500)
+        showNetworkLostToast = false
+    }
 
     val canNavigateBack = showDeleteSubscriptionConfirm || showSettings
 
@@ -120,6 +145,20 @@ fun AppShell(
                     onTrafficRoutingModeChange = onTrafficRoutingModeChange,
                     onLanguageChange = onLanguageChange,
                     modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            AnimatedVisibility(
+                visible = showNetworkLostToast,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 2 }),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .zIndex(10f)
+                    .padding(top = 8.dp),
+            ) {
+                ClevInAppToast(
+                    text = stringResource(R.string.network_lost_notification),
                 )
             }
         }

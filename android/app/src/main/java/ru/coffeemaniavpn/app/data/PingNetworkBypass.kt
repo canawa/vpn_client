@@ -8,8 +8,11 @@ import android.net.NetworkRequest
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.util.AppLog
 import ru.coffeemaniavpn.app.vpn.VPNService
+import java.net.DatagramPacket
+import java.net.DatagramSocket
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.SocketTimeoutException
 
 /**
  * Пинг мимо VPN: DNS и TCP через физическую сеть клиента (Wi‑Fi / LTE),
@@ -97,6 +100,21 @@ internal object PingNetworkBypass {
         return null
     }
 
+    /**
+     * UDP probe для Hysteria/QUIC: send + краткий wait на ответ/ICMP.
+     * Без ответа возвращает null — дальше идёт TCP fallback.
+     */
+    fun udpProbe(host: String, port: Int, timeoutMs: Int): Int? {
+        if (port !in 1..65535) return null
+        ensureListening()
+        val network = currentPhysicalNetwork()
+        udpProbeOnNetwork(host, port, timeoutMs, network)?.let { return it }
+        if (network != null) {
+            return udpProbeOnNetwork(host, port, timeoutMs, null)
+        }
+        return null
+    }
+
     private fun resolveOnNetwork(host: String, network: Network?): String? =
         runCatching {
             val addresses = if (network != null) {
@@ -125,6 +143,41 @@ internal object PingNetworkBypass {
             socket.connect(InetSocketAddress(host, port), timeoutMs)
             ((System.nanoTime() - start) / 1_000_000L).toInt().coerceAtLeast(1)
         } catch (t: Throwable) {
+            null
+        } finally {
+            runCatching { socket.close() }
+        }
+    }
+
+    private fun udpProbeOnNetwork(
+        host: String,
+        port: Int,
+        timeoutMs: Int,
+        network: Network?,
+    ): Int? {
+        val socket = DatagramSocket()
+        return try {
+            if (network != null) {
+                runCatching { network.bindSocket(socket) }
+                    .onFailure { AppLog.w("PingNetworkBypass UDP bindSocket failed network=$network", it) }
+                    .getOrNull()
+            }
+            socket.soTimeout = timeoutMs.coerceAtLeast(200)
+            val payload = byteArrayOf(
+                0x00, 0x00, 0x00, 0x01, // минимальный QUIC-подобный заголовок
+                0x00, 0x00, 0x00, 0x00,
+            )
+            val packet = DatagramPacket(payload, payload.size, InetSocketAddress(host, port))
+            val start = System.nanoTime()
+            socket.send(packet)
+            val reply = DatagramPacket(ByteArray(128), 128)
+            try {
+                socket.receive(reply)
+                ((System.nanoTime() - start) / 1_000_000L).toInt().coerceAtLeast(1)
+            } catch (_: SocketTimeoutException) {
+                null
+            }
+        } catch (_: Throwable) {
             null
         } finally {
             runCatching { socket.close() }

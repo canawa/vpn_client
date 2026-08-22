@@ -20,18 +20,28 @@ sealed interface PingState {
 }
 
 /**
- * TCP-пинг мимо VPN — через [PingNetworkBypass].
+ * TCP/UDP-пинг мимо VPN — через [PingNetworkBypass].
+ * Hysteria2 — UDP/QUIC: TCP к порту часто молчит, поэтому короткий probe + fallback 443/80.
  */
 object ServerPinger {
-    /** Общий лимит на один сервер (DNS + TCP). */
-    const val PER_NODE_TIMEOUT_MS = 4_000L
+    /** Общий лимит на один сервер (DNS + probe), после захвата слота. */
+    const val PER_NODE_TIMEOUT_MS = 5_000L
+    const val MAX_CONCURRENT = 12
 
     private const val TCP_CONNECT_TIMEOUT_MS = 2_000
+    private const val HY2_PORT_TCP_TIMEOUT_MS = 500
+    private const val UDP_PROBE_TIMEOUT_MS = 400
     private const val DNS_TIMEOUT_MS = 2_000L
-    private const val MAX_CONCURRENT = 12
 
     private val executor = Executors.newCachedThreadPool { runnable ->
         Thread(runnable, "tcp-ping").apply { isDaemon = true }
+    }
+
+    /** Оценка полного прогона списка с учётом очереди (для UI-watchdog). */
+    fun estimatedBatchTimeoutMs(nodeCount: Int): Long {
+        if (nodeCount <= 0) return PER_NODE_TIMEOUT_MS
+        val waves = (nodeCount + MAX_CONCURRENT - 1) / MAX_CONCURRENT
+        return waves * PER_NODE_TIMEOUT_MS + 2_000L
     }
 
     suspend fun pingAll(
@@ -50,7 +60,7 @@ object ServerPinger {
                             if (e is CancellationException) throw e
                             PingState.Unreachable
                         }
-                    AppLog.i("tcp-ping ${node.name} ${node.host}:${node.port} -> $state")
+                    AppLog.i("tcp-ping ${node.name} ${node.host}:${node.port} hy2=${node.isHysteria2} -> $state")
                     onUpdate(node.id, state)
                 }
             }
@@ -66,20 +76,29 @@ object ServerPinger {
         val target = runWithHardTimeout(DNS_TIMEOUT_MS) {
             PingNetworkBypass.resolveHost(node.host)
         } ?: node.host
-        tcpConnectTime(target, node.port)?.let { return it }
+
         if (node.isHysteria2) {
+            // UDP/QUIC: полный TCP-таймаут на hy2-порт съедает бюджет и не даёт дойти до 443/80.
+            PingNetworkBypass.udpProbe(target, node.port, UDP_PROBE_TIMEOUT_MS)?.let { return it }
+            tcpConnectTime(target, node.port, HY2_PORT_TCP_TIMEOUT_MS)?.let { return it }
             for (fallbackPort in listOf(443, 80)) {
                 if (fallbackPort != node.port) {
                     tcpConnectTime(target, fallbackPort)?.let { return it }
                 }
             }
+            return null
         }
-        return null
+
+        return tcpConnectTime(target, node.port)
     }
 
-    private fun tcpConnectTime(host: String, port: Int): Int? =
-        runWithHardTimeout(TCP_CONNECT_TIMEOUT_MS.toLong()) {
-            PingNetworkBypass.tcpConnect(host, port, TCP_CONNECT_TIMEOUT_MS)
+    private fun tcpConnectTime(
+        host: String,
+        port: Int,
+        timeoutMs: Int = TCP_CONNECT_TIMEOUT_MS,
+    ): Int? =
+        runWithHardTimeout(timeoutMs.toLong()) {
+            PingNetworkBypass.tcpConnect(host, port, timeoutMs)
         }
 
     private fun <T> runWithHardTimeout(timeoutMs: Long, block: () -> T): T? {

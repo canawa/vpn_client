@@ -27,10 +27,6 @@ object ServerDisplayMapper {
         return prefix
     }
 
-    private fun isAutoSelect(name: String, title: String): Boolean =
-        name.contains("автовыбор", ignoreCase = true) ||
-            title.contains("автовыбор", ignoreCase = true)
-
     private fun isIpv4Address(value: String): Boolean {
         val host = value.substringBefore(':').trim()
         if (!ipv4Regex.matches(host)) return false
@@ -119,7 +115,6 @@ object ServerDisplayMapper {
         val group = adminGroup(node.name)
         val trimmed = node.name.trim()
         val (flag, withoutFlag) = splitFlag(trimmed)
-        val autoSelect = isAutoSelect(trimmed, withoutFlag.substringBefore("|").trim())
 
         val parts = withoutFlag.split("|").map { it.trim() }.filter { it.isNotBlank() }
         val visibleParts = parts.map(::cleanPart).filter { it.isNotBlank() }
@@ -131,8 +126,8 @@ object ServerDisplayMapper {
         } else {
             visibleParts
         }
+        // Полное имя как в подписке (HAPP) — не схлопываем «Автовыбор | …» в одно слово.
         val title = when {
-            autoSelect -> "Автовыбор"
             titleParts.isEmpty() -> when {
                 isIpv4Address(node.host) -> "Сервер"
                 node.host.isNotBlank() -> node.host
@@ -142,7 +137,7 @@ object ServerDisplayMapper {
         }
 
         val (pingText, pingMs) = when (ping) {
-            null -> "—" to null
+            null -> "" to null
             PingState.Loading -> "…" to null
             is PingState.Result -> "${ping.latencyMs} мс" to ping.latencyMs
             PingState.Unreachable, PingState.Timeout -> "—" to null

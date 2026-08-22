@@ -52,7 +52,7 @@ class VpnQuickTileService : TileService() {
 
     private fun applyTile(status: VpnStatus) {
         val tile = qsTile ?: return
-        tile.icon = Icon.createWithResource(this, R.drawable.ic_logo_notif)
+        tile.icon = Icon.createWithResource(this, R.drawable.ic_logo_qs)
         tile.label = getString(R.string.qs_vpn_tile_label)
 
         when (status) {

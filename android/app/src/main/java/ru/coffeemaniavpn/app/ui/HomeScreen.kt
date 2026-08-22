@@ -536,12 +536,13 @@ private fun QuickServerRow(
                     modifier = Modifier.weight(1f),
                 )
                 when {
-                    isPinging -> CircularProgressIndicator(
+                    isPinging && display.pingMs == null && display.pingText != "—" -> CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
                         color = colors.yellow,
                     )
                     display.pingMs != null -> PingLabel(ms = display.pingMs)
+                    display.pingText == "—" -> PingUnavailableLabel()
                     else -> Unit
                 }
                 ClevSelectionIndicator(selected = selected, size = 20.dp)

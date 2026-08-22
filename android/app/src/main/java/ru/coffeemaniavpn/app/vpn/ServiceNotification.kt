@@ -68,15 +68,13 @@ class ServiceNotification(private val service: Service) {
             )
         }
         val title = serverLine.ifBlank { statusLine }
-        val text = if (serverLine.isNotBlank()) statusLine else ""
-        val style = NotificationCompat.BigTextStyle()
-            .bigText(listOf(serverLine, statusLine).filter { it.isNotBlank() }.joinToString("\n"))
+        val text = if (serverLine.isNotBlank()) statusLine else title
         service.startForeground(
             notificationId,
             builder
                 .setContentTitle(title)
                 .setContentText(text)
-                .setStyle(style)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .build(),
         )
     }

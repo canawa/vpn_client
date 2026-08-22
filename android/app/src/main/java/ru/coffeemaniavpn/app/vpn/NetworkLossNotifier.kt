@@ -12,7 +12,11 @@ import android.net.NetworkRequest
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.MainActivity
@@ -21,8 +25,10 @@ import ru.coffeemaniavpn.app.ktx.hasPermission
 import ru.coffeemaniavpn.app.util.AppLog
 
 /**
- * Уведомление в шторке, когда пропадает физическая сеть (Wi‑Fi / LTE).
- * Не срабатывает при переключении Wi‑Fi ↔ LTE: ждём, пока не останется ни одной сети.
+ * Уведомление при пропаже физической сети (Wi‑Fi / LTE):
+ * — шторка (system notification);
+ * — всплывающий тост в приложении ([lostEvents]).
+ * Не срабатывает при переключении Wi‑Fi ↔ LTE.
  */
 internal object NetworkLossNotifier {
     private const val DEBOUNCE_MS = 2_000L
@@ -34,6 +40,19 @@ internal object NetworkLossNotifier {
     private var notified = false
     private var debounceJob: Job? = null
     private val physicalNetworks = mutableSetOf<Network>()
+
+    private val _lostEvents = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    /** Событие для in-app тоста (шторка живёт отдельно). */
+    val lostEvents: SharedFlow<Unit> = _lostEvents.asSharedFlow()
+
+    private val _restoredEvents = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val restoredEvents: SharedFlow<Unit> = _restoredEvents.asSharedFlow()
 
     fun start() {
         if (started) return
@@ -78,6 +97,7 @@ internal object NetworkLossNotifier {
             hadPhysicalNetwork = true
             if (notified) {
                 cancelNotification()
+                _restoredEvents.tryEmit(Unit)
                 notified = false
             }
             return
@@ -89,8 +109,9 @@ internal object NetworkLossNotifier {
             if (physicalNetworks.isNotEmpty()) return@launch
             if (!hadPhysicalNetwork || notified) return@launch
             hadPhysicalNetwork = false
-            showNotification()
             notified = true
+            _lostEvents.tryEmit(Unit)
+            showSystemNotification()
         }
     }
 
@@ -110,12 +131,12 @@ internal object NetworkLossNotifier {
             caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
     }
 
-    private fun showNotification() {
+    private fun showSystemNotification() {
         val context = App.instance
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             !context.hasPermission(Manifest.permission.POST_NOTIFICATIONS)
         ) {
-            AppLog.w("NetworkLossNotifier skip: no POST_NOTIFICATIONS")
+            AppLog.w("NetworkLossNotifier system skip: no POST_NOTIFICATIONS (in-app toast still fired)")
             return
         }
         ensureChannel()
@@ -145,7 +166,7 @@ internal object NetworkLossNotifier {
             )
             .build()
         App.notificationManager.notify(NOTIFICATION_ID, notification)
-        AppLog.i("NetworkLossNotifier shown")
+        AppLog.i("NetworkLossNotifier system shown")
     }
 
     private fun cancelNotification() {

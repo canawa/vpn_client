@@ -74,6 +74,15 @@ android {
             useLegacyPackaging = true
         }
     }
+
+    applicationVariants.configureEach {
+        if (buildType.name == "release") {
+            outputs.configureEach {
+                (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
+                    .outputFileName = "clevvpn.apk"
+            }
+        }
+    }
 }
 
 dependencies {

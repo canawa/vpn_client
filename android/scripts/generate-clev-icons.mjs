@@ -11,8 +11,8 @@ const logoPaths = fs.readFileSync(
   'utf8',
 ).replace(/<svg[^>]*>/, '').replace('</svg>', '');
 
-function squareSvg(size, { background = null, monochrome = false } = {}) {
-  const pad = size * 0.20;
+function squareSvg(size, { background = null, monochrome = false, padRatio = 0.20 } = {}) {
+  const pad = size * padRatio;
   const logoW = size - pad * 2;
   const logoH = logoW * (415 / 707);
   const x = pad;
@@ -91,5 +91,10 @@ for (const [density, scale] of Object.entries(densities)) {
 const notifDir = path.join(resRoot, 'drawable-nodpi');
 write(path.join(notifDir, 'ic_logo.png'), renderPng(squareSvg(128), 128));
 write(path.join(notifDir, 'ic_logo_notif.png'), renderPng(squareSvg(96), 96));
+// QS tile — меньше padding, лого крупнее в круге быстрых настроек
+write(
+  path.join(notifDir, 'ic_logo_qs.png'),
+  renderPng(squareSvg(128, { monochrome: true, padRatio: 0.08 }), 128),
+);
 
 console.log('Done.');

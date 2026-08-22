@@ -672,8 +672,9 @@ fun ServerTitleWithProtocolBadge(
                 color = colors.espresso,
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                lineHeight = 18.sp,
             )
             ProtocolLabelBadge(
                 label = protocolLabel,
@@ -705,6 +706,60 @@ fun PingLabel(
             text = stringResource(R.string.clev_ping_ms, ms),
             color = colors.mocha,
             fontSize = 12.sp,
+        )
+    }
+}
+
+@Composable
+fun PingUnavailableLabel(
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(colors.mocha.copy(alpha = 0.55f)),
+        )
+        Text(
+            text = "—",
+            color = colors.mocha,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+/** Всплывающий тост поверх экрана (сеть пропала и т.п.). */
+@Composable
+fun ClevInAppToast(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(10.dp, shape, clip = false)
+            .clip(shape)
+            .background(colors.cappuccino)
+            .border(1.dp, colors.latte, shape)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            color = colors.espresso,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
