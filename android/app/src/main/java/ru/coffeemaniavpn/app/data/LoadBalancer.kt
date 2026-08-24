@@ -78,7 +78,7 @@ object LoadBalancer {
     fun connectableBsNodes(nodes: List<ProxyNode>): List<ProxyNode> =
         connectableNodes(nodes).filter(::isBsServer)
 
-    /** Лучший пинг среди переданных узлов (без remote-auto, без России). */
+    /** Лучший proxy-delay среди переданных узлов (без remote-auto, без России). */
     fun pickBest(nodes: List<ProxyNode>, pings: Map<String, PingState>): ProxyNode? {
         val pool = connectableNodes(nodes)
         val candidates = pool.filterNot(::isRussianServer)

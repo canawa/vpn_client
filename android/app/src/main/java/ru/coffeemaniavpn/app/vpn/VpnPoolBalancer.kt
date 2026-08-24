@@ -271,7 +271,7 @@ object VpnPoolBalancer {
 
     /**
      * Последовательно тестируем кандидатов:
-     * - сортировка по TCP-ping (это только "очередь на попытку")
+     * - сортировка по proxy URL-delay (не TCP до моста — иначе bridge врёт RTT)
      * - реальная проверка health-check — через туннель (measureDelayAny)
      */
     private suspend fun pickWorkingByTesting(
