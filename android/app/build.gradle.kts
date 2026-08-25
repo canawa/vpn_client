@@ -7,41 +7,60 @@ plugins {
 
 import java.util.Properties
 
+// Release signing is optional: without android/keystore.properties the project still
+// configures and debug builds work, while release output falls back to the debug key.
+val keystorePropsFile = rootProject.file("keystore.properties")
+val hasReleaseKeystore = keystorePropsFile.exists()
+val keystoreProps = Properties().apply {
+    if (hasReleaseKeystore) keystorePropsFile.inputStream().use { load(it) }
+}
+
 android {
-    namespace = "ru.coffeemaniavpn.app"
+    namespace = "work.bavshield.vpn"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "ru.coffeemaniavpn.app"
+        applicationId = "work.bavshield.vpn"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.3"
-        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://coffemaniavpn.online\"")
-        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://coffeemaniavpn.ru/register\"")
-        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/coffemaniavpn\"")
-        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/coffemaniavpnbot\"")
+        versionCode = 6
+        versionName = "2.0.0"
+
+        buildConfigField("String", "SITE_URL", "\"https://cabinet.bavshield.work/\"")
+        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/BAVSVPN_bot\"")
+        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/BAVSVPN_bot\"")
+        buildConfigField("String", "SUPPORT_URL", "\"https://t.me/EseCuloMexico\"")
+        buildConfigField("String", "SUPPORT_EMAIL", "\"Bavshieldvpn@gmail.com\"")
+        buildConfigField("String", "COPYRIGHT", "\"\\u00A9 Bavshield\"")
+
+        // Payment destinations are placeholders until the final endpoints are provided.
+        buildConfigField("String", "PAY_SUBSCRIPTION_URL", "\"https://t.me/BAVSVPN_bot\"")
+        buildConfigField("String", "PAY_DEVICES_URL", "\"https://t.me/BAVSVPN_bot\"")
     }
 
     signingConfigs {
-        create("release") {
-            val keystorePropsFile = rootProject.file("keystore.properties")
-            require(keystorePropsFile.exists()) {
-                "Missing android/keystore.properties — copy keystore.properties.example and fill in upload key credentials."
+        if (hasReleaseKeystore) {
+            create("release") {
+                val storePath = checkNotNull(keystoreProps.getProperty("storeFile")) { "storeFile is missing" }
+                storeFile = rootProject.file(storePath)
+                storePassword = checkNotNull(keystoreProps.getProperty("storePassword")) { "storePassword is missing" }
+                keyAlias = checkNotNull(keystoreProps.getProperty("keyAlias")) { "keyAlias is missing" }
+                keyPassword = checkNotNull(keystoreProps.getProperty("keyPassword")) { "keyPassword is missing" }
             }
-            val keystoreProps = Properties()
-            keystorePropsFile.inputStream().use { keystoreProps.load(it) }
-            val storePath = checkNotNull(keystoreProps.getProperty("storeFile")) { "storeFile is missing" }
-            storeFile = rootProject.file(storePath)
-            storePassword = checkNotNull(keystoreProps.getProperty("storePassword")) { "storePassword is missing" }
-            keyAlias = checkNotNull(keystoreProps.getProperty("keyAlias")) { "keyAlias is missing" }
-            keyPassword = checkNotNull(keystoreProps.getProperty("keyPassword")) { "keyPassword is missing" }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasReleaseKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn(
+                    "BAV Shield: android/keystore.properties not found — the release build will be " +
+                        "signed with the debug key and must not be published.",
+                )
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -80,6 +99,7 @@ dependencies {
     implementation(files("libs/libv2ray.aar"))
 
     implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")

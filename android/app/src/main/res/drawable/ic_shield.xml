@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BAV Shield brand mark, traced from the reference artwork in the spec.
+
+  Geometry matches the reference outer ratio of 1.359 and a stroke of 8.6% of the
+  outer width. The sides are dead straight down to 55% of the height before the
+  bottom taper, which a single bezier per side could not reproduce.
+  Derived assets (launcher, splash) are scaled copies of this path.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48"
+    android:tint="#FFFFFFFF">
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M24,2.92 L8.86,9.63 L8.86,26.11 C8.86,33 14.5,38.5 24,45.08 C33.5,38.5 39.14,33 39.14,26.11 L39.14,9.63 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="2.84" />
+</vector>

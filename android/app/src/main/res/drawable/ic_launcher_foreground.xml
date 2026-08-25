@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: ic_shield scaled to sit inside the 72dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,25.9 L33.82,34.84 L33.82,56.81 C33.82,66 41.34,73.33 54,82.1 C66.66,73.33 74.18,66 74.18,56.81 L74.18,34.84 Z"
+        android:strokeColor="@color/brand_green"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="5" />
+</vector>

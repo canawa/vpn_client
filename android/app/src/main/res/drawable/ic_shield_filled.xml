@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solid variant of the brand shield, for small controls where an outline would not read. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48"
+    android:tint="#FFFFFFFF">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M24,2.92 L8.86,9.63 L8.86,26.11 C8.86,33 14.5,38.5 24,45.08 C33.5,38.5 39.14,33 39.14,26.11 L39.14,9.63 Z" />
+</vector>

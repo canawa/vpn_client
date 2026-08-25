@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#EDE0D8</color>
+    <!-- Brand colours sampled from the shield artwork supplied with the spec. -->
+    <color name="brand_green">#7C9D8A</color>
+    <color name="brand_green_bright">#8FBFA6</color>
+    <color name="brand_dark">#0A1510</color>
+
+    <color name="ic_launcher_background">@color/brand_dark</color>
+    <color name="splash_background">@color/brand_dark</color>
 </resources>

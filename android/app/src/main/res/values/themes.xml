@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.CoffemaniaVpn" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.BavShieldVpn" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:fontFamily">@font/inter_bold</item>
+    </style>
+
+    <!--
+      Launch theme. The activity starts with this theme so the system draws the branded
+      splash, then installSplashScreen() swaps in postSplashScreenTheme.
+    -->
+    <style name="Theme.BavShieldVpn.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_shield</item>
+        <item name="postSplashScreenTheme">@style/Theme.BavShieldVpn</item>
     </style>
 </resources>

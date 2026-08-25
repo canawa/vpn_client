@@ -1,14 +1,205 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">КОФЕМАНИЯ ВПН</string>
-    <string name="application_label" translatable="false">COFFEEMANIA VPN</string>
-    <string name="vpn_session_name">КОФЕМАНИЯ ВПН</string>
-    <string name="vpn_notification_channel">VPN</string>
-    <string name="vpn_notification_title">КОФЕМАНИЯ ВПН</string>
+    <string name="app_name">BAV Shield VPN</string>
+    <string name="application_label" translatable="false">BAV Shield VPN</string>
+    <string name="vpn_session_name" translatable="false">BAV Shield VPN</string>
+    <string name="vpn_notification_channel" translatable="false">VPN</string>
+    <string name="vpn_notification_title">BAV Shield VPN</string>
     <string name="vpn_starting">Подключение…</string>
     <string name="vpn_connected">Подключено</string>
     <string name="vpn_stop">Отключить</string>
-    <string name="qs_tile_label">КОФЕМАНИЯ ВПН</string>
+    <string name="qs_tile_label">BAV Shield VPN</string>
     <string name="qs_tile_connected">Подключено</string>
     <string name="qs_tile_disconnected">Отключено</string>
+
+    <string name="tab_home">Главная</string>
+    <string name="tab_servers">Серверы</string>
+    <string name="cd_back">Назад</string>
+    <string name="cd_settings">Настройки</string>
+    <string name="cd_refresh">Обновить подписку</string>
+    <string name="cd_select_server">Выбрать сервер</string>
+    <string name="cd_connect">Подключить</string>
+    <string name="cd_disconnect">Отключить</string>
+
+    <string name="status_label">Статус</string>
+    <string name="status_disconnected">Отключено</string>
+    <string name="status_connecting">Подключение…</string>
+    <string name="status_connected">Подключено</string>
+    <string name="status_disconnecting">Отключение…</string>
+
+    <string name="subscription_label">Подписка</string>
+    <string name="subscription_expired">Подписка истекла</string>
+    <string name="subscription_unlimited">Бессрочная подписка</string>
+    <string name="subscription_add">Добавить подписку</string>
+    <string name="subscription_paste_link">Вставить ссылку</string>
+    <string name="subscription_buy_website">Купить на сайте</string>
+    <string name="subscription_renew_telegram">Продлить в телеграмме</string>
+    <string name="subscription_renew_website">Продлить на сайте</string>
+    <string name="subscription_expired_hint">Продлите подписку, чтобы снова пользоваться VPN</string>
+    <string name="subscription_auto_update">Автообновление подписки</string>
+    <string name="subscription_refresh">Обновить подписку</string>
+    <string name="subscription_delete">Удалить подписку</string>
+    <string name="subscription_delete_title">Удалить подписку?</string>
+    <string name="subscription_delete_message">Ссылка и список серверов будут удалены с устройства.</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="interval_off">Выкл</string>
+    <string name="interval_hours">%d ч</string>
+
+    <string name="hint_tap_select_server">Нажмите, чтобы выбрать сервер</string>
+    <string name="hint_add_subscription_to_select">Добавьте подписку, чтобы выбрать сервер</string>
+    <string name="servers_see_all">Все серверы</string>
+    <string name="home_action_site">Сайт</string>
+    <string name="home_action_bot">ТГ-Бот</string>
+    <string name="home_action_pay">Оплата</string>
+    <string name="home_action_support">Поддержка</string>
+    <string name="pay_subscription">Оплатить подписку</string>
+    <string name="pay_devices">Оплатить устройства</string>
+    <string name="subscription_status_none">Подписка не добавлена</string>
+    <string name="servers_empty">Список серверов пуст. Добавьте подписку на главной.</string>
+    <string name="server_fallback">Сервер %d</string>
+    <string name="server_generic">Сервер</string>
+    <string name="server_autoselect">Автовыбор</string>
+    <string name="last_crash">Последний краш: %1$s</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_connection">Соединение</string>
+    <string name="settings_subscription">Подписка</string>
+    <string name="settings_theme">Цветовая схема</string>
+    <string name="settings_tunnel">Туннель</string>
+    <string name="settings_ping">Пинг</string>
+    <string name="settings_about">О приложении</string>
+    <string name="settings_logs">Логи</string>
+    <string name="settings_close_app">Закрыть приложение</string>
+    <string name="settings_connection_hint">Расширенные параметры появятся после скриншотов INCY. Сейчас доступен kill switch.</string>
+    <string name="ping_interval">Автообновление пинга</string>
+    <string name="ping_now">Проверить серверы сейчас</string>
+    <string name="ping_test_hosts">Тест-серверы</string>
+    <string name="ping_test_hosts_hint">По одному адресу в строке, например 1.1.1.1:443</string>
+    <string name="ping_test_now">Проверить тест-серверы</string>
+    <string name="interval_minutes">%d мин</string>
+    <string name="about_version">Версия %1$s</string>
+    <string name="about_email">Почта</string>
+    <string name="about_site">Сайт</string>
+    <string name="about_bot">Telegram-бот</string>
+    <string name="about_support">Техподдержка</string>
+    <string name="settings_split_sites">Раздельное туннелирование сайтов</string>
+    <string name="settings_split_sites_header">Туннелирование сайтов</string>
+    <string name="settings_split_apps">Раздельное туннелирование приложений</string>
+    <string name="settings_split_apps_header">Туннелирование приложений</string>
+    <string name="settings_kill_switch">Kill switch</string>
+    <string name="settings_view_logs">Просмотр логов</string>
+    <string name="settings_download_logs">Скачать логи</string>
+    <string name="logs_title">Логи приложения</string>
+    <string name="logs_close">Закрыть</string>
+    <string name="logs_file_prefix">Файл: </string>
+    <string name="logs_not_initialized">Лог-файл не инициализирован</string>
+    <string name="logs_empty">Лог пока пуст</string>
+    <string name="logs_read_failed">Не удалось прочитать лог: %1$s</string>
+    <string name="logs_export_empty">(пусто)</string>
+    <string name="logs_saved">Логи сохранены</string>
+    <string name="logs_saved_downloads">Сохранено в «Загрузки»: %1$s</string>
+    <string name="logs_save_failed">Не удалось сохранить: %1$s</string>
+    <string name="logs_need_picker">Требуется выбор места сохранения</string>
+    <string name="logs_create_failed">Не удалось создать файл</string>
+    <string name="logs_write_failed">Не удалось записать файл</string>
+
+    <string name="language_en" translatable="false">EN (English)</string>
+    <string name="language_ru" translatable="false">RUS (Русский)</string>
+
+    <string name="theme_light">День</string>
+    <string name="theme_dark">Ночь</string>
+    <string name="theme_system">Авто</string>
+    <string name="theme_section_mode">Режим</string>
+    <string name="theme_section_color">Цветовая схема</string>
+    <string name="color_forest">Лес</string>
+    <string name="color_ocean">Океан</string>
+    <string name="color_slate">Сланец</string>
+    <string name="color_teal">Бирюза</string>
+    <string name="color_indigo">Индиго</string>
+    <string name="color_amber">Янтарь</string>
+    <string name="color_crimson">Гранат</string>
+
+    <string name="enable">Включить</string>
+    <string name="mode">Режим</string>
+    <string name="sites_proxy_only">Только выбранные сайты через VPN</string>
+    <string name="sites_direct_bypass">Использовать VPN везде, кроме этих сайтов</string>
+    <string name="sites_field_label">Сайты (по одному в строке)</string>
+    <string name="sites_hint">Укажите домены без протокола, например youtube.com</string>
+    <string name="action_apply">Применить</string>
+    <string name="action_applied">Применено</string>
+    <string name="apps_include_only">Только выбранные приложения через VPN</string>
+    <string name="apps_exclude_selected">Все приложения, кроме выбранных</string>
+    <string name="apps_search">Поиск приложений</string>
+    <string name="apps_loading_label">Приложения…</string>
+    <string name="apps_count">Приложения (%d)</string>
+    <string name="apps_loading_list">Загрузка списка…</string>
+
+    <string name="error_wait_servers">Дождитесь загрузки серверов</string>
+    <string name="error_paste_subscription">Вставьте ссылку подписки</string>
+    <string name="error_unsupported_link">Неподдерживаемая ссылка</string>
+    <string name="error_disconnected">Отключено</string>
+    <string name="error_subscription_added_connecting">Подписка добавлена, подключаемся…</string>
+    <string name="error_subscription_added">Подписка добавлена</string>
+    <string name="error_subscription_empty">Подписка пуста</string>
+    <string name="error_imported_servers">Импортировано серверов: %d</string>
+    <string name="error_import_failed">Не удалось импортировать конфиг</string>
+    <string name="error_routing_enabled">Маршрутизация включена: %1$s</string>
+    <string name="error_routing_saved">Маршрутизация сохранена: %1$s</string>
+    <string name="error_routing_invalid">Неверный профиль маршрутизации</string>
+    <string name="error_clipboard_empty">Буфер обмена пуст</string>
+    <string name="error_link_pasted">Ссылка вставлена</string>
+    <string name="error_subscription_deleted">Подписка удалена</string>
+    <string name="error_config_updated">Конфиг обновлён: %d серверов</string>
+    <string name="error_refresh_failed">Не удалось обновить конфиг</string>
+    <string name="error_open_url">Не удалось открыть ссылку</string>
+    <string name="error_add_subscription_to_connect">Добавьте подписку, чтобы подключиться</string>
+    <string name="error_connect_failed">Ошибка подключения</string>
+    <string name="error_vpn_start_failed">Ошибка запуска VPN</string>
+    <string name="error_config_missing">Конфиг не найден</string>
+    <string name="error_config_empty">Пустой конфиг</string>
+    <string name="error_xray_start_failed">Не удалось запустить Xray</string>
+    <string name="error_subscription_blank">Пустой ответ подписки</string>
+    <string name="error_no_supported_servers">В подписке нет поддерживаемых серверов</string>
+    <string name="error_device_limit">Достигнут лимит устройств для этой подписки</string>
+    <string name="error_hwid_missing">Устройство не поддерживается: клиент не отправил HWID</string>
+    <string name="error_access_denied">Доступ запрещён (лимит устройств)</string>
+    <string name="error_unknown_subscription_format">Неизвестный формат подписки</string>
+    <string name="routing_profile_fallback">Профиль</string>
+
+    <string name="expires_in">Истекает через %1$s</string>
+    <string name="list_and">%1$s и %2$s</string>
+    <string name="list_comma">, </string>
+
+    <plurals name="duration_minutes">
+        <item quantity="one">%d минута</item>
+        <item quantity="few">%d минуты</item>
+        <item quantity="many">%d минут</item>
+        <item quantity="other">%d минуты</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d час</item>
+        <item quantity="few">%d часа</item>
+        <item quantity="many">%d часов</item>
+        <item quantity="other">%d часа</item>
+    </plurals>
+    <plurals name="duration_days">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дня</item>
+        <item quantity="many">%d дней</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
+    <plurals name="duration_weeks">
+        <item quantity="one">%d неделя</item>
+        <item quantity="few">%d недели</item>
+        <item quantity="many">%d недель</item>
+        <item quantity="other">%d недели</item>
+    </plurals>
+    <plurals name="duration_months">
+        <item quantity="one">%d месяц</item>
+        <item quantity="few">%d месяца</item>
+        <item quantity="many">%d месяцев</item>
+        <item quantity="other">%d месяца</item>
+    </plurals>
 </resources>

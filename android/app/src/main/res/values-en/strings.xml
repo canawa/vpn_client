@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BAV Shield VPN</string>
+    <string name="vpn_notification_title">BAV Shield VPN</string>
+    <string name="vpn_starting">Connecting…</string>
+    <string name="vpn_connected">Connected</string>
+    <string name="vpn_stop">Disconnect</string>
+    <string name="qs_tile_label">BAV Shield VPN</string>
+    <string name="qs_tile_connected">Connected</string>
+    <string name="qs_tile_disconnected">Disconnected</string>
+
+    <string name="tab_home">Home</string>
+    <string name="tab_servers">Servers</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_refresh">Refresh subscription</string>
+    <string name="cd_select_server">Select server</string>
+    <string name="cd_connect">Connect</string>
+    <string name="cd_disconnect">Disconnect</string>
+
+    <string name="status_label">Status</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_disconnecting">Disconnecting…</string>
+
+    <string name="subscription_label">Subscription</string>
+    <string name="subscription_expired">Subscription expired</string>
+    <string name="subscription_unlimited">Unlimited subscription</string>
+    <string name="subscription_add">Add subscription</string>
+    <string name="subscription_paste_link">Paste link</string>
+    <string name="subscription_buy_website">Buy on website</string>
+    <string name="subscription_renew_telegram">Renew in Telegram</string>
+    <string name="subscription_renew_website">Renew on website</string>
+    <string name="subscription_expired_hint">Renew your subscription to use the VPN again</string>
+    <string name="subscription_auto_update">Subscription auto-update</string>
+    <string name="subscription_refresh">Refresh subscription</string>
+    <string name="subscription_delete">Delete subscription</string>
+    <string name="subscription_delete_title">Delete subscription?</string>
+    <string name="subscription_delete_message">The link and server list will be removed from this device.</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="interval_off">Off</string>
+    <string name="interval_hours">%d h</string>
+
+    <string name="hint_tap_select_server">Tap to choose a server</string>
+    <string name="hint_add_subscription_to_select">Add a subscription to choose a server</string>
+    <string name="servers_see_all">All servers</string>
+    <string name="home_action_site">Site</string>
+    <string name="home_action_bot">TG Bot</string>
+    <string name="home_action_pay">Pay</string>
+    <string name="home_action_support">Support</string>
+    <string name="pay_subscription">Pay for subscription</string>
+    <string name="pay_devices">Pay for devices</string>
+    <string name="subscription_status_none">No subscription added</string>
+    <string name="servers_empty">The server list is empty. Add a subscription on the home screen.</string>
+    <string name="server_fallback">Server %d</string>
+    <string name="server_generic">Server</string>
+    <string name="server_autoselect">Auto select</string>
+    <string name="last_crash">Last crash: %1$s</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_connection">Connection</string>
+    <string name="settings_subscription">Subscription</string>
+    <string name="settings_theme">Color scheme</string>
+    <string name="settings_tunnel">Tunnel</string>
+    <string name="settings_ping">Ping</string>
+    <string name="settings_about">About</string>
+    <string name="settings_logs">Logs</string>
+    <string name="settings_close_app">Close app</string>
+    <string name="settings_connection_hint">Advanced connection options will appear after the INCY screenshots. Kill switch is available now.</string>
+    <string name="ping_interval">Automatic ping</string>
+    <string name="ping_now">Ping servers now</string>
+    <string name="ping_test_hosts">Test servers</string>
+    <string name="ping_test_hosts_hint">One address per line, for example 1.1.1.1:443</string>
+    <string name="ping_test_now">Ping test servers</string>
+    <string name="interval_minutes">%d min</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_email">Email</string>
+    <string name="about_site">Website</string>
+    <string name="about_bot">Telegram bot</string>
+    <string name="about_support">Support</string>
+    <string name="settings_split_sites">Split tunneling for websites</string>
+    <string name="settings_split_sites_header">Website tunneling</string>
+    <string name="settings_split_apps">Split tunneling for apps</string>
+    <string name="settings_split_apps_header">App tunneling</string>
+    <string name="settings_kill_switch">Kill switch</string>
+    <string name="settings_view_logs">View logs</string>
+    <string name="settings_download_logs">Download logs</string>
+    <string name="logs_title">App logs</string>
+    <string name="logs_close">Close</string>
+    <string name="logs_file_prefix">File: </string>
+    <string name="logs_not_initialized">Log file is not initialized</string>
+    <string name="logs_empty">Log is empty</string>
+    <string name="logs_read_failed">Could not read the log: %1$s</string>
+    <string name="logs_export_empty">(empty)</string>
+    <string name="logs_saved">Logs saved</string>
+    <string name="logs_saved_downloads">Saved to Downloads: %1$s</string>
+    <string name="logs_save_failed">Could not save: %1$s</string>
+    <string name="logs_need_picker">Choose a save location</string>
+    <string name="logs_create_failed">Could not create the file</string>
+    <string name="logs_write_failed">Could not write the file</string>
+
+    <string name="theme_light">Day</string>
+    <string name="theme_dark">Night</string>
+    <string name="theme_system">Auto</string>
+    <string name="theme_section_mode">Appearance</string>
+    <string name="theme_section_color">Color scheme</string>
+    <string name="color_forest">Forest</string>
+    <string name="color_ocean">Ocean</string>
+    <string name="color_slate">Slate</string>
+    <string name="color_teal">Teal</string>
+    <string name="color_indigo">Indigo</string>
+    <string name="color_amber">Amber</string>
+    <string name="color_crimson">Crimson</string>
+
+    <string name="enable">Enable</string>
+    <string name="mode">Mode</string>
+    <string name="sites_proxy_only">Only selected websites through VPN</string>
+    <string name="sites_direct_bypass">Use VPN everywhere except these websites</string>
+    <string name="sites_field_label">Websites (one per line)</string>
+    <string name="sites_hint">Enter domains without a protocol, for example youtube.com</string>
+    <string name="action_apply">Apply</string>
+    <string name="action_applied">Applied</string>
+    <string name="apps_include_only">Only selected apps through VPN</string>
+    <string name="apps_exclude_selected">All apps except selected</string>
+    <string name="apps_search">Search apps</string>
+    <string name="apps_loading_label">Apps…</string>
+    <string name="apps_count">Apps (%d)</string>
+    <string name="apps_loading_list">Loading list…</string>
+
+    <string name="error_wait_servers">Wait until servers finish loading</string>
+    <string name="error_paste_subscription">Paste a subscription link</string>
+    <string name="error_unsupported_link">Unsupported link</string>
+    <string name="error_disconnected">Disconnected</string>
+    <string name="error_subscription_added_connecting">Subscription added, connecting…</string>
+    <string name="error_subscription_added">Subscription added</string>
+    <string name="error_subscription_empty">Subscription is empty</string>
+    <string name="error_imported_servers">Imported servers: %d</string>
+    <string name="error_import_failed">Could not import the config</string>
+    <string name="error_routing_enabled">Routing enabled: %1$s</string>
+    <string name="error_routing_saved">Routing saved: %1$s</string>
+    <string name="error_routing_invalid">Invalid routing profile</string>
+    <string name="error_clipboard_empty">Clipboard is empty</string>
+    <string name="error_link_pasted">Link pasted</string>
+    <string name="error_subscription_deleted">Subscription deleted</string>
+    <string name="error_config_updated">Config updated: %d servers</string>
+    <string name="error_refresh_failed">Could not refresh the config</string>
+    <string name="error_open_url">Could not open the link</string>
+    <string name="error_add_subscription_to_connect">Add a subscription to connect</string>
+    <string name="error_connect_failed">Connection error</string>
+    <string name="error_vpn_start_failed">Could not start VPN</string>
+    <string name="error_config_missing">Config not found</string>
+    <string name="error_config_empty">Config is empty</string>
+    <string name="error_xray_start_failed">Could not start Xray</string>
+    <string name="error_subscription_blank">Empty subscription response</string>
+    <string name="error_no_supported_servers">No supported servers in this subscription</string>
+    <string name="error_device_limit">Device limit reached for this subscription</string>
+    <string name="error_hwid_missing">Device is not supported: the client did not send HWID</string>
+    <string name="error_access_denied">Access denied (device limit)</string>
+    <string name="error_unknown_subscription_format">Unknown subscription format</string>
+    <string name="routing_profile_fallback">Profile</string>
+
+    <string name="expires_in">Expires in %1$s</string>
+    <string name="list_and">%1$s and %2$s</string>
+    <string name="list_comma">, </string>
+
+    <plurals name="duration_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="duration_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="duration_weeks">
+        <item quantity="one">%d week</item>
+        <item quantity="other">%d weeks</item>
+    </plurals>
+    <plurals name="duration_months">
+        <item quantity="one">%d month</item>
+        <item quantity="other">%d months</item>
+    </plurals>
+</resources>
