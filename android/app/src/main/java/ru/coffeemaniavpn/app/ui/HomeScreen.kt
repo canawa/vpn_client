@@ -70,6 +70,20 @@ fun HomeScreen(
                     coffemaniaColors().espresso
                 },
             )
+            if (hasSubscription) {
+                state.subscriptionInfo?.expireLabel()?.let { expireText ->
+                    Text(
+                        text = expireText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (subscriptionExpired) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            coffemaniaColors().mocha
+                        },
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
             if (!subscriptionExpired) {
                 if (selectedDisplay != null) {
                     SelectedServerCard(
@@ -145,7 +159,7 @@ private fun EmptyServerHint(
             "Добавьте подписку, чтобы выбрать сервер"
         },
         style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
         color = coffemaniaColors().espresso,
         modifier = modifier
             .then(

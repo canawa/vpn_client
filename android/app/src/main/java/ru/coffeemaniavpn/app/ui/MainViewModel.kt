@@ -183,6 +183,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _connectRequests.emit(node)
             }
         }
+        viewModelScope.launch {
+            preferences.nodes.collect { nodes ->
+                scheduleAutoPing(nodes)
+            }
+        }
     }
 
     fun onAppResumed() {
@@ -190,6 +195,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             restoreSubscriptionSession()
             VpnAutoReconnect.tryReconnectOnResume()
             maybeAutoRefreshSubscriptionOnResume()
+            val nodes = preferences.nodes.first()
+            if (needsPing(nodes)) {
+                scheduleAutoPing(nodes, force = true)
+            }
         }
     }
 
@@ -235,10 +244,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun pingAllNodes() {
-        pingAllNodes(uiState.value.nodes)
+        scheduleAutoPing(uiState.value.nodes, force = true)
     }
 
     private var pingJob: Job? = null
+    private var lastAutoPingNodeIds: Set<String>? = null
+
+    private fun needsPing(nodes: List<ProxyNode>): Boolean {
+        if (nodes.isEmpty()) return false
+        val ids = nodes.map { it.id }.toSet()
+        val pings = nodePings.value
+        return pings.isEmpty() || ids.any { pings[it] == null }
+    }
+
+    private fun scheduleAutoPing(nodes: List<ProxyNode>, force: Boolean = false) {
+        if (nodes.isEmpty()) {
+            lastAutoPingNodeIds = null
+            return
+        }
+        val ids = nodes.map { it.id }.toSet()
+        if (!force && ids == lastAutoPingNodeIds && !needsPing(nodes)) return
+        lastAutoPingNodeIds = ids
+        pingAllNodes(nodes)
+    }
 
     private fun pingAllNodes(nodes: List<ProxyNode>) {
         if (nodes.isEmpty()) return
@@ -393,6 +421,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             VpnManager.disconnect()
             pingJob?.cancel()
             isPinging.value = false
+            lastAutoPingNodeIds = null
             preferences.clearSubscription()
             subscriptionUrlInput.value = ""
             nodePings.value = emptyMap()
@@ -455,6 +484,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } ?: result.nodes.first().id
         preferences.saveSubscription(url, result.nodes, selected, result.info)
         preferences.setSubscriptionLastAutoRefreshAt(System.currentTimeMillis())
+        scheduleAutoPing(result.nodes, force = true)
         return result.nodes.size
     }
 

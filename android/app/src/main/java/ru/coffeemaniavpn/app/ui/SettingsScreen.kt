@@ -1,32 +1,29 @@
 package ru.coffeemaniavpn.app.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
@@ -34,26 +31,17 @@ import androidx.compose.material.icons.filled.SettingsInputAntenna
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ru.coffeemaniavpn.app.data.AppThemeMode
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
@@ -62,13 +50,11 @@ import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     SettingsPage.SplitTunnelSites,
     SettingsPage.SplitTunnelApps,
-    SettingsPage.KillSwitch,
     -> SettingsPage.Connection
     SettingsPage.Connection,
     SettingsPage.Subscription,
     SettingsPage.Theme,
     SettingsPage.Logs,
-    SettingsPage.About,
     -> SettingsPage.Main
     SettingsPage.Main -> null
 }
@@ -87,22 +73,18 @@ enum class SettingsPage(
         title = "Раздельное туннелирование приложений",
         headerTitle = "Туннелирование приложений",
     ),
-    KillSwitch("Kill switch"),
     Subscription("Подписка"),
     Theme("Тема"),
     Logs("Логи"),
-    About("О приложении"),
 }
 
 @Composable
 fun SettingsScreen(
     page: SettingsPage,
     onPageChange: (SettingsPage) -> Unit,
-    appVersion: String,
     hasSubscription: Boolean,
     connectionSettings: ConnectionSettingsState,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
-    onOpenServers: () -> Unit,
     onPasteLink: () -> Unit,
     onRefreshSubscription: () -> Unit,
     onDeleteSubscription: () -> Unit,
@@ -113,19 +95,19 @@ fun SettingsScreen(
     onAppThemeModeChange: (AppThemeMode) -> Unit,
     onShowLogs: () -> Unit,
     onDownloadLogs: () -> Unit,
-    onTelegramChannel: () -> Unit,
     onCloseApp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (page) {
         SettingsPage.Main -> SettingsMainScreen(
             modifier = modifier,
-            onOpenServers = onOpenServers,
             onPageChange = onPageChange,
             onCloseApp = onCloseApp,
         )
         SettingsPage.Connection -> ConnectionMenuScreen(
             modifier = modifier,
+            connectionSettings = connectionSettings,
+            onSaveConnectionSettings = onSaveConnectionSettings,
             onPageChange = onPageChange,
         )
         SettingsPage.SplitTunnelSites -> SplitTunnelSitesScreen(
@@ -134,11 +116,6 @@ fun SettingsScreen(
             onSave = onSaveConnectionSettings,
         )
         SettingsPage.SplitTunnelApps -> SplitTunnelAppsScreen(
-            modifier = modifier,
-            settings = connectionSettings,
-            onSave = onSaveConnectionSettings,
-        )
-        SettingsPage.KillSwitch -> KillSwitchScreen(
             modifier = modifier,
             settings = connectionSettings,
             onSave = onSaveConnectionSettings,
@@ -173,13 +150,6 @@ fun SettingsScreen(
                 ),
             ),
         )
-        SettingsPage.About -> SettingsDetailScreen(
-            modifier = modifier,
-            items = aboutItems(
-                appVersion = appVersion,
-                onTelegramChannel = onTelegramChannel,
-            ),
-        )
     }
 }
 
@@ -194,9 +164,12 @@ fun SettingsDivider() {
 
 @Composable
 private fun ConnectionMenuScreen(
+    connectionSettings: ConnectionSettingsState,
+    onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
     onPageChange: (SettingsPage) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = coffemaniaColors()
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -214,17 +187,26 @@ private fun ConnectionMenuScreen(
             onClick = { onPageChange(SettingsPage.SplitTunnelApps) },
         )
         SettingsDivider()
-        SettingsNavRow(
+        SettingsToggleRow(
             title = "Kill switch",
-            icon = Icons.Default.Shield,
-            onClick = { onPageChange(SettingsPage.KillSwitch) },
+            checked = connectionSettings.killSwitchEnabled,
+            onCheckedChange = { enabled ->
+                onSaveConnectionSettings(connectionSettings.copy(killSwitchEnabled = enabled))
+            },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Default.Shield,
+                    contentDescription = null,
+                    tint = colors.espresso,
+                    modifier = Modifier.size(24.dp),
+                )
+            },
         )
     }
 }
 
 @Composable
 private fun SettingsMainScreen(
-    onOpenServers: () -> Unit,
     onPageChange: (SettingsPage) -> Unit,
     onCloseApp: () -> Unit,
     modifier: Modifier = Modifier,
@@ -234,12 +216,6 @@ private fun SettingsMainScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        SettingsNavRow(
-            title = "Серверы",
-            icon = Icons.Default.Dns,
-            onClick = onOpenServers,
-        )
-        SettingsDivider()
         SettingsNavRow(
             title = "Соединение",
             icon = Icons.Default.SettingsInputAntenna,
@@ -262,12 +238,6 @@ private fun SettingsMainScreen(
             title = "Логи",
             icon = Icons.Default.BugReport,
             onClick = { onPageChange(SettingsPage.Logs) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = "О КОФЕМАНИЯ ВПН",
-            icon = Icons.Default.Info,
-            onClick = { onPageChange(SettingsPage.About) },
         )
         SettingsDivider()
         SettingsActionRow(
@@ -338,7 +308,7 @@ private fun SubscriptionSettingsScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        SubscriptionAutoUpdateExpandable(
+        SubscriptionAutoUpdateButtons(
             selectedInterval = autoUpdateInterval,
             onIntervalChange = onAutoUpdateIntervalChange,
         )
@@ -360,99 +330,63 @@ private fun SubscriptionSettingsScreen(
     }
 }
 
-private const val SETTINGS_EXPAND_ANIM_MS = 280
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SubscriptionAutoUpdateExpandable(
+private fun SubscriptionAutoUpdateButtons(
     selectedInterval: SubscriptionAutoUpdateInterval,
     onIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val colors = coffemaniaColors()
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(SETTINGS_EXPAND_ANIM_MS),
-        label = "subscriptionAutoUpdateChevron",
-    )
-    val expandSpec = tween<IntSize>(SETTINGS_EXPAND_ANIM_MS)
-    val fadeSpec = tween<Float>(SETTINGS_EXPAND_ANIM_MS)
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+    ) {
+        Text(
+            text = "Автообновление подписки",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            color = colors.espresso,
+        )
+        FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics {
-                    contentDescription = "Автообновление подписки"
-                    stateDescription = if (expanded) "Развёрнуто" else "Свёрнуто"
-                }
-                .clickable(role = Role.Button) { expanded = !expanded }
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = "Автообновление подписки",
-                style = MaterialTheme.typography.bodyLarge,
-                color = colors.espresso,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = selectedInterval.label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.mocha,
-                modifier = Modifier.padding(end = 8.dp),
-            )
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                tint = colors.mocha,
-                modifier = Modifier
-                    .size(24.dp)
-                    .rotate(chevronRotation),
-            )
-        }
+            SubscriptionAutoUpdateInterval.entries.forEach { interval ->
+                val selected = selectedInterval == interval
+                val background = if (selected) colors.espresso else colors.cappuccino
+                val contentColor = if (selected) colors.milkFoam else colors.espresso
+                val borderColor = if (selected) colors.espresso else colors.latte
 
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(
-                animationSpec = expandSpec,
-                expandFrom = Alignment.Top,
-            ) + fadeIn(animationSpec = fadeSpec),
-            exit = shrinkVertically(
-                animationSpec = expandSpec,
-                shrinkTowards = Alignment.Top,
-            ) + fadeOut(animationSpec = fadeSpec),
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                SubscriptionAutoUpdateInterval.entries.forEachIndexed { index, interval ->
-                    SettingsIntervalRadioRow(
-                        title = interval.label,
-                        selected = selectedInterval == interval,
-                        onSelect = {
-                            onIntervalChange(interval)
-                            expanded = false
-                        },
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(background)
+                        .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+                        .clickable(role = Role.Button) { onIntervalChange(interval) }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = interval.buttonLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor,
                     )
-                    if (index < SubscriptionAutoUpdateInterval.entries.lastIndex) {
-                        SettingsDivider()
-                    }
                 }
             }
         }
     }
 }
 
-@Composable
-private fun SettingsIntervalRadioRow(
-    title: String,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
-    SettingsThemeRadioRow(
-        title = title,
-        selected = selected,
-        onSelect = onSelect,
-    )
-}
+private val SubscriptionAutoUpdateInterval.buttonLabel: String
+    get() = when (this) {
+        SubscriptionAutoUpdateInterval.OFF -> "Выкл"
+        else -> "${hours}ч"
+    }
 
 private fun subscriptionItems(
     hasSubscription: Boolean,
@@ -494,24 +428,6 @@ private fun subscriptionItems(
         )
     }
 }
-
-private fun aboutItems(
-    appVersion: String,
-    onTelegramChannel: () -> Unit,
-): List<SettingsAction> = listOf(
-    SettingsAction(
-        title = "Версия $appVersion",
-        icon = Icons.Default.Info,
-        onClick = {},
-        enabled = false,
-        showChevron = false,
-    ),
-    SettingsAction(
-        title = "Канал в Telegram",
-        icon = Icons.AutoMirrored.Filled.Send,
-        onClick = onTelegramChannel,
-    ),
-)
 
 @Composable
 private fun SettingsNavRow(

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,9 +37,7 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -52,7 +49,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -65,7 +61,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.coffeemaniavpn.app.R
-import ru.coffeemaniavpn.app.data.SubscriptionInfo
 import ru.coffeemaniavpn.app.vpn.VpnStatus
 
 enum class AppTab { Home, Servers }
@@ -346,7 +341,7 @@ fun BrewConnectButton(
             Text(
                 text = formatConnectionDuration(connectionElapsedMs),
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.Bold,
                 color = connectedGreen,
             )
         }
@@ -473,7 +468,7 @@ fun SelectedServerCard(
                             Text(
                                 text = display.subtitle,
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (emphasized) FontWeight.Medium else FontWeight.Normal,
+                                fontWeight = FontWeight.Bold,
                                 color = if (emphasized) {
                                     colors.espresso.copy(alpha = 0.72f)
                                 } else {
@@ -547,7 +542,7 @@ fun ServerListCard(
                 Text(
                     text = display.title,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     color = coffemaniaColors().espresso,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -569,7 +564,7 @@ fun ServerListCard(
                         Text(
                             text = display.subtitle,
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Normal,
+                                fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.sp,
                             ),
                             color = coffemaniaColors().mocha,
@@ -583,7 +578,7 @@ fun ServerListCard(
         Text(
             text = display.pingText,
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             color = pingColor,
         )
     }
@@ -630,7 +625,7 @@ fun SubscriptionExpiredCard(
             Text(
                 text = "Подписка истекла",
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.error,
             )
             Text(
@@ -671,7 +666,7 @@ fun SubscriptionCard(
             Text(
                 text = "Добавить подписку",
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = coffemaniaColors().espresso,
             )
             Column(
@@ -785,245 +780,6 @@ private fun SubscriptionActionButton(
                 color = coffemaniaColors().espresso,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-fun SubscriptionStatusBar(
-    nodeCount: Int,
-    subscriptionInfo: SubscriptionInfo?,
-    isRefreshing: Boolean,
-    isPinging: Boolean,
-    canRefresh: Boolean,
-    canPing: Boolean,
-    onRefreshConfig: () -> Unit,
-    onRefreshPing: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = coffemaniaColors().cappuccino,
-        border = androidx.compose.foundation.BorderStroke(1.dp, coffemaniaColors().latte),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            subscriptionInfo?.let { info ->
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = coffemaniaColors().espresso,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    info.expireLabel()?.let { expireText ->
-                        val expired = info.isExpired()
-                        Text(
-                            text = expireText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (expired) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                coffemaniaColors().mocha
-                            },
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(coffemaniaColors().latte),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = nodeCount.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = coffemaniaColors().espresso,
-                        )
-                    }
-                    Text(
-                        text = "Серверов",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = coffemaniaColors().mocha,
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    ConfigRefreshButton(
-                        isRefreshing = isRefreshing,
-                        enabled = canRefresh,
-                        onClick = onRefreshConfig,
-                    )
-                    PingTestButton(
-                        isPinging = isPinging,
-                        enabled = canPing,
-                        onClick = onRefreshPing,
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (subscriptionInfo != null && subscriptionInfo.isUnlimitedTraffic) {
-                    Text(
-                        text = "∞",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = coffemaniaColors().espresso,
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(16.dp)
-                            .background(coffemaniaColors().latte),
-                    )
-                }
-
-                TrafficProgressBar(
-                    subscriptionInfo = subscriptionInfo,
-                    modifier = Modifier.weight(1f),
-                )
-
-                Text(
-                    text = subscriptionInfo?.trafficLabel() ?: "— / —",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = coffemaniaColors().mocha,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TrafficProgressBar(
-    subscriptionInfo: SubscriptionInfo?,
-    modifier: Modifier = Modifier,
-) {
-    val trackColor = coffemaniaColors().milkFoam
-    val progressColor = coffemaniaColors().espresso
-
-    if (subscriptionInfo == null) {
-        Box(
-            modifier = modifier
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(trackColor),
-        )
-        return
-    }
-
-    if (subscriptionInfo.isUnlimitedTraffic) {
-        Box(
-            modifier = modifier
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(trackColor),
-        ) {
-            if (subscriptionInfo.used > 0) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.08f)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(progressColor),
-                )
-            }
-        }
-        return
-    }
-
-    Box(
-        modifier = modifier
-            .height(6.dp)
-            .clip(RoundedCornerShape(3.dp))
-            .background(trackColor),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(subscriptionInfo.usageFraction.coerceIn(0f, 1f))
-                .clip(RoundedCornerShape(3.dp))
-                .background(progressColor),
-        )
-    }
-}
-
-@Composable
-fun ConfigRefreshButton(
-    isRefreshing: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    IconButton(
-        onClick = onClick,
-        enabled = enabled && !isRefreshing,
-        modifier = modifier.size(48.dp),
-    ) {
-        if (isRefreshing) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
-                strokeWidth = 2.dp,
-                color = coffemaniaColors().espresso,
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Обновить конфиг",
-                tint = coffemaniaColors().espresso,
-                modifier = Modifier.size(28.dp),
-            )
-        }
-    }
-}
-
-@Composable
-fun PingTestButton(
-    isPinging: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    IconButton(
-        onClick = onClick,
-        enabled = enabled && !isPinging,
-        modifier = modifier.size(48.dp),
-    ) {
-        if (isPinging) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
-                strokeWidth = 2.dp,
-                color = coffemaniaColors().espresso,
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Speed,
-                contentDescription = "Проверить пинг",
-                tint = coffemaniaColors().espresso,
-                modifier = Modifier.size(28.dp),
             )
         }
     }

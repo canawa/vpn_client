@@ -313,35 +313,6 @@ fun SplitTunnelAppsScreen(
 }
 
 @Composable
-fun KillSwitchScreen(
-    settings: ConnectionSettingsState,
-    onSave: (ConnectionSettingsState) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-    ) {
-        SettingsToggleRow(
-            title = "Kill Switch",
-            checked = settings.killSwitchEnabled,
-            onCheckedChange = { enabled ->
-                onSave(settings.copy(killSwitchEnabled = enabled))
-            },
-        )
-        SettingsDivider()
-        Text(
-            text = "При неожиданном обрыве VPN весь интернет-трафик будет заблокирован, " +
-                "пока вы снова не подключитесь.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = coffemaniaColors().mocha,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-        )
-    }
-}
-
-@Composable
 private fun AppListIcon(packageName: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val bitmap = remember(packageName) {
@@ -370,7 +341,7 @@ private fun SettingsSectionLabel(text: String) {
 }
 
 @Composable
-private fun SettingsToggleRow(
+internal fun SettingsToggleRow(
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,

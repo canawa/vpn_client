@@ -25,23 +25,13 @@ fun ServerListFlag(
     modifier: Modifier = Modifier,
     height: Dp = 32.dp,
 ) {
-    val countryCode = FlagUtils.emojiToCountryCode(flag)
-    val width = if (countryCode != null) height * 4 / 3 else height
-
-    Box(
-        modifier = modifier
-            .width(width)
-            .height(height),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = flag,
-            fontSize = (height.value * 0.78f).sp,
-            lineHeight = (height.value * 0.78f).sp,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-    }
+    ServerFlag(
+        flag = flag,
+        modifier = modifier,
+        height = height,
+        crossfade = false,
+        showShadow = false,
+    )
 }
 
 @Composable

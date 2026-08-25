@@ -24,14 +24,9 @@ fun ServersScreen(
     selectedNodeId: String?,
     nodePings: Map<String, PingState>,
     subscriptionInfo: SubscriptionInfo?,
-    isRefreshing: Boolean,
-    isPinging: Boolean,
-    canRefreshConfig: Boolean,
     enabled: Boolean,
     onSelectNode: (String) -> Unit,
     onConnectToNode: (String) -> Unit,
-    onRefreshConfig: () -> Unit,
-    onRefreshPing: () -> Unit,
     onTelegramChannelClick: () -> Unit,
     onRenewTelegramClick: () -> Unit,
     onBuyOnWebsiteClick: () -> Unit,
@@ -46,17 +41,6 @@ fun ServersScreen(
             .padding(top = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        SubscriptionStatusBar(
-            nodeCount = nodes.size,
-            subscriptionInfo = subscriptionInfo,
-            isRefreshing = isRefreshing,
-            isPinging = isPinging,
-            canRefresh = canRefreshConfig && !subscriptionExpired,
-            canPing = nodes.isNotEmpty() && !subscriptionExpired,
-            onRefreshConfig = onRefreshConfig,
-            onRefreshPing = onRefreshPing,
-        )
-
         if (subscriptionExpired) {
             SubscriptionExpiredCard(
                 onRenewTelegramClick = onRenewTelegramClick,

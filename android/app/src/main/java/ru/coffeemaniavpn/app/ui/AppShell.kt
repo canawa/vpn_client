@@ -26,7 +26,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import ru.coffeemaniavpn.app.BuildConfig
 import ru.coffeemaniavpn.app.R
 
 @Composable
@@ -39,8 +38,6 @@ fun AppShell(
     onDisconnectClick: () -> Unit,
     onShowLogs: () -> Unit,
     onDownloadLogs: () -> Unit,
-    onRefreshPing: () -> Unit,
-    onRefreshConfig: () -> Unit,
     onPasteLinkClick: () -> Unit,
     onBuyOnWebsiteClick: () -> Unit,
     onDeleteSubscriptionClick: () -> Unit,
@@ -139,7 +136,6 @@ fun AppShell(
                 modifier = Modifier.padding(padding),
                 page = settingsPage,
                 onPageChange = { settingsPage = it },
-                appVersion = BuildConfig.VERSION_NAME,
                 hasSubscription = hasSubscription,
                 connectionSettings = state.connectionSettings,
                 onSaveConnectionSettings = onSaveConnectionSettings,
@@ -147,11 +143,6 @@ fun AppShell(
                 onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
                 appThemeMode = state.appThemeMode,
                 onAppThemeModeChange = onAppThemeModeChange,
-                onOpenServers = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
-                    selectedTab = AppTab.Servers
-                },
                 onPasteLink = {
                     showSettings = false
                     settingsPage = SettingsPage.Main
@@ -174,7 +165,6 @@ fun AppShell(
                     onShowLogs()
                 },
                 onDownloadLogs = onDownloadLogs,
-                onTelegramChannel = onTelegramChannelClick,
                 onCloseApp = onCloseApp,
             )
         } else {
@@ -196,9 +186,6 @@ fun AppShell(
                     selectedNodeId = state.selectedNodeId,
                     nodePings = state.nodePings,
                     subscriptionInfo = state.subscriptionInfo,
-                    isRefreshing = state.isLoading,
-                    isPinging = state.isPinging,
-                    canRefreshConfig = state.subscriptionUrl.isNotBlank(),
                     enabled = state.vpnStatus != ru.coffeemaniavpn.app.vpn.VpnStatus.Starting &&
                         state.vpnStatus != ru.coffeemaniavpn.app.vpn.VpnStatus.Stopping,
                     onSelectNode = onSelectNode,
@@ -206,8 +193,6 @@ fun AppShell(
                         selectedTab = AppTab.Home
                         onConnectToNode(nodeId)
                     },
-                    onRefreshConfig = onRefreshConfig,
-                    onRefreshPing = onRefreshPing,
                     onTelegramChannelClick = onTelegramChannelClick,
                     onRenewTelegramClick = onRenewTelegramClick,
                     onBuyOnWebsiteClick = onBuyOnWebsiteClick,

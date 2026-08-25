@@ -100,8 +100,6 @@ class MainActivity : ComponentActivity() {
                         onDisconnectClick = VpnManager::disconnect,
                         onShowLogs = { showLogs = true },
                         onDownloadLogs = ::downloadLogs,
-                        onRefreshPing = viewModel::pingAllNodes,
-                        onRefreshConfig = viewModel::refreshConfig,
                         onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
                         onBuyOnWebsiteClick = ::openSubscriptionRegister,
                         onDeleteSubscriptionClick = viewModel::deleteSubscription,
