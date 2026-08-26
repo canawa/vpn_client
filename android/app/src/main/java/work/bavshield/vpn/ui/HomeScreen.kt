@@ -5,9 +5,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -82,34 +84,39 @@ fun HomeScreen(
         ?.takeIf { it.total > 0 || it.used > 0 }
         ?.trafficLabel()
 
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
-            .padding(top = 8.dp, bottom = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(horizontal = 24.dp),
     ) {
-        state.startupCrash?.let {
-            ErrorBanner(text = stringResource(R.string.last_crash, it))
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-        state.error?.let {
-            ErrorBanner(text = it)
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-        state.message?.takeIf { hasSubscription }?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF9AA0B8),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-            )
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        ) {
+            state.startupCrash?.let {
+                ErrorBanner(text = stringResource(R.string.last_crash, it))
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            state.error?.let {
+                ErrorBanner(text = it)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            state.message?.takeIf { hasSubscription }?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF9AA0B8),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                )
+            }
         }
 
         ShieldConnectSwitch(
+            modifier = Modifier.align(Alignment.Center),
             vpnStatus = state.vpnStatus,
             connectionElapsedMs = state.connectionElapsedMs,
             enabled = connectEnabled,
@@ -118,7 +125,16 @@ fun HomeScreen(
             },
         )
 
-        Text(
+        val belowSwitch = maxHeight / 2 + 42.dp + 16.dp + if (isConnected) 28.dp else 0.dp
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(top = belowSwitch, bottom = 20.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             text = if (subscriptionExpired) {
                 stringResource(R.string.subscription_expired)
             } else {

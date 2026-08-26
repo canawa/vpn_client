@@ -32,16 +32,14 @@ fun EarthGlobeBackground(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         drawRect(Ocean)
         val geoAspect = (LON_EAST - LON_WEST) / (LAT_NORTH - LAT_SOUTH)
-        val pad = min(size.width, size.height) * 0.05f
-        val availW = size.width - pad * 2f
-        val availH = size.height - pad * 2f
-        val fit = min(availW / geoAspect, availH)
-        val mapW = geoAspect * fit
-        val mapH = fit
+        val fit = min(size.width / geoAspect, size.height)
+        val zoom = 2.52f
+        val mapW = geoAspect * fit * zoom
+        val mapH = fit * zoom
         val left = (size.width - mapW) / 2f
         val top = (size.height - mapH) / 2f
 
-        clipRect(left, top, left + mapW, top + mapH) {
+        clipRect(0f, 0f, size.width, size.height) {
             withTransform({
                 translate(left = left, top = top)
                 scale(scaleX = mapW, scaleY = mapH, pivot = Offset.Zero)
