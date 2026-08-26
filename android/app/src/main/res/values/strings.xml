@@ -66,7 +66,6 @@
     <string name="settings_language">Язык</string>
     <string name="settings_connection">Соединение</string>
     <string name="settings_subscription">Подписка</string>
-    <string name="settings_theme">Цветовая схема</string>
     <string name="settings_tunnel">Туннель</string>
     <string name="settings_ping">Пинг</string>
     <string name="settings_about">О приложении</string>
@@ -108,19 +107,6 @@
     <string name="language_en" translatable="false">EN (English)</string>
     <string name="language_ru" translatable="false">RUS (Русский)</string>
 
-    <string name="theme_light">День</string>
-    <string name="theme_dark">Ночь</string>
-    <string name="theme_system">Авто</string>
-    <string name="theme_section_mode">Режим</string>
-    <string name="theme_section_color">Цветовая схема</string>
-    <string name="color_forest">Лес</string>
-    <string name="color_ocean">Океан</string>
-    <string name="color_slate">Сланец</string>
-    <string name="color_teal">Бирюза</string>
-    <string name="color_indigo">Индиго</string>
-    <string name="color_amber">Янтарь</string>
-    <string name="color_crimson">Гранат</string>
-
     <string name="enable">Включить</string>
     <string name="mode">Режим</string>
     <string name="sites_proxy_only">Только выбранные сайты через VPN</string>
@@ -137,7 +123,7 @@
     <string name="apps_loading_list">Загрузка списка…</string>
 
     <string name="error_wait_servers">Дождитесь загрузки серверов</string>
-    <string name="error_paste_subscription">Вставьте ссылку подписки</string>
+    <string name="error_paste_subscription">Вставьте ссылку подписки BAV Shield VPN</string>
     <string name="error_unsupported_link">Неподдерживаемая ссылка</string>
     <string name="error_disconnected">Отключено</string>
     <string name="error_subscription_added_connecting">Подписка добавлена, подключаемся…</string>
@@ -148,6 +134,12 @@
     <string name="error_routing_enabled">Маршрутизация включена: %1$s</string>
     <string name="error_routing_saved">Маршрутизация сохранена: %1$s</string>
     <string name="error_routing_invalid">Неверный профиль маршрутизации</string>
+    <string name="first_launch_name_prefix">BAV Shield</string>
+    <string name="first_launch_name_vpn"> VPN</string>
+    <string name="first_launch_tagline">Быстрый и стабильный доступ без границ</string>
+    <string name="first_launch_paste">Вставить из буфера</string>
+    <string name="first_launch_footer">Ключ выдаётся вместе с подпиской</string>
+
     <string name="error_clipboard_empty">Буфер обмена пуст</string>
     <string name="error_link_pasted">Ссылка вставлена</string>
     <string name="error_subscription_deleted">Подписка удалена</string>

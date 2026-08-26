@@ -22,14 +22,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.annotation.StringRes
 import work.bavshield.vpn.R
-import work.bavshield.vpn.data.AppColorScheme
 import work.bavshield.vpn.data.AppPreferences
 import work.bavshield.vpn.data.ConnectionSettingsState
 import work.bavshield.vpn.data.PingAutoInterval
 import work.bavshield.vpn.data.PingState
 import work.bavshield.vpn.data.ProxyNode
 import work.bavshield.vpn.data.ServerPinger
-import work.bavshield.vpn.data.AppThemeMode
 import work.bavshield.vpn.data.SubscriptionAutoUpdateInterval
 import work.bavshield.vpn.data.SubscriptionInfo
 import work.bavshield.vpn.data.SubscriptionParser
@@ -62,8 +60,6 @@ data class MainUiState(
     val connectionSettings: ConnectionSettingsState = ConnectionSettingsState(),
     val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval =
         SubscriptionAutoUpdateInterval.DEFAULT,
-    val appThemeMode: AppThemeMode = AppThemeMode.DEFAULT,
-    val appColorScheme: AppColorScheme = AppColorScheme.DEFAULT,
     val pingAutoInterval: PingAutoInterval = PingAutoInterval.DEFAULT,
     val pingTestHosts: String = AppPreferences.DEFAULT_PING_TEST_HOSTS,
 )
@@ -116,22 +112,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             LocalUiState(loading, pinging, pings, info, localError)
         },
         combine(
-            combine(
-                preferences.connectionSettings,
-                preferences.subscriptionAutoUpdateInterval,
-                preferences.appThemeMode,
-                preferences.appColorScheme,
-            ) { connectionSettings, autoUpdateInterval, appThemeMode, appColorScheme ->
-                SettingsUiState(connectionSettings, autoUpdateInterval, appThemeMode, appColorScheme)
-            },
+            preferences.connectionSettings,
+            preferences.subscriptionAutoUpdateInterval,
             preferences.pingAutoInterval,
             preferences.pingTestHosts,
-        ) { settings, pingInterval, pingHosts ->
-            settings.copy(pingAutoInterval = pingInterval, pingTestHosts = pingHosts)
+        ) { connectionSettings, autoUpdateInterval, pingInterval, pingHosts ->
+            SettingsUiState(connectionSettings, autoUpdateInterval, pingInterval, pingHosts)
         },
         startupCrash,
     ) { savedData, vpnData, localData, settingsData, crash ->
-        val (connectionSettings, autoUpdateInterval, appThemeMode, appColorScheme, pingInterval, pingHosts) = settingsData
+        val (connectionSettings, autoUpdateInterval, pingInterval, pingHosts) = settingsData
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
@@ -151,8 +141,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             startupCrash = crash,
             connectionSettings = connectionSettings,
             subscriptionAutoUpdateInterval = autoUpdateInterval,
-            appThemeMode = appThemeMode,
-            appColorScheme = appColorScheme,
             pingAutoInterval = pingInterval,
             pingTestHosts = pingHosts,
         )
@@ -165,9 +153,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         AppLog.i("MainViewModel init")
         viewModelScope.launch(Dispatchers.IO) {
-            startupCrash.value = AppLog.readLastCrash()
+            startupCrash.value = null
             preferences.loadActiveRoutingIntoMemory()
             preferences.loadConnectionSettingsIntoMemory()
+        }
+        viewModelScope.launch {
+            restoreSubscriptionSession()
         }
         viewModelScope.launch {
             preferences.subscriptionUrl.collect { saved ->
@@ -231,18 +222,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setAppThemeMode(mode: AppThemeMode) {
-        viewModelScope.launch(Dispatchers.IO) {
-            preferences.setAppThemeMode(mode)
-        }
-    }
-
-    fun setAppColorScheme(scheme: AppColorScheme) {
-        viewModelScope.launch(Dispatchers.IO) {
-            preferences.setAppColorScheme(scheme)
-        }
-    }
-
     fun setPingAutoInterval(interval: PingAutoInterval) {
         viewModelScope.launch(Dispatchers.IO) {
             preferences.setPingAutoInterval(interval)
@@ -257,9 +236,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun restoreSubscriptionSession() {
         val savedUrl = preferences.subscriptionUrl.first().trim()
-        if (savedUrl.isNotBlank() && subscriptionUrlInput.value.isBlank()) {
+        if (savedUrl.isBlank()) return
+        if (subscriptionUrlInput.value.isBlank()) {
             subscriptionUrlInput.value = savedUrl
-            AppLog.i("onAppResumed restored subscription urlLen=${savedUrl.length}")
+            AppLog.i("restored subscription url from prefs urlLen=${savedUrl.length}")
+        }
+        val nodes = preferences.nodes.first()
+        if (nodes.isEmpty()) {
+            AppLog.i("saved subscription has no nodes, refreshing")
+            refreshConfig(showUrlRequiredError = false)
         }
     }
 
@@ -457,10 +442,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             error.value = str(R.string.error_clipboard_empty)
             return
         }
-        subscriptionUrlInput.value = text
+        val url = text.trim()
+        subscriptionUrlInput.value = url
         message.value = str(R.string.error_link_pasted)
-        AppLog.i("pasteSubscriptionFromClipboard urlLen=${text.length}")
+        AppLog.i("pasteSubscriptionFromClipboard urlLen=${url.length}")
+        if (looksLikeSubscriptionUrl(url)) {
+            viewModelScope.launch {
+                preferences.saveSubscriptionUrl(url)
+            }
+        }
         refreshConfig(showUrlRequiredError = false)
+    }
+
+    private fun looksLikeSubscriptionUrl(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.startsWith("http://") || lower.startsWith("https://")
     }
 
     fun deleteSubscription() {
@@ -680,8 +676,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private data class SettingsUiState(
         val connectionSettings: ConnectionSettingsState,
         val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
-        val appThemeMode: AppThemeMode,
-        val appColorScheme: AppColorScheme,
         val pingAutoInterval: PingAutoInterval = PingAutoInterval.DEFAULT,
         val pingTestHosts: String = AppPreferences.DEFAULT_PING_TEST_HOSTS,
     )

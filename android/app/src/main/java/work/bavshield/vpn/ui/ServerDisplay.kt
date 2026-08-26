@@ -49,11 +49,15 @@ object ServerDisplayMapper {
 
     fun map(context: Context, node: ProxyNode, ping: PingState? = null): ServerDisplay {
         val trimmed = node.name.trim()
-        val flag = firstFlagRegex.find(trimmed)?.value
+        val parsedFlag = firstFlagRegex.find(trimmed)?.value
             ?: trimmed.substringBefore(' ').trim().takeIf { it.isNotEmpty() }
-            ?: "🌐"
-        val withoutFlag = trimmed.removePrefix(flag).trim()
+        val withoutFlag = trimmed.removePrefix(parsedFlag.orEmpty()).trim()
         val autoSelect = isAutoSelect(trimmed, withoutFlag.substringBefore("|").trim())
+        val flag = when {
+            autoSelect -> FlagUtils.EU_FLAG
+            FlagUtils.emojiToCountryCode(parsedFlag.orEmpty()) != null -> parsedFlag!!
+            else -> FlagUtils.EU_FLAG
+        }
 
         val title = withoutFlag.substringBefore("|").trim().let { candidate ->
             when {

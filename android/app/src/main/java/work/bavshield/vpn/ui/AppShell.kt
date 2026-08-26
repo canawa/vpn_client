@@ -52,8 +52,6 @@ fun AppShell(
     onCloseApp: () -> Unit,
     onSaveConnectionSettings: (work.bavshield.vpn.data.ConnectionSettingsState) -> Unit,
     onSubscriptionAutoUpdateIntervalChange: (work.bavshield.vpn.data.SubscriptionAutoUpdateInterval) -> Unit,
-    onAppThemeModeChange: (work.bavshield.vpn.data.AppThemeMode) -> Unit,
-    onAppColorSchemeChange: (work.bavshield.vpn.data.AppColorScheme) -> Unit,
     onAppLanguageChange: (AppLanguage) -> Unit,
     onPingAutoIntervalChange: (work.bavshield.vpn.data.PingAutoInterval) -> Unit,
     onPingTestHostsChange: (String) -> Unit,
@@ -67,7 +65,16 @@ fun AppShell(
     var settingsPage by remember { mutableStateOf(SettingsPage.Main) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
 
-    val hasSubscription = state.subscriptionUrl.isNotBlank() && state.nodes.isNotEmpty()
+    val hasSubscription = state.nodes.isNotEmpty()
+
+    if (!hasSubscription) {
+        FirstLaunchScreen(
+            isLoading = state.isLoading,
+            error = state.error,
+            onPasteClick = onPasteLinkClick,
+        )
+        return
+    }
 
     val selectedNode = state.nodes.find { it.id == state.selectedNodeId }
     val selectedDisplay = selectedNode?.let {
@@ -149,6 +156,7 @@ fun AppShell(
                             },
                             transparent = true,
                             lightContent = true,
+                            titleBelow = true,
                         )
                     }
                 }
@@ -164,10 +172,6 @@ fun AppShell(
                 onSaveConnectionSettings = onSaveConnectionSettings,
                 subscriptionAutoUpdateInterval = state.subscriptionAutoUpdateInterval,
                 onSubscriptionAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
-                appThemeMode = state.appThemeMode,
-                onAppThemeModeChange = onAppThemeModeChange,
-                appColorScheme = state.appColorScheme,
-                onAppColorSchemeChange = onAppColorSchemeChange,
                 appLanguage = appLanguage,
                 onAppLanguageChange = onAppLanguageChange,
                 pingAutoInterval = state.pingAutoInterval,

@@ -1,8 +1,15 @@
 package work.bavshield.vpn.ui
 
 import android.content.Context
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -20,6 +27,7 @@ private const val LAT_NORTH = 74f
 private const val LAT_SOUTH = -56f
 private const val LON_WEST = -168f
 private const val LON_EAST = 180f
+private const val PAN_MS = 90_000
 
 private val Ocean = Color(0xFF1B1F36)
 private val Land = Color(0xFF5A628C)
@@ -28,6 +36,15 @@ private val Land = Color(0xFF5A628C)
 fun EarthGlobeBackground(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val landPath = remember(context) { loadWorldLandPath(context) }
+    val shift by rememberInfiniteTransition(label = "mapPan").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = PAN_MS, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "shift",
+    )
 
     Canvas(modifier = modifier) {
         drawRect(Ocean)
@@ -38,14 +55,21 @@ fun EarthGlobeBackground(modifier: Modifier = Modifier) {
         val mapH = fit * zoom
         val left = (size.width - mapW) / 2f
         val top = (size.height - mapH) / 2f
+        val originX = left - shift * mapW
 
-        clipRect(0f, 0f, size.width, size.height) {
+        fun drawCopy(x: Float) {
             withTransform({
-                translate(left = left, top = top)
+                translate(left = x, top = top)
                 scale(scaleX = mapW, scaleY = mapH, pivot = Offset.Zero)
             }) {
                 drawPath(landPath, Land)
             }
+        }
+
+        clipRect(0f, 0f, size.width, size.height) {
+            drawCopy(originX - mapW)
+            drawCopy(originX)
+            drawCopy(originX + mapW)
         }
     }
 }

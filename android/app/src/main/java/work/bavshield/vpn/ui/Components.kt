@@ -30,8 +30,8 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -102,6 +103,7 @@ fun BavShieldTopBar(
     onRefreshClick: () -> Unit = {},
     transparent: Boolean = false,
     lightContent: Boolean = false,
+    titleBelow: Boolean = false,
 ) {
     val content = if (lightContent) Color.White else bavShieldColors().espresso
     Surface(
@@ -111,82 +113,106 @@ fun BavShieldTopBar(
     ) {
         val horizontalPadding = if (showBackButton) 12.dp else 24.dp
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .padding(horizontal = horizontalPadding, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .padding(horizontal = horizontalPadding, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(
-                    space = if (showBackButton) 4.dp else 16.dp,
-                ),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                if (showBackButton) {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.cd_back),
-                            tint = content,
+                Row(
+                    modifier = if (titleBelow) Modifier else Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(
+                        space = if (showBackButton) 4.dp else 16.dp,
+                    ),
+                ) {
+                    if (showBackButton) {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.cd_back),
+                                tint = content,
+                            )
+                        }
+                    } else if (showSettingsButton) {
+                        IconButton(onClick = onSettingsClick) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = stringResource(R.string.cd_settings),
+                                tint = content,
+                            )
+                        }
+                    }
+                    if (!titleBelow) {
+                        Text(
+                            text = title,
+                            modifier = Modifier.weight(1f),
+                            style = if (showBackButton) {
+                                MaterialTheme.typography.titleMedium
+                            } else {
+                                MaterialTheme.typography.headlineMedium
+                            },
+                            color = content,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
-                } else {
-                    ShieldLogo(modifier = Modifier.size(28.dp), tint = content)
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (showRefreshButton) {
+                        if (isRefreshing) {
+                            Box(
+                                modifier = Modifier.size(48.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    strokeWidth = 2.dp,
+                                    color = content,
+                                )
+                            }
+                        } else {
+                            IconButton(
+                                onClick = onRefreshClick,
+                                enabled = refreshEnabled,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = stringResource(R.string.cd_refresh),
+                                    tint = content.copy(
+                                        alpha = if (refreshEnabled) 1f else 0.38f,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                    if (showSettingsButton && showBackButton) {
+                        IconButton(onClick = onSettingsClick) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = stringResource(R.string.cd_settings),
+                                tint = content,
+                            )
+                        }
+                    }
+                }
+            }
+            if (titleBelow) {
                 Text(
                     text = title,
-                    modifier = Modifier.weight(1f),
-                    style = if (showBackButton) {
-                        MaterialTheme.typography.titleMedium
-                    } else {
-                        MaterialTheme.typography.headlineMedium
-                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
                     color = content,
+                    textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (showRefreshButton) {
-                    if (isRefreshing) {
-                        Box(
-                            modifier = Modifier.size(48.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.dp,
-                                color = content,
-                            )
-                        }
-                    } else {
-                        IconButton(
-                            onClick = onRefreshClick,
-                            enabled = refreshEnabled,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = stringResource(R.string.cd_refresh),
-                                tint = content.copy(
-                                    alpha = if (refreshEnabled) 1f else 0.38f,
-                                ),
-                            )
-                        }
-                    }
-                }
-                if (showSettingsButton) {
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.cd_settings),
-                            tint = content,
-                        )
-                    }
-                }
             }
         }
     }
@@ -282,15 +308,15 @@ fun ShieldConnectSwitch(
     val isDimmed = !enabled && !isConnected && !isBusy
     val thumbOn = isConnected || isConnecting
 
-    val connectedGreen = BavShieldColors.PingGood
+    val connectOrange = BavShieldColors.ConnectOrange
     val disconnectRed = BavShieldColors.PingBad
-    val trackShape = RoundedCornerShape(42.dp)
+    val trackShape = RoundedCornerShape(50)
 
     val trackWidth = 236.dp
-    val trackHeight = 84.dp
-    val thumbSize = 72.dp
-    val thumbPadding = 6.dp
-    val travel = trackWidth - thumbSize - thumbPadding * 2
+    val trackHeight = 72.dp
+    val thumbSize = 104.dp
+    val edgeInset = 14.dp
+    val travel = trackWidth - thumbSize + edgeInset * 2
     val thumbOffset by animateDpAsState(
         targetValue = if (thumbOn) travel else 0.dp,
         animationSpec = tween(durationMillis = 280),
@@ -299,26 +325,13 @@ fun ShieldConnectSwitch(
 
     val trackColor = when {
         isDimmed -> bavShieldColors().connectDisabledOuter
-        isConnected -> connectedGreen
-        isConnecting -> connectedGreen.copy(alpha = 0.72f)
         isDisconnecting -> disconnectRed.copy(alpha = 0.72f)
-        else -> bavShieldColors().latte
-    }
-    val trackBorder = when {
-        isDimmed -> bavShieldColors().connectDisabledBorder
-        isConnected || isConnecting -> connectedGreen
-        isDisconnecting -> disconnectRed
-        else -> bavShieldColors().espresso.copy(alpha = 0.35f)
-    }
-    val shieldTint = when {
-        isDimmed -> bavShieldColors().connectDisabledIcon
-        isConnected || isConnecting -> bavShieldColors().milkFoam
-        else -> bavShieldColors().espresso
+        isConnecting -> connectOrange.copy(alpha = 0.85f)
+        else -> connectOrange
     }
     val progressColor = when {
-        isConnecting -> connectedGreen
         isDisconnecting -> disconnectRed
-        else -> bavShieldColors().espresso
+        else -> bavShieldColors().mocha
     }
 
     Column(
@@ -328,11 +341,7 @@ fun ShieldConnectSwitch(
         Box(
             modifier = Modifier
                 .width(trackWidth)
-                .height(trackHeight)
-                .shadow(elevation = 10.dp, shape = trackShape, clip = false)
-                .clip(trackShape)
-                .background(trackColor)
-                .border(2.dp, trackBorder, trackShape)
+                .height(thumbSize)
                 .clickable(
                     enabled = enabled && !isBusy,
                     role = Role.Switch,
@@ -341,16 +350,24 @@ fun ShieldConnectSwitch(
         ) {
             Box(
                 modifier = Modifier
+                    .align(Alignment.Center)
+                    .width(trackWidth)
+                    .height(trackHeight)
+                    .shadow(elevation = 10.dp, shape = trackShape, clip = false)
+                    .clip(trackShape)
+                    .background(trackColor),
+            )
+            Box(
+                modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = thumbPadding)
-                    .offset(x = thumbOffset)
+                    .offset(x = thumbOffset - edgeInset)
                     .size(thumbSize),
                 contentAlignment = Alignment.Center,
             ) {
                 ShieldLogo(
-                    modifier = Modifier.size(64.dp),
-                    tint = shieldTint,
-                    filled = isConnected || isConnecting,
+                    modifier = Modifier.size(100.dp),
+                    tint = Color.White,
+                    filled = true,
                     contentDescription = if (isConnected) {
                         stringResource(R.string.cd_disconnect)
                     } else {
@@ -371,7 +388,7 @@ fun ShieldConnectSwitch(
                 text = formatConnectionDuration(connectionElapsedMs),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = connectedGreen,
+                color = connectOrange,
                 modifier = Modifier.padding(top = 10.dp),
             )
         }
@@ -397,6 +414,7 @@ fun SelectedServerCard(
     modifier: Modifier = Modifier,
     emphasized: Boolean = false,
     expanded: Boolean? = null,
+    drawContainer: Boolean = true,
 ) {
     val colors = bavShieldColors()
     val pingColor = when {
@@ -404,18 +422,7 @@ fun SelectedServerCard(
         display.pingText == "N/A" -> BavShieldColors.PingBad
         else -> colors.mocha
     }
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(if (emphasized) 14.dp else 12.dp),
-        color = if (emphasized) colors.surfaceContainerHighest else colors.cappuccino,
-        border = androidx.compose.foundation.BorderStroke(
-            width = if (emphasized) 2.dp else 1.dp,
-            color = if (emphasized) colors.espresso.copy(alpha = 0.55f) else colors.latte,
-        ),
-        shadowElevation = if (emphasized) 2.dp else 0.dp,
-    ) {
+    val body = @Composable {
         Row(
             modifier = Modifier.padding(
                 horizontal = if (emphasized) 18.dp else 16.dp,
@@ -491,6 +498,30 @@ fun SelectedServerCard(
                     .graphicsLayer { rotationZ = if (expanded == true) 180f else 0f },
             )
         }
+    }
+    if (!drawContainer) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+        ) {
+            body()
+        }
+        return
+    }
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(if (emphasized) 14.dp else 12.dp),
+        color = if (emphasized) colors.surfaceContainerHighest else colors.cappuccino,
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (emphasized) 2.dp else 1.dp,
+            color = if (emphasized) colors.espresso.copy(alpha = 0.55f) else colors.latte,
+        ),
+        shadowElevation = if (emphasized) 2.dp else 0.dp,
+    ) {
+        body()
     }
 }
 

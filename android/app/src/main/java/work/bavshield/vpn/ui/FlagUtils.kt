@@ -1,6 +1,9 @@
 package work.bavshield.vpn.ui
 
 object FlagUtils {
+    const val EU_FLAG = "🇪🇺"
+    private const val EU_CODE = "eu"
+
     fun emojiToCountryCode(flag: String): String? {
         val codePoints = flag.trim().codePoints().toArray()
         if (codePoints.size != 2) return null
@@ -16,15 +19,7 @@ object FlagUtils {
         }.lowercase()
     }
 
-    fun flagImageUrl(flag: String): String {
-        emojiToCountryCode(flag)?.let { code ->
-            return "https://flagcdn.com/w160/$code.png"
-        }
+    fun resolveCountryCode(flag: String): String = emojiToCountryCode(flag) ?: EU_CODE
 
-        val hex = buildList {
-            flag.trim().codePoints().forEach { add(String.format("%x", it)) }
-        }.joinToString("-")
-
-        return "https://cdn.jsdelivr.net/gh/twitter/tweet-emoji@v14.0.2/assets/72x72/$hex.png"
-    }
+    fun flagImageUrl(flag: String): String = "https://flagcdn.com/w160/${resolveCountryCode(flag)}.png"
 }

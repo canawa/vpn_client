@@ -42,8 +42,9 @@ fun ServerFlag(
     crossfade: Boolean = false,
     showShadow: Boolean = false,
 ) {
-    val countryCode = FlagUtils.emojiToCountryCode(flag)
-    val width = if (countryCode != null) height * 4 / 3 else height
+    val countryCode = FlagUtils.resolveCountryCode(flag)
+    val fallbackFlag = if (FlagUtils.emojiToCountryCode(flag) != null) flag else FlagUtils.EU_FLAG
+    val width = height * 4 / 3
     val shape = RoundedCornerShape(6.dp)
     val imageModifier = modifier
         .width(width)
@@ -61,14 +62,14 @@ fun ServerFlag(
         model = ImageRequest.Builder(LocalContext.current)
             .data(FlagUtils.flagImageUrl(flag))
             .crossfade(crossfade)
-            .memoryCacheKey(countryCode ?: flag)
-            .diskCacheKey(countryCode ?: flag)
+            .memoryCacheKey(countryCode)
+            .diskCacheKey(countryCode)
             .build(),
         contentDescription = flag,
         modifier = imageModifier,
         contentScale = ContentScale.Crop,
-        loading = { FlagEmojiFallback(flag = flag, width = width, height = height) },
-        error = { FlagEmojiFallback(flag = flag, width = width, height = height) },
+        loading = { FlagEmojiFallback(flag = fallbackFlag, width = width, height = height) },
+        error = { FlagEmojiFallback(flag = fallbackFlag, width = width, height = height) },
     )
 }
 

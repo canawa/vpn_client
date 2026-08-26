@@ -104,10 +104,7 @@ class MainActivity : ComponentActivity() {
 
             setContent {
                 val state by viewModel.uiState.collectAsState()
-                BavShieldTheme(
-                    themeMode = state.appThemeMode,
-                    colorScheme = state.appColorScheme,
-                ) {
+                BavShieldTheme {
                     var showLogs by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
@@ -136,8 +133,6 @@ class MainActivity : ComponentActivity() {
                         onCloseApp = { finish() },
                         onSaveConnectionSettings = viewModel::saveConnectionSettings,
                         onSubscriptionAutoUpdateIntervalChange = viewModel::setSubscriptionAutoUpdateInterval,
-                        onAppThemeModeChange = viewModel::setAppThemeMode,
-                        onAppColorSchemeChange = viewModel::setAppColorScheme,
                         onAppLanguageChange = ::applyLanguage,
                         onPingAutoIntervalChange = viewModel::setPingAutoInterval,
                         onPingTestHostsChange = viewModel::setPingTestHosts,

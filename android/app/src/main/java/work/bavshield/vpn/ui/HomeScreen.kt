@@ -1,5 +1,9 @@
 package work.bavshield.vpn.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,24 +13,23 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -39,16 +42,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
 import work.bavshield.vpn.R
 import work.bavshield.vpn.data.PingState
 import work.bavshield.vpn.data.ProxyNode
@@ -96,10 +104,6 @@ fun HomeScreen(
                 .fillMaxWidth()
                 .padding(top = 8.dp),
         ) {
-            state.startupCrash?.let {
-                ErrorBanner(text = stringResource(R.string.last_crash, it))
-                Spacer(modifier = Modifier.height(12.dp))
-            }
             state.error?.let {
                 ErrorBanner(text = it)
                 Spacer(modifier = Modifier.height(12.dp))
@@ -129,14 +133,14 @@ fun HomeScreen(
             },
         )
 
-        val belowSwitch = maxHeight / 2 + switchOffsetY + 42.dp + 16.dp + if (isConnected) 28.dp else 0.dp
+        val belowSwitch = maxHeight / 2 + switchOffsetY + 52.dp + 16.dp + if (isConnected) 28.dp else 0.dp
+        val serverListMaxHeight = (maxHeight - belowSwitch - 168.dp).coerceAtLeast(180.dp)
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .fillMaxHeight()
-                .padding(top = belowSwitch, bottom = 20.dp)
-                .verticalScroll(rememberScrollState()),
+                .zIndex(2f)
+                .padding(top = belowSwitch),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -166,6 +170,7 @@ fun HomeScreen(
                         onSelectNode = onSelectNode,
                         onConnectToNode = onConnectToNode,
                         onOpenAllServers = onOpenServers,
+                        listMaxHeight = serverListMaxHeight,
                     )
                 }
             }
@@ -178,9 +183,15 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(28.dp))
-
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(bottom = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             SubscriptionStatusBanner(
                 hasSubscription = hasSubscription,
                 expired = subscriptionExpired,
@@ -227,11 +238,10 @@ private fun ServerCountryDropdown(
     onSelectNode: (String) -> Unit,
     onConnectToNode: (String) -> Unit,
     onOpenAllServers: () -> Unit,
+    listMaxHeight: Dp,
 ) {
     val context = LocalContext.current
-    val density = LocalDensity.current
     var expanded by remember { mutableStateOf(false) }
-    var menuWidth by remember { mutableStateOf(0.dp) }
     val autoselect = stringResource(R.string.server_autoselect)
     val rows = remember(nodes, nodePings, autoselect) {
         nodes.map { node ->
@@ -245,13 +255,25 @@ private fun ServerCountryDropdown(
         )
     }
     val pickingEnabled = vpnStatus != VpnStatus.Starting && vpnStatus != VpnStatus.Stopping
+    val colors = bavShieldColors()
+    val cardShape = RoundedCornerShape(14.dp)
+    val cardColor = colors.surfaceContainerHighest
+    val unroll by animateFloatAsState(
+        targetValue = if (expanded) 1f else 0f,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "serverMenuUnroll",
+    )
 
-    Box(
+    BackHandler(enabled = expanded) { expanded = false }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .onGloballyPositioned { coordinates ->
-                menuWidth = with(density) { coordinates.size.width.toDp() }
-            },
+            .zIndex(2f)
+            .shadow(2.dp, cardShape)
+            .clip(cardShape)
+            .background(cardColor)
+            .border(2.dp, colors.espresso.copy(alpha = 0.55f), cardShape),
     ) {
         if (selectedDisplay != null) {
             SelectedServerCard(
@@ -259,6 +281,7 @@ private fun ServerCountryDropdown(
                 onClick = { if (pickingEnabled) expanded = !expanded },
                 emphasized = true,
                 expanded = expanded,
+                drawContainer = false,
             )
         } else {
             EmptyServerHint(
@@ -270,35 +293,61 @@ private fun ServerCountryDropdown(
             )
         }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.width(menuWidth),
-        ) {
-            rows.forEach { (node, display) ->
-                val pingColor = when {
-                    display.pingMs != null -> BavShieldColors.pingColor(display.pingMs)
-                    display.pingText == "N/A" -> BavShieldColors.PingBad
-                    else -> bavShieldColors().mocha
-                }
-                DropdownMenuItem(
-                    text = {
+        if (unroll > 0f) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clipToBounds()
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints)
+                        layout(placeable.width, (placeable.height * unroll).roundToInt()) {
+                            placeable.placeRelative(0, 0)
+                        }
+                    },
+            ) {
+                HorizontalDivider(color = colors.latte)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = listMaxHeight)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    rows.forEach { (node, display) ->
+                        val selected = node.id == selectedNodeId
+                        val pingColor = when {
+                            display.pingMs != null -> BavShieldColors.pingColor(display.pingMs)
+                            display.pingText == "N/A" -> BavShieldColors.PingBad
+                            else -> colors.mocha
+                        }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (selected) {
+                                        colors.espresso.copy(alpha = 0.08f)
+                                    } else {
+                                        Color.Transparent
+                                    },
+                                )
+                                .clickable {
+                                    expanded = false
+                                    if (vpnStatus == VpnStatus.Started) {
+                                        onConnectToNode(node.id)
+                                    } else {
+                                        onSelectNode(node.id)
+                                    }
+                                }
+                                .padding(horizontal = 18.dp, vertical = 12.dp),
                         ) {
                             ServerListFlag(flag = display.flag, height = 22.dp)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = display.title,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (node.id == selectedNodeId) {
-                                        FontWeight.Bold
-                                    } else {
-                                        FontWeight.Medium
-                                    },
-                                    color = bavShieldColors().espresso,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                    color = colors.espresso,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -306,7 +355,7 @@ private fun ServerCountryDropdown(
                                     Text(
                                         text = display.subtitle,
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = bavShieldColors().mocha,
+                                        color = colors.mocha,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
@@ -319,30 +368,9 @@ private fun ServerCountryDropdown(
                                 color = pingColor,
                             )
                         }
-                    },
-                    onClick = {
-                        expanded = false
-                        if (vpnStatus == VpnStatus.Started) {
-                            onConnectToNode(node.id)
-                        } else {
-                            onSelectNode(node.id)
-                        }
-                    },
-                )
+                    }
+                }
             }
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = stringResource(R.string.servers_see_all),
-                        fontWeight = FontWeight.Bold,
-                        color = bavShieldColors().espresso,
-                    )
-                },
-                onClick = {
-                    expanded = false
-                    onOpenAllServers()
-                },
-            )
         }
     }
 }
@@ -424,7 +452,7 @@ private fun HomeQuickActions(
         )
         HomeMiniButton(
             label = stringResource(R.string.home_action_bot),
-            icon = Icons.AutoMirrored.Filled.Send,
+            icon = ImageVector.vectorResource(R.drawable.ic_telegram),
             onClick = onBotClick,
             modifier = Modifier.weight(1f),
         )
@@ -518,18 +546,12 @@ private fun EmptyServerHint(
             .fillMaxWidth()
             .then(
                 if (onClick != null) {
-                    Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(bavShieldColors().cappuccino)
-                        .clickable(onClick = onClick)
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                    Modifier.clickable(onClick = onClick)
                 } else {
                     Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(bavShieldColors().cappuccino)
-                        .padding(16.dp)
                 },
-            ),
+            )
+            .padding(horizontal = 16.dp, vertical = 16.dp),
     )
 }
 

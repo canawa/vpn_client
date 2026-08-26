@@ -63,7 +63,6 @@
     <string name="settings_language">Language</string>
     <string name="settings_connection">Connection</string>
     <string name="settings_subscription">Subscription</string>
-    <string name="settings_theme">Color scheme</string>
     <string name="settings_tunnel">Tunnel</string>
     <string name="settings_ping">Ping</string>
     <string name="settings_about">About</string>
@@ -102,19 +101,6 @@
     <string name="logs_create_failed">Could not create the file</string>
     <string name="logs_write_failed">Could not write the file</string>
 
-    <string name="theme_light">Day</string>
-    <string name="theme_dark">Night</string>
-    <string name="theme_system">Auto</string>
-    <string name="theme_section_mode">Appearance</string>
-    <string name="theme_section_color">Color scheme</string>
-    <string name="color_forest">Forest</string>
-    <string name="color_ocean">Ocean</string>
-    <string name="color_slate">Slate</string>
-    <string name="color_teal">Teal</string>
-    <string name="color_indigo">Indigo</string>
-    <string name="color_amber">Amber</string>
-    <string name="color_crimson">Crimson</string>
-
     <string name="enable">Enable</string>
     <string name="mode">Mode</string>
     <string name="sites_proxy_only">Only selected websites through VPN</string>
@@ -131,7 +117,7 @@
     <string name="apps_loading_list">Loading list…</string>
 
     <string name="error_wait_servers">Wait until servers finish loading</string>
-    <string name="error_paste_subscription">Paste a subscription link</string>
+    <string name="error_paste_subscription">Paste a BAV Shield VPN subscription link</string>
     <string name="error_unsupported_link">Unsupported link</string>
     <string name="error_disconnected">Disconnected</string>
     <string name="error_subscription_added_connecting">Subscription added, connecting…</string>
@@ -142,6 +128,12 @@
     <string name="error_routing_enabled">Routing enabled: %1$s</string>
     <string name="error_routing_saved">Routing saved: %1$s</string>
     <string name="error_routing_invalid">Invalid routing profile</string>
+    <string name="first_launch_name_prefix">BAV Shield</string>
+    <string name="first_launch_name_vpn"> VPN</string>
+    <string name="first_launch_tagline">Fast and stable access without borders</string>
+    <string name="first_launch_paste">Paste from clipboard</string>
+    <string name="first_launch_footer">The key is issued with your subscription</string>
+
     <string name="error_clipboard_empty">Clipboard is empty</string>
     <string name="error_link_pasted">Link pasted</string>
     <string name="error_subscription_deleted">Subscription deleted</string>

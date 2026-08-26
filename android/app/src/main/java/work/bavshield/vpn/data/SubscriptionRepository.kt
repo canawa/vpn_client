@@ -16,7 +16,11 @@ class SubscriptionRepository(
     private fun loc() = LocaleHelper.strings(context)
 
     fun fetchSubscription(url: String): SubscriptionFetchResult {
-        val requestBuilder = Request.Builder().url(url.trim())
+        val requestBuilder = try {
+            Request.Builder().url(url.trim())
+        } catch (_: IllegalArgumentException) {
+            error(loc().getString(work.bavshield.vpn.R.string.error_paste_subscription))
+        }
         DeviceIdentity.subscriptionHeaders(context).forEach { (name, value) ->
             requestBuilder.header(name, value)
         }

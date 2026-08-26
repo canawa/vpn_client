@@ -87,6 +87,15 @@ class AppPreferences(private val context: Context) {
         }
     }
 
+    suspend fun saveSubscriptionUrl(url: String) {
+        val trimmed = url.trim()
+        if (trimmed.isBlank()) return
+        AppLog.i("saveSubscriptionUrl urlLen=${trimmed.length}")
+        context.dataStore.edit { prefs ->
+            prefs[KEY_SUBSCRIPTION_URL] = trimmed
+        }
+    }
+
     suspend fun setSelectedNodeId(nodeId: String) {
         AppLog.i("setSelectedNodeId $nodeId")
         context.dataStore.edit { prefs ->
@@ -149,28 +158,6 @@ class AppPreferences(private val context: Context) {
         val enabled = prefs[KEY_ROUTING_ENABLED] ?: false
         val json = prefs[KEY_ROUTING_PROFILE]
         RoutingProfileStore.updateActive(json.takeIf { enabled && !it.isNullOrBlank() })
-    }
-
-    val appThemeMode: Flow<AppThemeMode> = context.dataStore.data
-        .map { prefs -> AppThemeMode.fromStored(prefs[KEY_APP_THEME_MODE]) }
-        .flowOn(Dispatchers.IO)
-
-    val appColorScheme: Flow<AppColorScheme> = context.dataStore.data
-        .map { prefs -> AppColorScheme.fromStored(prefs[KEY_APP_COLOR_SCHEME]) }
-        .flowOn(Dispatchers.IO)
-
-    suspend fun setAppThemeMode(mode: AppThemeMode) {
-        AppLog.i("setAppThemeMode ${mode.name}")
-        context.dataStore.edit { prefs ->
-            prefs[KEY_APP_THEME_MODE] = mode.name
-        }
-    }
-
-    suspend fun setAppColorScheme(scheme: AppColorScheme) {
-        AppLog.i("setAppColorScheme ${scheme.name}")
-        context.dataStore.edit { prefs ->
-            prefs[KEY_APP_COLOR_SCHEME] = scheme.name
-        }
     }
 
     val subscriptionAutoUpdateInterval: Flow<SubscriptionAutoUpdateInterval> = context.dataStore.data
@@ -279,8 +266,6 @@ class AppPreferences(private val context: Context) {
         private val KEY_SPLIT_APPS_MODE = stringPreferencesKey("split_apps_mode")
         private val KEY_SPLIT_APP_PACKAGES = stringPreferencesKey("split_app_packages")
         private val KEY_KILL_SWITCH_ENABLED = booleanPreferencesKey("kill_switch_enabled")
-        private val KEY_APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
-        private val KEY_APP_COLOR_SCHEME = stringPreferencesKey("app_color_scheme")
         private val KEY_SUB_AUTO_UPDATE_HOURS = intPreferencesKey("sub_auto_update_hours")
         private val KEY_SUB_LAST_AUTO_REFRESH_MS = longPreferencesKey("sub_last_auto_refresh_ms")
         private val KEY_PING_AUTO_MINUTES = intPreferencesKey("ping_auto_minutes")

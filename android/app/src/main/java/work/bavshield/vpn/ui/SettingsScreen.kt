@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.NetworkPing
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsInputAntenna
 import androidx.compose.material.icons.filled.Shield
@@ -58,9 +57,7 @@ import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
 import work.bavshield.vpn.BuildConfig
 import work.bavshield.vpn.R
-import work.bavshield.vpn.data.AppColorScheme
 import work.bavshield.vpn.data.AppLanguage
-import work.bavshield.vpn.data.AppThemeMode
 import work.bavshield.vpn.data.ConnectionSettingsState
 import work.bavshield.vpn.data.PingAutoInterval
 import work.bavshield.vpn.data.PingState
@@ -77,7 +74,6 @@ fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     SettingsPage.Tunnel,
     SettingsPage.Ping,
     SettingsPage.Subscription,
-    SettingsPage.Theme,
     SettingsPage.About,
     -> SettingsPage.Main
     SettingsPage.Main -> null
@@ -101,7 +97,6 @@ enum class SettingsPage(
     ),
     Ping(R.string.settings_ping),
     Subscription(R.string.settings_subscription),
-    Theme(R.string.settings_theme),
     About(R.string.settings_about),
     Logs(R.string.settings_logs),
 }
@@ -119,10 +114,6 @@ fun SettingsScreen(
     onBuyOnWebsite: () -> Unit,
     subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
     onSubscriptionAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
-    appThemeMode: AppThemeMode,
-    onAppThemeModeChange: (AppThemeMode) -> Unit,
-    appColorScheme: AppColorScheme,
-    onAppColorSchemeChange: (AppColorScheme) -> Unit,
     appLanguage: AppLanguage,
     onAppLanguageChange: (AppLanguage) -> Unit,
     pingAutoInterval: PingAutoInterval,
@@ -186,13 +177,6 @@ fun SettingsScreen(
             modifier = modifier,
             settings = connectionSettings,
             onSave = onSaveConnectionSettings,
-        )
-        SettingsPage.Theme -> ThemeSettingsScreen(
-            modifier = modifier,
-            selectedTheme = appThemeMode,
-            onThemeChange = onAppThemeModeChange,
-            selectedColorScheme = appColorScheme,
-            onColorSchemeChange = onAppColorSchemeChange,
         )
         SettingsPage.Subscription -> SubscriptionSettingsScreen(
             modifier = modifier,
@@ -536,12 +520,6 @@ private fun SettingsMainScreen(
             title = stringResource(R.string.settings_language),
             icon = Icons.Default.Translate,
             onClick = { onPageChange(SettingsPage.Language) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = stringResource(R.string.settings_theme),
-            icon = Icons.Default.Palette,
-            onClick = { onPageChange(SettingsPage.Theme) },
         )
         SettingsDivider()
         SettingsNavRow(
