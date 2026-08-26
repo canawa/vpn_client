@@ -33,8 +33,8 @@ fun EarthGlobeBackground(modifier: Modifier = Modifier) {
         drawRect(Ocean)
         val geoAspect = (LON_EAST - LON_WEST) / (LAT_NORTH - LAT_SOUTH)
         val fit = min(size.width / geoAspect, size.height)
-        val zoom = 2.52f
-        val mapW = geoAspect * fit * zoom
+        val zoom = 3.024f
+        val mapW = geoAspect * fit * zoom * 0.70f
         val mapH = fit * zoom
         val left = (size.width - mapW) / 2f
         val top = (size.height - mapH) / 2f

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -115,8 +116,11 @@ fun HomeScreen(
             }
         }
 
+        val switchOffsetY = maxHeight * -0.28f
         ShieldConnectSwitch(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = switchOffsetY),
             vpnStatus = state.vpnStatus,
             connectionElapsedMs = state.connectionElapsedMs,
             enabled = connectEnabled,
@@ -125,7 +129,7 @@ fun HomeScreen(
             },
         )
 
-        val belowSwitch = maxHeight / 2 + 42.dp + 16.dp + if (isConnected) 28.dp else 0.dp
+        val belowSwitch = maxHeight / 2 + switchOffsetY + 42.dp + 16.dp + if (isConnected) 28.dp else 0.dp
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -135,78 +139,79 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            text = if (subscriptionExpired) {
-                stringResource(R.string.subscription_expired)
-            } else {
-                statusHeadline(state.vpnStatus)
-            },
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = if (subscriptionExpired) {
-                MaterialTheme.colorScheme.error
-            } else {
-                Color(0xFF9AA0B8)
-            },
-            modifier = Modifier.padding(top = 16.dp),
-        )
+            Text(
+                text = if (subscriptionExpired) {
+                    stringResource(R.string.subscription_expired)
+                } else {
+                    statusHeadline(state.vpnStatus)
+                },
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (subscriptionExpired) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    Color(0xFF9AA0B8)
+                },
+            )
 
-        if (!subscriptionExpired) {
-            Spacer(modifier = Modifier.height(20.dp))
-            if (selectedDisplay != null || hasSubscription) {
-                ServerCountryDropdown(
-                    nodes = state.nodes,
-                    selectedNodeId = state.selectedNodeId,
-                    nodePings = state.nodePings,
-                    selectedDisplay = selectedDisplay,
-                    vpnStatus = state.vpnStatus,
-                    onSelectNode = onSelectNode,
-                    onConnectToNode = onConnectToNode,
-                    onOpenAllServers = onOpenServers,
+            if (!subscriptionExpired) {
+                Spacer(modifier = Modifier.height(20.dp))
+                if (selectedDisplay != null || hasSubscription) {
+                    ServerCountryDropdown(
+                        nodes = state.nodes,
+                        selectedNodeId = state.selectedNodeId,
+                        nodePings = state.nodePings,
+                        selectedDisplay = selectedDisplay,
+                        vpnStatus = state.vpnStatus,
+                        onSelectNode = onSelectNode,
+                        onConnectToNode = onConnectToNode,
+                        onOpenAllServers = onOpenServers,
+                    )
+                }
+            }
+
+            if (hasSubscription && subscriptionExpired) {
+                Spacer(modifier = Modifier.height(20.dp))
+                SubscriptionExpiredCard(
+                    onRenewTelegramClick = onTelegramBotClick,
+                    onRenewWebsiteClick = onSiteClick,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-        }
 
-        if (hasSubscription && subscriptionExpired) {
-            Spacer(modifier = Modifier.height(20.dp))
-            SubscriptionExpiredCard(
-                onRenewTelegramClick = onTelegramBotClick,
-                onRenewWebsiteClick = onSiteClick,
-                modifier = Modifier.fillMaxWidth(),
+            Spacer(modifier = Modifier.height(28.dp))
+
+            SubscriptionStatusBanner(
+                hasSubscription = hasSubscription,
+                expired = subscriptionExpired,
+                expireText = expireText,
+                trafficText = trafficText,
             )
-        }
 
-        Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        SubscriptionStatusBanner(
-            hasSubscription = hasSubscription,
-            expired = subscriptionExpired,
-            expireText = expireText,
-            trafficText = trafficText,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        HomeQuickActions(
-            onSiteClick = onSiteClick,
-            onBotClick = onTelegramBotClick,
-            onPaySubscriptionClick = onPaySubscriptionClick,
-            onPayDevicesClick = onPayDevicesClick,
-            onSupportClick = onSupportClick,
-        )
-
-        if (!hasSubscription) {
-            Spacer(modifier = Modifier.height(20.dp))
-            SubscriptionCard(
-                onPasteLinkClick = onPasteLinkClick,
-                onBuyOnWebsiteClick = onSiteClick,
+            HomeQuickActions(
+                onSiteClick = onSiteClick,
+                onBotClick = onTelegramBotClick,
+                onPaySubscriptionClick = onPaySubscriptionClick,
+                onPayDevicesClick = onPayDevicesClick,
+                onSupportClick = onSupportClick,
             )
-            state.message?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF9AA0B8),
-                    modifier = Modifier.padding(top = 12.dp, start = 8.dp),
+
+            if (!hasSubscription) {
+                Spacer(modifier = Modifier.height(20.dp))
+                SubscriptionCard(
+                    onPasteLinkClick = onPasteLinkClick,
+                    onBuyOnWebsiteClick = onSiteClick,
                 )
+                state.message?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF9AA0B8),
+                        modifier = Modifier.padding(top = 12.dp, start = 8.dp),
+                    )
+                }
             }
         }
     }
