@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Credit card: top stripe + two bottom marks — tinted neon in UI -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Card frame (rounded rect ring via evenOdd) -->
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M4,5h16c0.55,0 1,0.45 1,1v12c0,0.55 -0.45,1 -1,1H4c-0.55,0 -1,-0.45 -1,-1V6c0,-0.55 0.45,-1 1,-1zM4.75,6.75v10.5h14.5V6.75H4.75z" />
+    <!-- Magnetic stripe -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M4.75,7.5h14.5v2.6H4.75z" />
+    <!-- Bottom marks -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M6.2,14.4h3.8v1.35H6.2zM11.2,14.4h2.4v1.35h-2.4z" />
+</vector>

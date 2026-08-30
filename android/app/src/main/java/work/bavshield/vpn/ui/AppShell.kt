@@ -201,13 +201,17 @@ fun AppShell(
                     onPasteLinkClick = onPasteLinkClick,
                     onSiteClick = onBuyOnWebsiteClick,
                     onTelegramBotClick = onTelegramBotClick,
+                    onTelegramChannelClick = onTelegramChannelClick,
                     onSupportClick = onSupportClick,
                     onSettingsClick = {
                         settingsPage = SettingsPage.Main
                         showSettings = true
                     },
+                    onSubscriptionClick = {
+                        settingsPage = SettingsPage.Subscription
+                        showSettings = true
+                    },
                     onRefreshSubscription = onRefreshSubscription,
-                    onPingNow = onPingNow,
                 )
                 AppTab.Servers -> ServersScreen(
                     modifier = Modifier.padding(padding),

@@ -38,10 +38,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -62,6 +65,8 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -102,10 +107,11 @@ fun HomeScreen(
     onPasteLinkClick: () -> Unit,
     onSiteClick: () -> Unit,
     onTelegramBotClick: () -> Unit,
+    onTelegramChannelClick: () -> Unit,
     onSupportClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onSubscriptionClick: () -> Unit,
     onRefreshSubscription: () -> Unit,
-    onPingNow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = bavShieldColors()
@@ -119,8 +125,10 @@ fun HomeScreen(
         else -> isConnected || canConnect
     }
     var showServers by remember { mutableStateOf(true) }
+    var channelMenu by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = showServers) {
+    BackHandler(enabled = showServers || channelMenu) {
+        channelMenu = false
         showServers = false
     }
 
@@ -147,7 +155,6 @@ fun HomeScreen(
                     .height(36.dp)
                     .padding(horizontal = 8.dp),
             )
-            // Same width as settings button — keeps logo optically centered
             Spacer(modifier = Modifier.size(40.dp))
         }
 
@@ -173,7 +180,13 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        VpnStatusRow(vpnStatus = state.vpnStatus)
+        // Status only while connected / connecting — no «VPN отключён»
+        if (state.vpnStatus == VpnStatus.Started ||
+            state.vpnStatus == VpnStatus.Starting ||
+            state.vpnStatus == VpnStatus.Stopping
+        ) {
+            VpnStatusRow(vpnStatus = state.vpnStatus)
+        }
 
         AnimatedVisibility(
             visible = state.vpnStatus == VpnStatus.Started ||
@@ -199,43 +212,85 @@ fun HomeScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(22.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            SelectedServerRow(
-                display = selectedDisplay,
-                expanded = showServers,
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                    showServers = !showServers
-                },
+            CyberMenuButton(
+                label = stringResource(R.string.home_action_tech_support),
+                icon = Icons.Default.HeadsetMic,
+                onClick = onSupportClick,
                 modifier = Modifier.weight(1f),
             )
-            HomeServerActionButton(
-                enabled = !state.isPinging,
-                loading = state.isPinging,
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                    onPingNow()
-                },
-                contentDescription = stringResource(R.string.cd_ping),
-                icon = Icons.Default.Bolt,
+            CyberMenuButton(
+                label = stringResource(R.string.home_action_site),
+                icon = Icons.Default.Language,
+                onClick = onSiteClick,
+                modifier = Modifier.weight(1f),
             )
-            HomeServerActionButton(
-                enabled = !state.isLoading,
-                loading = state.isLoading,
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                    onRefreshSubscription()
-                },
-                contentDescription = stringResource(R.string.cd_refresh),
-                icon = Icons.Default.Refresh,
+            Box(modifier = Modifier.weight(1f)) {
+                CyberMenuButton(
+                    label = stringResource(R.string.home_action_channel_bot),
+                    iconPainter = painterResource(R.drawable.ic_telegram),
+                    onClick = { channelMenu = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    iconSize = 28.dp,
+                    labelColor = Color.White,
+                )
+                DropdownMenu(
+                    expanded = channelMenu,
+                    onDismissRequest = { channelMenu = false },
+                    modifier = Modifier
+                        .background(Color(0xFF0A100E))
+                        .border(1.dp, colors.espresso.copy(alpha = 0.22f), RoundedCornerShape(10.dp)),
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.home_open_channel),
+                                color = colors.espresso,
+                            )
+                        },
+                        onClick = {
+                            channelMenu = false
+                            onTelegramChannelClick()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.home_open_bot),
+                                color = colors.espresso,
+                            )
+                        },
+                        onClick = {
+                            channelMenu = false
+                            onTelegramBotClick()
+                        },
+                    )
+                }
+            }
+            CyberMenuButton(
+                label = stringResource(R.string.home_action_subscription),
+                iconPainter = painterResource(R.drawable.ic_credit_card),
+                onClick = onSubscriptionClick,
+                modifier = Modifier.weight(1f),
+                iconSize = 28.dp,
+                labelColor = Color.White,
             )
         }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        CyberServersToggle(
+            expanded = showServers,
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                showServers = !showServers
+            },
+        )
 
         AnimatedVisibility(
             visible = showServers,
@@ -370,61 +425,132 @@ private fun ConnectionLiveStats(
 }
 
 @Composable
-private fun SelectedServerRow(
-    display: ServerDisplay?,
-    expanded: Boolean,
+private fun CyberMenuButton(
+    label: String,
+    icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+) {
+    CyberMenuButton(
+        label = label,
+        iconPainter = null,
+        imageVector = icon,
+        iconTint = bavShieldColors().espresso,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun CyberMenuButton(
+    label: String,
+    iconPainter: Painter,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconSize: androidx.compose.ui.unit.Dp = 24.dp,
+    labelColor: Color = Color(0xFFD6DDD8),
+) {
+    CyberMenuButton(
+        label = label,
+        iconPainter = iconPainter,
+        imageVector = null,
+        iconTint = bavShieldColors().espresso,
+        onClick = onClick,
+        modifier = modifier,
+        iconSize = iconSize,
+        labelColor = labelColor,
+    )
+}
+
+@Composable
+private fun CyberMenuButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconPainter: Painter? = null,
+    imageVector: ImageVector? = null,
+    iconTint: Color = bavShieldColors().espresso,
+    iconSize: androidx.compose.ui.unit.Dp = 24.dp,
+    labelColor: Color = Color(0xFFD6DDD8),
+) {
+    val colors = bavShieldColors()
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = modifier
+            .heightIn(min = 72.dp)
+            .clip(shape)
+            .background(Color(0xFF070B09))
+            .border(1.dp, colors.espresso.copy(alpha = 0.85f), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        when {
+            iconPainter != null -> Icon(
+                painter = iconPainter,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(iconSize),
+            )
+            imageVector != null -> Icon(
+                imageVector = imageVector,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(iconSize),
+            )
+        }
+        Spacer(modifier = Modifier.height(7.dp))
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            lineHeight = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = labelColor,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun CyberServersToggle(
+    expanded: Boolean,
+    onClick: () -> Unit,
 ) {
     val colors = bavShieldColors()
     val shape = RoundedCornerShape(14.dp)
     val arrowRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(HomeMotion.ArrowMs, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = HomeMotion.ArrowMs, easing = FastOutSlowInEasing),
         label = "serversArrow",
     )
-    val title = display?.title?.takeIf { it.isNotBlank() }
-        ?: stringResource(R.string.home_select_server)
-
     Row(
-        modifier = modifier
-            .heightIn(min = 56.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
             .clip(shape)
-            .background(colors.espresso.copy(alpha = 0.06f))
-            .border(1.5.dp, colors.espresso.copy(alpha = 0.75f), shape)
+            .background(Color(0xFF070B09))
+            .border(1.dp, colors.espresso.copy(alpha = 0.55f), shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 15.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (display != null && display.flag.isNotBlank()) {
-            ServerListFlag(flag = display.flag, height = 24.dp)
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.espresso,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!display?.subtitle.isNullOrBlank()) {
-                Text(
-                    text = display!!.subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    color = colors.mocha,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        Icon(
+            imageVector = Icons.Default.Dns,
+            contentDescription = null,
+            tint = colors.espresso,
+            modifier = Modifier.size(22.dp),
+        )
         Text(
-            text = display?.pingText?.ifBlank { "—" } ?: "—",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color = display?.pingMs?.let { BavShieldColors.pingColor(it) } ?: colors.espresso,
+            text = stringResource(R.string.home_servers),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = colors.espresso,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp),
         )
         Icon(
             imageVector = Icons.Default.KeyboardArrowDown,
@@ -434,42 +560,6 @@ private fun SelectedServerRow(
                 .size(22.dp)
                 .rotate(arrowRotation),
         )
-    }
-}
-
-@Composable
-private fun HomeServerActionButton(
-    enabled: Boolean,
-    loading: Boolean,
-    onClick: () -> Unit,
-    contentDescription: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-) {
-    val colors = bavShieldColors()
-    val shape = RoundedCornerShape(14.dp)
-    Box(
-        modifier = Modifier
-            .size(56.dp)
-            .clip(shape)
-            .background(Color(0xFF070B09))
-            .border(1.dp, colors.espresso.copy(alpha = if (enabled) 0.55f else 0.25f), shape)
-            .clickable(enabled = enabled && !loading, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (loading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                color = colors.espresso,
-                strokeWidth = 2.dp,
-            )
-        } else {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = if (enabled) colors.espresso else colors.mocha,
-                modifier = Modifier.size(22.dp),
-            )
-        }
     }
 }
 
@@ -524,8 +614,8 @@ private fun ShieldConnectButton(
     }
 
     val pressSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessHigh,
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMediumLow,
     )
     val pressDepth by animateFloatAsState(
         targetValue = if (pressed && enabled) 1f else 0f,
@@ -537,11 +627,11 @@ private fun ShieldConnectButton(
         isConnected -> 1.01f
         else -> 1f
     }
-    // Push inward: shrink hard + sink down + dim
-    val baseScale = idleScale * (1f - 0.12f * pressDepth)
-    val pressOffsetY = with(density) { (14.dp * pressDepth).toPx() }
-    val pressDim = 1f - 0.22f * pressDepth
-    val glowPressScale = 1f - 0.18f * pressDepth
+    // Soft push-in: shrink + sink + slight tilt
+    val baseScale = idleScale * (1f - 0.08f * pressDepth)
+    val pressOffsetY = with(density) { (10.dp * pressDepth).toPx() }
+    val pressDim = 1f - 0.14f * pressDepth
+    val glowPressScale = 1f - 0.12f * pressDepth
 
     Box(
         modifier = Modifier
@@ -557,9 +647,8 @@ private fun ShieldConnectButton(
                     scaleX = baseScale
                     scaleY = baseScale
                     translationY = pressOffsetY
-                    // Slight perspective “into the screen”
-                    cameraDistance = 12f * density.density
-                    rotationX = 8f * pressDepth
+                    cameraDistance = 16f * density.density
+                    rotationX = 5f * pressDepth
                     clip = false
                 },
             contentAlignment = Alignment.Center,
