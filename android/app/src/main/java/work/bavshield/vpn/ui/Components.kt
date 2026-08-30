@@ -30,8 +30,8 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -59,6 +59,30 @@ import work.bavshield.vpn.R
 import work.bavshield.vpn.vpn.VpnStatus
 
 enum class AppTab { Home, Servers }
+
+@Composable
+fun CyberSettingsButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = bavShieldColors()
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF070B09))
+            .border(1.dp, colors.espresso.copy(alpha = 0.55f), CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Settings,
+            contentDescription = stringResource(R.string.cd_settings),
+            tint = colors.espresso,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
 
 @Composable
 fun BavShieldSwitch(
@@ -105,7 +129,7 @@ fun BavShieldTopBar(
     lightContent: Boolean = false,
     titleBelow: Boolean = false,
 ) {
-    val content = if (lightContent) Color.White else bavShieldColors().espresso
+    val content = if (lightContent) BavShieldColors.Neon else bavShieldColors().espresso
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = if (transparent) Color.Transparent else bavShieldColors().milkFoam,
@@ -138,13 +162,7 @@ fun BavShieldTopBar(
                             )
                         }
                     } else if (showSettingsButton) {
-                        IconButton(onClick = onSettingsClick) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = stringResource(R.string.cd_settings),
-                                tint = content,
-                            )
-                        }
+                        CyberSettingsButton(onClick = onSettingsClick)
                     }
                     if (!titleBelow) {
                         Text(
@@ -190,13 +208,7 @@ fun BavShieldTopBar(
                         }
                     }
                     if (showSettingsButton && showBackButton) {
-                        IconButton(onClick = onSettingsClick) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = stringResource(R.string.cd_settings),
-                                tint = content,
-                            )
-                        }
+                        CyberSettingsButton(onClick = onSettingsClick)
                     }
                 }
             }

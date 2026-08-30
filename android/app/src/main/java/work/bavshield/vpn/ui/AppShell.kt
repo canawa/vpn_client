@@ -1,6 +1,5 @@
 package work.bavshield.vpn.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +29,7 @@ import androidx.compose.ui.text.font.FontFamily
 import work.bavshield.vpn.R
 import work.bavshield.vpn.data.AppLanguage
 import work.bavshield.vpn.data.LocaleHelper
+import work.bavshield.vpn.vpn.VpnStatus
 
 @Composable
 fun AppShell(
@@ -106,58 +106,41 @@ fun AppShell(
         navigateBack()
     }
 
-    val onHome = !showSettings && selectedTab == AppTab.Home
-
     Box(modifier = Modifier.fillMaxSize()) {
-        if (onHome) {
-            EarthGlobeBackground(modifier = Modifier.fillMaxSize())
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(bavShieldColors().milkFoam),
-            )
-        }
+        CyberBackground(
+            modifier = Modifier.fillMaxSize(),
+            connected = !showSettings &&
+                selectedTab == AppTab.Home &&
+                (state.vpnStatus == VpnStatus.Started || state.vpnStatus == VpnStatus.Starting),
+        )
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.statusBars),
-                ) {
-                    when {
-                        showSettings -> BavShieldTopBar(
-                            title = stringResource(settingsPage.headerTitleRes),
-                            showBackButton = true,
-                            onBackClick = { navigateBack() },
-                            showSettingsButton = false,
-                        )
-                        selectedTab == AppTab.Servers -> BavShieldTopBar(
-                            title = stringResource(R.string.tab_servers),
-                            showBackButton = true,
-                            onBackClick = { navigateBack() },
-                            onSettingsClick = {
-                                settingsPage = SettingsPage.Main
-                                showSettings = true
-                            },
-                        )
-                        else -> BavShieldTopBar(
-                            title = stringResource(R.string.app_name),
-                            showRefreshButton = true,
-                            isRefreshing = state.isLoading,
-                            refreshEnabled = hasSubscription && !state.isLoading,
-                            onRefreshClick = onRefreshSubscription,
-                            onSettingsClick = {
-                                settingsPage = SettingsPage.Main
-                                showSettings = true
-                            },
-                            transparent = true,
-                            lightContent = true,
-                            titleBelow = true,
-                        )
+                if (showSettings || selectedTab == AppTab.Servers) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .windowInsetsPadding(WindowInsets.statusBars),
+                    ) {
+                        when {
+                            showSettings -> BavShieldTopBar(
+                                title = stringResource(settingsPage.headerTitleRes),
+                                showBackButton = true,
+                                onBackClick = { navigateBack() },
+                                showSettingsButton = false,
+                            )
+                            selectedTab == AppTab.Servers -> BavShieldTopBar(
+                                title = stringResource(R.string.tab_servers),
+                                showBackButton = true,
+                                onBackClick = { navigateBack() },
+                                onSettingsClick = {
+                                    settingsPage = SettingsPage.Main
+                                    showSettings = true
+                                },
+                            )
+                        }
                     }
                 }
             },
@@ -214,13 +197,19 @@ fun AppShell(
                     onDisconnectClick = onDisconnectClick,
                     onSelectNode = onSelectNode,
                     onConnectToNode = onConnectToNode,
-                    onOpenServers = { selectedTab = AppTab.Servers },
                     onPasteLinkClick = onPasteLinkClick,
                     onSiteClick = onBuyOnWebsiteClick,
                     onTelegramBotClick = onTelegramBotClick,
-                    onPaySubscriptionClick = onPaySubscriptionClick,
-                    onPayDevicesClick = onPayDevicesClick,
+                    onTelegramChannelClick = onTelegramChannelClick,
                     onSupportClick = onSupportClick,
+                    onSettingsClick = {
+                        settingsPage = SettingsPage.Main
+                        showSettings = true
+                    },
+                    onSubscriptionClick = {
+                        settingsPage = SettingsPage.Subscription
+                        showSettings = true
+                    },
                 )
                 AppTab.Servers -> ServersScreen(
                     modifier = Modifier.padding(padding),

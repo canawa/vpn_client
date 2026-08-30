@@ -1,38 +1,48 @@
 package work.bavshield.vpn.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.HeadsetMic
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,21 +52,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
-import kotlin.math.roundToInt
+import androidx.compose.ui.unit.sp
 import work.bavshield.vpn.R
 import work.bavshield.vpn.data.PingState
 import work.bavshield.vpn.data.ProxyNode
@@ -70,16 +81,16 @@ fun HomeScreen(
     onDisconnectClick: () -> Unit,
     onSelectNode: (String) -> Unit,
     onConnectToNode: (String) -> Unit,
-    onOpenServers: () -> Unit,
     onPasteLinkClick: () -> Unit,
     onSiteClick: () -> Unit,
     onTelegramBotClick: () -> Unit,
-    onPaySubscriptionClick: () -> Unit,
-    onPayDevicesClick: () -> Unit,
+    onTelegramChannelClick: () -> Unit,
     onSupportClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onSubscriptionClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val resources = LocalContext.current.resources
+    val colors = bavShieldColors()
     val isConnected = state.vpnStatus == VpnStatus.Started
     val hasSubscription = state.subscriptionUrl.isNotBlank() && state.nodes.isNotEmpty()
     val subscriptionExpired = state.subscriptionInfo?.isExpired() == true
@@ -88,160 +99,435 @@ fun HomeScreen(
         subscriptionExpired -> isConnected
         else -> isConnected || canConnect
     }
-    val expireText = state.subscriptionInfo?.expireLabel(resources)
-    val trafficText = state.subscriptionInfo
-        ?.takeIf { it.total > 0 || it.used > 0 }
-        ?.trafficLabel()
+    var showServers by remember { mutableStateOf(false) }
+    var channelMenu by remember { mutableStateOf(false) }
 
-    BoxWithConstraints(
+    BackHandler(enabled = showServers || channelMenu) {
+        channelMenu = false
+        showServers = false
+    }
+
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .height(48.dp),
         ) {
-            state.error?.let {
-                ErrorBanner(text = it)
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-            state.message?.takeIf { hasSubscription }?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF9AA0B8),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                )
-            }
+            CyberSettingsButton(
+                onClick = onSettingsClick,
+                modifier = Modifier.align(Alignment.CenterStart),
+            )
+            Image(
+                painter = painterResource(R.drawable.bav_logo),
+                contentDescription = stringResource(R.string.app_name),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth(0.78f)
+                    .height(40.dp),
+            )
         }
 
-        val switchOffsetY = maxHeight * -0.28f
-        ShieldConnectSwitch(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .offset(y = switchOffsetY),
+        state.error?.let {
+            Spacer(modifier = Modifier.height(10.dp))
+            ErrorBanner(text = it)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        ShieldConnectButton(
             vpnStatus = state.vpnStatus,
-            connectionElapsedMs = state.connectionElapsedMs,
             enabled = connectEnabled,
             onClick = {
                 if (isConnected) onDisconnectClick() else onConnectClick()
             },
         )
 
-        val belowSwitch = maxHeight / 2 + switchOffsetY + 52.dp + 16.dp + if (isConnected) 28.dp else 0.dp
-        val serverListMaxHeight = (maxHeight - belowSwitch - 168.dp).coerceAtLeast(180.dp)
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .zIndex(2f)
-                .padding(top = belowSwitch),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Text(
+            text = connectionHint(state.vpnStatus, selectedDisplay),
+            fontSize = 13.sp,
+            color = Color(0xFF9AA39E),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 2.dp),
+        )
+
+        Spacer(modifier = Modifier.height(22.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = if (subscriptionExpired) {
-                    stringResource(R.string.subscription_expired)
-                } else {
-                    statusHeadline(state.vpnStatus)
-                },
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (subscriptionExpired) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    Color(0xFF9AA0B8)
-                },
+            CyberMenuButton(
+                label = stringResource(R.string.home_action_tech_support),
+                icon = Icons.Default.HeadsetMic,
+                onClick = onSupportClick,
+                modifier = Modifier.weight(1f),
             )
-
-            if (!subscriptionExpired) {
-                Spacer(modifier = Modifier.height(20.dp))
-                if (selectedDisplay != null || hasSubscription) {
-                    ServerCountryDropdown(
-                        nodes = state.nodes,
-                        selectedNodeId = state.selectedNodeId,
-                        nodePings = state.nodePings,
-                        selectedDisplay = selectedDisplay,
-                        vpnStatus = state.vpnStatus,
-                        onSelectNode = onSelectNode,
-                        onConnectToNode = onConnectToNode,
-                        onOpenAllServers = onOpenServers,
-                        listMaxHeight = serverListMaxHeight,
-                    )
-                }
-            }
-
-            if (hasSubscription && subscriptionExpired) {
-                Spacer(modifier = Modifier.height(20.dp))
-                SubscriptionExpiredCard(
-                    onRenewTelegramClick = onTelegramBotClick,
-                    onRenewWebsiteClick = onSiteClick,
+            CyberMenuButton(
+                label = stringResource(R.string.home_action_site),
+                icon = Icons.Default.Language,
+                onClick = onSiteClick,
+                modifier = Modifier.weight(1f),
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                CyberMenuButton(
+                    label = stringResource(R.string.home_action_channel_bot),
+                    iconPainter = painterResource(R.drawable.ic_telegram),
+                    iconTint = Color.Unspecified,
+                    onClick = { channelMenu = true },
                     modifier = Modifier.fillMaxWidth(),
                 )
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(bottom = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            SubscriptionStatusBanner(
-                hasSubscription = hasSubscription,
-                expired = subscriptionExpired,
-                expireText = expireText,
-                trafficText = trafficText,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            HomeQuickActions(
-                onSiteClick = onSiteClick,
-                onBotClick = onTelegramBotClick,
-                onPaySubscriptionClick = onPaySubscriptionClick,
-                onPayDevicesClick = onPayDevicesClick,
-                onSupportClick = onSupportClick,
-            )
-
-            if (!hasSubscription) {
-                Spacer(modifier = Modifier.height(20.dp))
-                SubscriptionCard(
-                    onPasteLinkClick = onPasteLinkClick,
-                    onBuyOnWebsiteClick = onSiteClick,
-                )
-                state.message?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF9AA0B8),
-                        modifier = Modifier.padding(top = 12.dp, start = 8.dp),
+                DropdownMenu(
+                    expanded = channelMenu,
+                    onDismissRequest = { channelMenu = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.home_open_channel)) },
+                        onClick = {
+                            channelMenu = false
+                            onTelegramChannelClick()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.home_open_bot)) },
+                        onClick = {
+                            channelMenu = false
+                            onTelegramBotClick()
+                        },
                     )
                 }
             }
+            CyberMenuButton(
+                label = stringResource(R.string.home_action_subscription),
+                iconPainter = painterResource(R.drawable.ic_subscription),
+                onClick = onSubscriptionClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        CyberServersToggle(
+            expanded = showServers,
+            onClick = { showServers = !showServers },
+        )
+
+        AnimatedVisibility(
+            visible = showServers,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            CyberServerList(
+                nodes = state.nodes,
+                selectedNodeId = state.selectedNodeId,
+                nodePings = state.nodePings,
+                vpnStatus = state.vpnStatus,
+                onSelectNode = onSelectNode,
+                onConnectToNode = onConnectToNode,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        if (hasSubscription && subscriptionExpired) {
+            Spacer(modifier = Modifier.height(16.dp))
+            SubscriptionExpiredCard(
+                onRenewTelegramClick = onTelegramBotClick,
+                onRenewWebsiteClick = onSiteClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        if (!hasSubscription) {
+            Spacer(modifier = Modifier.height(16.dp))
+            SubscriptionCard(
+                onPasteLinkClick = onPasteLinkClick,
+                onBuyOnWebsiteClick = onSiteClick,
+            )
         }
     }
 }
 
 @Composable
-private fun ServerCountryDropdown(
+private fun connectionHint(status: VpnStatus, selectedDisplay: ServerDisplay?): String {
+    val connectedName = selectedDisplay?.title
+    return when (status) {
+        VpnStatus.Started -> if (!connectedName.isNullOrBlank()) {
+            stringResource(R.string.home_secure_on_server, connectedName)
+        } else {
+            stringResource(R.string.home_secure_on)
+        }
+        VpnStatus.Starting -> stringResource(R.string.status_connecting)
+        VpnStatus.Stopping -> stringResource(R.string.status_disconnecting)
+        VpnStatus.Stopped -> stringResource(R.string.home_tap_shield)
+    }
+}
+
+@Composable
+private fun ShieldConnectButton(
+    vpnStatus: VpnStatus,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val isConnected = vpnStatus == VpnStatus.Started
+    val isConnecting = vpnStatus == VpnStatus.Starting
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val shieldPainter = painterResource(R.drawable.bav_shield)
+    val glowPainter = painterResource(R.drawable.bav_shield_glow)
+
+    val infinite = rememberInfiniteTransition(label = "shieldAnim")
+    val pulse by infinite.animateFloat(
+        initialValue = 0.90f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "shieldPulse",
+    )
+
+    val glowTarget = when (vpnStatus) {
+        VpnStatus.Started -> 1f
+        VpnStatus.Starting -> 0.55f + 0.40f * pulse
+        VpnStatus.Stopping -> 0.35f
+        VpnStatus.Stopped -> 0f
+    }
+    val glowAlpha by animateFloatAsState(
+        targetValue = glowTarget,
+        animationSpec = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+        label = "shieldGlow",
+    )
+    val baseScale by animateFloatAsState(
+        targetValue = when {
+            pressed -> 0.97f
+            isConnecting -> 0.994f + 0.01f * pulse
+            isConnected -> 1.01f
+            else -> 1f
+        },
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "shieldScale",
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.90f)
+                .aspectRatio(1200f / 1411f)
+                .graphicsLayer {
+                    scaleX = baseScale
+                    scaleY = baseScale
+                    clip = false
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            // Always in tree so fade in/out stays continuous
+            Image(
+                painter = glowPainter,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        val s = if (isConnecting) 1f + 0.012f * pulse else 1.01f
+                        scaleX = s
+                        scaleY = s
+                        alpha = glowAlpha
+                        clip = false
+                    },
+            )
+            if (glowAlpha > 0.01f) {
+                // Solid body cover — blocks bloom under the metal
+                Image(
+                    painter = shieldPainter,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(Color(0xFF050807), BlendMode.SrcIn),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            Image(
+                painter = shieldPainter,
+                contentDescription = stringResource(
+                    if (isConnected) R.string.cd_disconnect else R.string.cd_connect,
+                ),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        enabled = enabled,
+                        interactionSource = interaction,
+                        indication = null,
+                        onClick = onClick,
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CyberMenuButton(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    CyberMenuButton(
+        label = label,
+        iconPainter = null,
+        imageVector = icon,
+        iconTint = bavShieldColors().espresso,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun CyberMenuButton(
+    label: String,
+    iconPainter: Painter,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconTint: Color = Color.Unspecified,
+) {
+    CyberMenuButton(
+        label = label,
+        iconPainter = iconPainter,
+        imageVector = null,
+        iconTint = iconTint,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun CyberMenuButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconPainter: Painter? = null,
+    imageVector: ImageVector? = null,
+    iconTint: Color = bavShieldColors().espresso,
+) {
+    val colors = bavShieldColors()
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = modifier
+            .heightIn(min = 72.dp)
+            .clip(shape)
+            .background(Color(0xFF070B09))
+            .border(1.dp, colors.espresso.copy(alpha = 0.55f), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        when {
+            iconPainter != null -> Icon(
+                painter = iconPainter,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp),
+            )
+            imageVector != null -> Icon(
+                imageVector = imageVector,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+        Spacer(modifier = Modifier.height(7.dp))
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            lineHeight = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFFD6DDD8),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun CyberServersToggle(
+    expanded: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = bavShieldColors()
+    val shape = RoundedCornerShape(14.dp)
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(250),
+        label = "serversArrow",
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .clip(shape)
+            .background(Color(0xFF070B09))
+            .border(1.dp, colors.espresso.copy(alpha = 0.55f), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 15.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Dns,
+            contentDescription = null,
+            tint = colors.espresso,
+            modifier = Modifier.size(22.dp),
+        )
+        Text(
+            text = stringResource(R.string.home_servers),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = colors.espresso,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp),
+        )
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = null,
+            tint = colors.espresso,
+            modifier = Modifier
+                .size(22.dp)
+                .rotate(arrowRotation),
+        )
+    }
+}
+
+@Composable
+private fun CyberServerList(
     nodes: List<ProxyNode>,
     selectedNodeId: String?,
     nodePings: Map<String, PingState>,
-    selectedDisplay: ServerDisplay?,
     vpnStatus: VpnStatus,
     onSelectNode: (String) -> Unit,
     onConnectToNode: (String) -> Unit,
-    onOpenAllServers: () -> Unit,
-    listMaxHeight: Dp,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    var expanded by remember { mutableStateOf(false) }
+    val colors = bavShieldColors()
     val autoselect = stringResource(R.string.server_autoselect)
     val rows = remember(nodes, nodePings, autoselect) {
         nodes.map { node ->
@@ -255,304 +541,79 @@ private fun ServerCountryDropdown(
         )
     }
     val pickingEnabled = vpnStatus != VpnStatus.Starting && vpnStatus != VpnStatus.Stopping
-    val colors = bavShieldColors()
-    val cardShape = RoundedCornerShape(14.dp)
-    val cardColor = colors.surfaceContainerHighest
-    val unroll by animateFloatAsState(
-        targetValue = if (expanded) 1f else 0f,
-        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
-        label = "serverMenuUnroll",
-    )
-
-    BackHandler(enabled = expanded) { expanded = false }
+    val shape = RoundedCornerShape(14.dp)
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .zIndex(2f)
-            .shadow(2.dp, cardShape)
-            .clip(cardShape)
-            .background(cardColor)
-            .border(2.dp, colors.espresso.copy(alpha = 0.55f), cardShape),
+        modifier = modifier
+            .clip(shape)
+            .background(colors.surfaceContainerHigh)
+            .border(1.dp, colors.espresso.copy(alpha = 0.18f), shape)
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        if (selectedDisplay != null) {
-            SelectedServerCard(
-                display = selectedDisplay,
-                onClick = { if (pickingEnabled) expanded = !expanded },
-                emphasized = true,
-                expanded = expanded,
-                drawContainer = false,
+        if (rows.isEmpty()) {
+            Text(
+                text = stringResource(R.string.servers_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.mocha,
+                modifier = Modifier.padding(12.dp),
             )
         } else {
-            EmptyServerHint(
-                onClick = {
-                    if (pickingEnabled) {
-                        if (nodes.isEmpty()) onOpenAllServers() else expanded = true
-                    }
-                },
-            )
-        }
-
-        if (unroll > 0f) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clipToBounds()
-                    .layout { measurable, constraints ->
-                        val placeable = measurable.measure(constraints)
-                        layout(placeable.width, (placeable.height * unroll).roundToInt()) {
-                            placeable.placeRelative(0, 0)
-                        }
-                    },
-            ) {
-                HorizontalDivider(color = colors.latte)
-                Column(
+            rows.forEach { (node, display) ->
+                val selected = node.id == selectedNodeId
+                val itemShape = RoundedCornerShape(10.dp)
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = listMaxHeight)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    rows.forEach { (node, display) ->
-                        val selected = node.id == selectedNodeId
-                        val pingColor = when {
-                            display.pingMs != null -> BavShieldColors.pingColor(display.pingMs)
-                            display.pingText == "N/A" -> BavShieldColors.PingBad
-                            else -> colors.mocha
-                        }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    if (selected) {
-                                        colors.espresso.copy(alpha = 0.08f)
-                                    } else {
-                                        Color.Transparent
-                                    },
-                                )
-                                .clickable {
-                                    expanded = false
-                                    if (vpnStatus == VpnStatus.Started) {
-                                        onConnectToNode(node.id)
-                                    } else {
-                                        onSelectNode(node.id)
-                                    }
-                                }
-                                .padding(horizontal = 18.dp, vertical = 12.dp),
-                        ) {
-                            ServerListFlag(flag = display.flag, height = 22.dp)
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = display.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                    color = colors.espresso,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                if (display.subtitle.isNotBlank()) {
-                                    Text(
-                                        text = display.subtitle,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = colors.mocha,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
+                        .clip(itemShape)
+                        .background(Color(0xFF0B120E))
+                        .border(
+                            1.dp,
+                            if (selected) colors.espresso else colors.espresso.copy(alpha = 0.13f),
+                            itemShape,
+                        )
+                        .clickable(enabled = pickingEnabled) {
+                            if (vpnStatus == VpnStatus.Started) {
+                                onConnectToNode(node.id)
+                            } else {
+                                onSelectNode(node.id)
                             }
+                        }
+                        .padding(horizontal = 11.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    ServerListFlag(flag = display.flag, height = 22.dp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = display.title,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.espresso,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (display.subtitle.isNotBlank()) {
                             Text(
-                                text = display.pingText,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = pingColor,
+                                text = display.subtitle,
+                                fontSize = 9.sp,
+                                color = colors.mocha,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
+                    Text(
+                        text = display.pingText.ifBlank { "—" },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = display.pingMs?.let { BavShieldColors.pingColor(it) }
+                            ?: colors.espresso,
+                    )
                 }
             }
         }
     }
-}
-
-@Composable
-private fun SubscriptionStatusBanner(
-    hasSubscription: Boolean,
-    expired: Boolean,
-    expireText: String?,
-    trafficText: String?,
-) {
-    val colors = bavShieldColors()
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = if (expired) {
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
-        } else {
-            colors.cappuccino
-        },
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = if (expired) MaterialTheme.colorScheme.error else colors.latte,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.subscription_label),
-                style = MaterialTheme.typography.labelSmall,
-                color = if (expired) MaterialTheme.colorScheme.error else colors.mocha,
-            )
-            Text(
-                text = when {
-                    !hasSubscription -> stringResource(R.string.subscription_status_none)
-                    expireText != null -> expireText
-                    else -> stringResource(R.string.subscription_unlimited)
-                },
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (expired) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    colors.espresso
-                },
-            )
-            if (hasSubscription && !expired && !trafficText.isNullOrBlank()) {
-                Text(
-                    text = trafficText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.mocha,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun HomeQuickActions(
-    onSiteClick: () -> Unit,
-    onBotClick: () -> Unit,
-    onPaySubscriptionClick: () -> Unit,
-    onPayDevicesClick: () -> Unit,
-    onSupportClick: () -> Unit,
-) {
-    var payMenu by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        HomeMiniButton(
-            label = stringResource(R.string.home_action_site),
-            icon = Icons.Default.Language,
-            onClick = onSiteClick,
-            modifier = Modifier.weight(1f),
-        )
-        HomeMiniButton(
-            label = stringResource(R.string.home_action_bot),
-            icon = ImageVector.vectorResource(R.drawable.ic_telegram),
-            onClick = onBotClick,
-            modifier = Modifier.weight(1f),
-        )
-        Box(modifier = Modifier.weight(1f)) {
-            HomeMiniButton(
-                label = stringResource(R.string.home_action_pay),
-                icon = Icons.Default.Payments,
-                onClick = { payMenu = true },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            DropdownMenu(
-                expanded = payMenu,
-                onDismissRequest = { payMenu = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.pay_subscription)) },
-                    onClick = {
-                        payMenu = false
-                        onPaySubscriptionClick()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.pay_devices)) },
-                    onClick = {
-                        payMenu = false
-                        onPayDevicesClick()
-                    },
-                )
-            }
-        }
-        HomeMiniButton(
-            label = stringResource(R.string.home_action_support),
-            icon = Icons.Default.HeadsetMic,
-            onClick = onSupportClick,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun HomeMiniButton(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = bavShieldColors()
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(colors.cappuccino)
-            .border(1.dp, colors.latte, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = colors.espresso,
-            modifier = Modifier.size(22.dp),
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = colors.espresso,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun EmptyServerHint(
-    onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        text = if (onClick != null) {
-            stringResource(R.string.hint_tap_select_server)
-        } else {
-            stringResource(R.string.hint_add_subscription_to_select)
-        },
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = bavShieldColors().espresso,
-        modifier = modifier
-            .fillMaxWidth()
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(onClick = onClick)
-                } else {
-                    Modifier
-                },
-            )
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-    )
 }
 
 @Composable

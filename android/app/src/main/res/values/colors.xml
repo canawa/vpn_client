@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand colours sampled from the shield artwork supplied with the spec. -->
-    <color name="brand_green">#7C9D8A</color>
-    <color name="brand_green_bright">#8FBFA6</color>
-    <color name="brand_dark">#0A1510</color>
+    <color name="brand_green">#39FF88</color>
+    <color name="brand_green_bright">#39FF88</color>
+    <color name="brand_dark">#050807</color>
 
     <color name="ic_launcher_background">@color/brand_dark</color>
     <color name="splash_background">@color/brand_dark</color>

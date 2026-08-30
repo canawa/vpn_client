@@ -1,9 +1,6 @@
 package work.bavshield.vpn.ui
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -22,55 +19,31 @@ val BavShieldFontFamily = FontFamily(
     Font(R.font.inter_bold, FontWeight.Bold),
 )
 
-private val TextShadowSoft = Shadow(
-    color = Color(0x2E3D1C1C),
-    offset = Offset(0f, 1f),
-    blurRadius = 2.5f,
-)
-
-private val TextShadowMedium = Shadow(
-    color = Color(0x403D1C1C),
-    offset = Offset(0f, 1.5f),
-    blurRadius = 3.5f,
-)
-
-private val TextShadowStrong = Shadow(
-    color = Color(0x523D1C1C),
-    offset = Offset(0f, 2f),
-    blurRadius = 4.5f,
-)
-
-private fun TextStyle.withTextShadow(level: Shadow): TextStyle = copy(shadow = level)
-
 private fun boldTextStyle(
     fontSize: androidx.compose.ui.unit.TextUnit,
     lineHeight: androidx.compose.ui.unit.TextUnit,
     letterSpacing: androidx.compose.ui.unit.TextUnit = 0.sp,
-    shadow: Shadow = TextShadowSoft,
 ) = TextStyle(
     fontFamily = BavShieldFontFamily,
     fontWeight = FontWeight.Bold,
     fontSize = fontSize,
     lineHeight = lineHeight,
     letterSpacing = letterSpacing,
-).withTextShadow(shadow)
+)
 
 val BavShieldTypography = Typography(
     headlineLarge = boldTextStyle(
         fontSize = 28.sp,
         lineHeight = 36.sp,
         letterSpacing = (-0.02).sp,
-        shadow = TextShadowStrong,
     ),
     headlineMedium = boldTextStyle(
         fontSize = 22.sp,
         lineHeight = 28.sp,
-        shadow = TextShadowStrong,
     ),
     titleMedium = boldTextStyle(
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        shadow = TextShadowMedium,
     ),
     bodyLarge = boldTextStyle(
         fontSize = 16.sp,
@@ -88,7 +61,6 @@ val BavShieldTypography = Typography(
         fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.6.sp,
-        shadow = TextShadowMedium,
     ),
     labelMedium = boldTextStyle(
         fontSize = 14.sp,

@@ -1,14 +1,19 @@
 package work.bavshield.vpn.ui
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 object BavShieldColors {
-    val PingGood = Color(0xFF2E7D32)
+    val Canvas = Color(0xFF050807)
+    val Neon = Color(0xFF39FF88)
+    val Muted = Color(0xFF737D77)
+    val Card = Color(0xFF0A100D)
+    val CardDeep = Color(0xFF080D0A)
+    val PingGood = Color(0xFF39FF88)
     val PingMedium = Color(0xFFD4A017)
     val PingBad = Color(0xFFC62828)
     val ConnectOrange = Color(0xFFFF8A00)
@@ -63,11 +68,11 @@ val LocalBavShieldExtraColors = staticCompositionLocalOf { extraColors() }
 fun bavShieldColors(): BavShieldExtraColors = LocalBavShieldExtraColors.current
 
 fun extraColors(): BavShieldExtraColors {
-    val canvas = Color(0xFFF3F6F3)
-    val onCanvas = Color(0xFF1A2B22)
-    val muted = Color(0xFF7C9D8A)
-    val card = Color(0xFFE4EBE6)
-    val outline = Color(0xFFC5D4CB)
+    val canvas = BavShieldColors.Canvas
+    val onCanvas = BavShieldColors.Neon
+    val muted = BavShieldColors.Muted
+    val card = BavShieldColors.Card
+    val outline = BavShieldColors.Neon.copy(alpha = 0.22f)
     return BavShieldExtraColors(
         milkFoam = canvas,
         espresso = onCanvas,
@@ -81,18 +86,18 @@ fun extraColors(): BavShieldExtraColors {
         onSurfaceVariant = muted,
         surfaceVariant = card,
         surfaceContainer = card,
-        surfaceContainerHigh = canvas,
-        surfaceContainerHighest = outline,
-        surfaceDim = card,
+        surfaceContainerHigh = BavShieldColors.CardDeep,
+        surfaceContainerHighest = Color(0xFF0B120E),
+        surfaceDim = BavShieldColors.CardDeep,
         outline = outline,
         primary = onCanvas,
         onPrimary = canvas,
-        primaryContainer = outline,
+        primaryContainer = Color(0xFF0D1711),
         onPrimaryContainer = onCanvas,
-        error = Color(0xFFBA1A1A),
+        error = Color(0xFFFF6B6B),
         onError = canvas,
-        errorContainer = Color(0xFFFFDAD6),
-        onErrorContainer = Color(0xFF93000A),
+        errorContainer = Color(0xFF3A1515),
+        onErrorContainer = Color(0xFFFFB4AB),
         connectDisabledOuter = card,
         connectDisabledInner = canvas,
         connectDisabledBorder = outline,
@@ -100,7 +105,7 @@ fun extraColors(): BavShieldExtraColors {
     )
 }
 
-private fun colorSchemeFrom(extra: BavShieldExtraColors) = lightColorScheme(
+private fun colorSchemeFrom(extra: BavShieldExtraColors) = darkColorScheme(
     primary = extra.primary,
     onPrimary = extra.onPrimary,
     primaryContainer = extra.primaryContainer,
