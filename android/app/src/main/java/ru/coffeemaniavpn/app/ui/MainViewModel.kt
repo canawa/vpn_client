@@ -44,7 +44,6 @@ import ru.coffeemaniavpn.app.data.TvImportClient
 import ru.coffeemaniavpn.app.data.TvImportSubmitResult
 import ru.coffeemaniavpn.app.deeplink.DeepLinkAction
 import ru.coffeemaniavpn.app.deeplink.DeepLinkEffect
-import ru.coffeemaniavpn.app.deeplink.SubscriptionQrParser
 import ru.coffeemaniavpn.app.deeplink.DeepLinkParser
 import ru.coffeemaniavpn.app.deeplink.TvImportHostValidator
 import kotlinx.coroutines.flow.asStateFlow
@@ -168,11 +167,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         startupCrash,
     ) { savedData, vpnData, localData, settingsData, crash ->
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
-        val (vpnStatus, vpnError, connectionElapsedMs, downlinkBps, uplinkBps, inputUrl) = vpnData
+        val (vpnStatus, vpnError, connectionElapsedMs, downlinkBps, uplinkBps, _) = vpnData
         val (loading, pinging, pings, info, localError) = localData
 
         MainUiState(
-            subscriptionUrl = inputUrl.trim().ifBlank { savedUrl.trim() },
+            subscriptionUrl = savedUrl.trim(),
             nodes = nodes,
             selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
             vpnStatus = vpnStatus,
@@ -529,7 +528,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun addSubscriptionFromDeepLink(
         url: String,
         connectAfter: Boolean,
-        onEffect: (DeepLinkEffect) -> Unit,
+        onEffect: (DeepLinkEffect) -> Unit = {},
     ) {
         subscriptionUrlInput.value = url.trim()
         message.value = if (connectAfter) {
@@ -547,7 +546,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun importSubscriptionPayload(
         payload: String,
         connectAfter: Boolean,
-        onEffect: (DeepLinkEffect) -> Unit,
+        onEffect: (DeepLinkEffect) -> Unit = {},
     ) {
         val trimmed = payload.trim()
         if (trimmed.startsWith("http://", ignoreCase = true) ||
@@ -614,19 +613,69 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun applySubscriptionFromQr(raw: String) {
-        val url = SubscriptionQrParser.parseSubscriptionUrl(raw)
-        if (url == null) {
-            error.value = invalidSubscriptionLink()
-            return
-        }
-        applySubscriptionLink(url, "applySubscriptionFromQr")
+        applySubscriptionLink(raw, "applySubscriptionFromQr")
     }
 
     private fun applySubscriptionLink(text: String, logTag: String) {
-        subscriptionUrlInput.value = text
-        message.value = appStr(R.string.msg_link_pasted)
-        AppLog.i("$logTag urlLen=${text.length}")
-        refreshConfig(showUrlRequiredError = false)
+        val payload = normalizePastedSubscription(text)
+        if (payload.isBlank()) {
+            error.value = invalidSubscriptionLink()
+            return
+        }
+        AppLog.i("$logTag len=${payload.length} prefix=${payload.take(24)}")
+        when {
+            isHttpSubscriptionUrl(payload) -> {
+                subscriptionUrlInput.value = payload
+                refreshConfig(showUrlRequiredError = false)
+            }
+            looksLikeNodeShareLink(payload) ->
+                importSubscriptionPayload(payload, connectAfter = false)
+            else -> {
+                val action = runCatching { DeepLinkParser.parse(Uri.parse(payload)) }.getOrNull()
+                when (action) {
+                    is DeepLinkAction.Add -> addSubscriptionFromDeepLink(
+                        url = action.url,
+                        connectAfter = action.connectAfter,
+                    )
+                    is DeepLinkAction.Import -> importSubscriptionPayload(
+                        payload = action.payload,
+                        connectAfter = false,
+                    )
+                    else -> error.value = invalidSubscriptionLink()
+                }
+            }
+        }
+    }
+
+    private fun normalizePastedSubscription(raw: String): String {
+        val trimmed = raw.trim().removePrefix("\uFEFF").trim()
+        if (trimmed.isBlank()) return ""
+        if (isHttpSubscriptionUrl(trimmed) || looksLikeNodeShareLink(trimmed)) return trimmed
+
+        trimmed.lineSequence()
+            .map { it.trim() }
+            .firstOrNull { isHttpSubscriptionUrl(it) || looksLikeNodeShareLink(it) }
+            ?.let { return it }
+
+        Regex("""https?://[^\s<>"']+""", RegexOption.IGNORE_CASE)
+            .find(trimmed)
+            ?.value
+            ?.trimEnd(',', '.', ';', ')')
+            ?.let { return it }
+
+        return trimmed
+    }
+
+    private fun looksLikeNodeShareLink(text: String): Boolean {
+        val value = text.trim()
+        return value.startsWith("vless://", ignoreCase = true) ||
+            value.startsWith("vmess://", ignoreCase = true) ||
+            value.startsWith("ss://", ignoreCase = true) ||
+            value.startsWith("ssr://", ignoreCase = true) ||
+            value.startsWith("trojan://", ignoreCase = true) ||
+            value.startsWith("hy2://", ignoreCase = true) ||
+            value.startsWith("hysteria2://", ignoreCase = true) ||
+            value.startsWith("tuic://", ignoreCase = true)
     }
 
     fun deleteSubscription() {

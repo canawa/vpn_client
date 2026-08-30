@@ -5,7 +5,6 @@
     <string name="vpn_session_name">ClevVPN</string>
     <string name="vpn_notification_channel">VPN</string>
     <string name="vpn_notification_title">ClevVPN</string>
-    <string name="network_lost_notification_channel">Сеть</string>
     <string name="network_lost_notification">Кажется, интернет пропал. Проверьте подключение</string>
     <string name="vpn_starting">Подключение…</string>
     <string name="vpn_connected">Подключено</string>
@@ -82,6 +81,8 @@
     <string name="clev_delete_subscription">Удалить подписку</string>
     <string name="clev_delete_key_logout">Удалить ключ и выйти</string>
     <string name="clev_subscription_default_title">CleVVpn 💛</string>
+    <string name="clev_buy_in_bot">Купить в боте</string>
+    <string name="clev_buy_bot_url">https://t.me/ClevVPN_bot</string>
     <string name="clev_support">Поддержка</string>
     <string name="clev_support_url">https://t.me/clevvpn_support</string>
     <string name="clev_traffic_mode_global">Весь трафик через VPN</string>

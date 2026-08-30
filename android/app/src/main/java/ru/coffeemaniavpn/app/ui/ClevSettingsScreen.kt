@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -50,9 +51,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,7 +75,6 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material3.CircularProgressIndicator
 import ru.coffeemaniavpn.app.data.AppLanguage
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
@@ -82,6 +84,7 @@ import ru.coffeemaniavpn.app.data.RoutingRuleTarget
 import ru.coffeemaniavpn.app.data.InstalledAppsLoader
 import ru.coffeemaniavpn.app.data.SplitTunnelAppsMode
 import ru.coffeemaniavpn.app.data.TrafficRoutingMode
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 
@@ -249,13 +252,13 @@ private fun ClevSegmentedTabs(
                         },
                     )
                     .clickable { onSelect(value) }
-                    .padding(horizontal = 6.dp, vertical = 8.dp),
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = label,
                     fontFamily = ClevFontFamily,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                     letterSpacing = (-0.2).sp,
                     color = if (isSelected) Color.Black else colors.espresso,
@@ -527,34 +530,50 @@ private fun ClevSearchField(
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
-    TextField(
+    BasicTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
+            .height(36.dp)
             .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, colors.latte, RoundedCornerShape(8.dp)),
-        placeholder = {
-            Text(placeholder, color = colors.mocha, fontSize = 14.sp)
-        },
-        leadingIcon = {
-            Icon(Icons.Outlined.Search, contentDescription = null, tint = colors.mocha, modifier = Modifier.size(18.dp))
-        },
+            .background(colors.surfaceVariant)
+            .border(1.dp, colors.latte, RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp),
         singleLine = true,
-        textStyle = androidx.compose.ui.text.TextStyle(
+        textStyle = TextStyle(
             color = colors.espresso,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
         ),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = colors.surfaceVariant,
-            unfocusedContainerColor = colors.surfaceVariant,
-            disabledContainerColor = colors.surfaceVariant,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            cursorColor = colors.yellow,
-        ),
+        cursorBrush = SolidColor(colors.yellow),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = null,
+                    tint = colors.mocha,
+                    modifier = Modifier.size(15.dp),
+                )
+                Box(modifier = Modifier.weight(1f)) {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = placeholder,
+                            color = colors.mocha,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        },
     )
 }
 
@@ -903,7 +922,7 @@ private fun ClevSubscriptionTab(
     val info = state.subscriptionInfo
     val supportUrl = info?.supportURL?.takeIf { it.isNotBlank() }
         ?: stringResource(R.string.clev_support_url)
-    val supportBlue = Color(0xFF0A84FF)
+    val buyBotUrl = stringResource(R.string.clev_buy_bot_url)
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -1010,6 +1029,25 @@ private fun ClevSubscriptionTab(
                         onClick = onDelete,
                     )
                 }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SubscriptionActionButton(
+                        modifier = Modifier.weight(1f),
+                        backgroundColor = colors.milkFoam,
+                        text = stringResource(R.string.clev_buy_in_bot),
+                        onClick = { context.openExternalUrl(buyBotUrl) },
+                    )
+                    SubscriptionActionButton(
+                        modifier = Modifier.weight(1f),
+                        backgroundColor = colors.milkFoam,
+                        text = stringResource(R.string.clev_support),
+                        onClick = { context.openExternalUrl(supportUrl) },
+                    )
+                }
             }
 
             state.error?.let { error ->
@@ -1027,30 +1065,6 @@ private fun ClevSubscriptionTab(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(supportUrl)))
-                    }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.HelpOutline,
-                    contentDescription = null,
-                    tint = supportBlue,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = stringResource(R.string.clev_support),
-                    color = supportBlue,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-            Spacer(modifier = Modifier.height(10.dp))
             ClevLogoFull(
                 modifier = Modifier.alpha(0.5f),
                 logoHeight = 16.dp,
@@ -1145,10 +1159,10 @@ private fun SubscriptionStatsPill(
 
 @Composable
 private fun SubscriptionActionButton(
-    icon: @Composable () -> Unit,
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: (@Composable () -> Unit)? = null,
     backgroundColor: Color = Color.Transparent,
     enabled: Boolean = true,
 ) {
@@ -1161,13 +1175,19 @@ private fun SubscriptionActionButton(
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = if (icon != null) {
+            Arrangement.spacedBy(6.dp)
+        } else {
+            Arrangement.Center
+        },
     ) {
-        Box(
-            modifier = Modifier.size(16.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            icon()
+        if (icon != null) {
+            Box(
+                modifier = Modifier.size(16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                icon()
+            }
         }
         Text(
             text = text,
@@ -1177,7 +1197,14 @@ private fun SubscriptionActionButton(
             lineHeight = 13.sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            textAlign = if (icon != null) TextAlign.Start else TextAlign.Center,
         )
+    }
+}
+
+private fun Context.openExternalUrl(url: String) {
+    runCatching {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 }
 

@@ -600,13 +600,13 @@ fun ClevFilterChip(
                 },
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
+            .padding(horizontal = 10.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 11.sp,
             color = if (selected) Color.Black else colors.mocha,
         )
     }
@@ -623,13 +623,13 @@ fun ProtocolLabelBadge(
     Text(
         text = label,
         color = colors.yellow,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.SemiBold,
         maxLines = 1,
         modifier = modifier
             .clip(shape)
             .background(colors.surfaceVariant, shape)
-            .padding(horizontal = 5.dp, vertical = 2.dp),
+            .padding(horizontal = 4.dp, vertical = 1.dp),
     )
 }
 
@@ -652,7 +652,7 @@ fun ServerTitleWithProtocolBadge(
         if (favorite) {
             Box(
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(18.dp)
                     .clip(CircleShape)
                     .clickable(onClick = onFavoriteClick)
                     .semantics { role = Role.Button },
@@ -662,7 +662,7 @@ fun ServerTitleWithProtocolBadge(
                     imageVector = Icons.Filled.Star,
                     contentDescription = stringResource(R.string.clev_remove_favorite),
                     tint = colors.yellow,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(11.dp),
                 )
             }
         }
@@ -670,15 +670,15 @@ fun ServerTitleWithProtocolBadge(
             Text(
                 text = title,
                 color = colors.espresso,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                maxLines = 2,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 18.sp,
+                lineHeight = 16.sp,
             )
             ProtocolLabelBadge(
                 label = protocolLabel,
-                modifier = Modifier.padding(top = 2.dp),
+                modifier = Modifier.padding(top = 1.dp),
             )
         }
     }
@@ -698,14 +698,14 @@ fun PingLabel(
     ) {
         Box(
             modifier = Modifier
-                .size(6.dp)
+                .size(5.dp)
                 .clip(CircleShape)
                 .background(CoffemaniaColors.pingColor(ms)),
         )
         Text(
             text = stringResource(R.string.clev_ping_ms, ms),
             color = colors.mocha,
-            fontSize = 12.sp,
+            fontSize = 11.sp,
         )
     }
 }
@@ -715,23 +715,12 @@ fun PingUnavailableLabel(
     modifier: Modifier = Modifier,
 ) {
     val colors = coffemaniaColors()
-    Row(
+    Text(
+        text = "—",
+        color = colors.mocha,
+        fontSize = 11.sp,
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .background(colors.mocha.copy(alpha = 0.55f)),
-        )
-        Text(
-            text = "—",
-            color = colors.mocha,
-            fontSize = 12.sp,
-        )
-    }
+    )
 }
 
 /** Всплывающий тост поверх экрана (сеть пропала и т.п.). */

@@ -271,8 +271,8 @@ fun HomeScreen(
                 LazyRow(
                     state = filterListState,
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     items(filterOrder, key = { it }) { id ->
                         ReorderableItem(reorderableFilterState, key = id) { isDragging ->
@@ -307,25 +307,40 @@ fun HomeScreen(
                 }
             }
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(filteredNodes, key = { it.id }) { node ->
-                    val display = ServerDisplayMapper.map(node, state.nodePings[node.id])
-                    QuickServerRow(
-                        display = display,
-                        selected = state.selectedNodeId == node.id,
-                        favorite = node.id in state.favoriteNodeIds,
-                        isPinging = state.nodePings[node.id] is PingState.Loading,
-                        onClick = { onSelectNode(node.id) },
-                        onDoubleClick = { onConnectToNode(node.id) },
-                        onToggleFavorite = { onToggleFavorite(node.id) },
-                        onPing = { onPingNode(node.id) },
+            if (state.isLoading && state.nodes.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(28.dp),
+                        color = colors.yellow,
+                        strokeWidth = 2.dp,
                     )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 6.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    items(filteredNodes, key = { it.id }) { node ->
+                        val display = ServerDisplayMapper.map(node, state.nodePings[node.id])
+                        QuickServerRow(
+                            display = display,
+                            selected = state.selectedNodeId == node.id,
+                            favorite = node.id in state.favoriteNodeIds,
+                            isPinging = state.nodePings[node.id] is PingState.Loading,
+                            onClick = { onSelectNode(node.id) },
+                            onDoubleClick = { onConnectToNode(node.id) },
+                            onToggleFavorite = { onToggleFavorite(node.id) },
+                            onPing = { onPingNode(node.id) },
+                        )
+                    }
                 }
             }
         }
@@ -502,13 +517,13 @@ private fun QuickServerRow(
     onPing: () -> Unit,
 ) {
     val colors = coffemaniaColors()
-    val shape = RoundedCornerShape(13.dp)
+    val shape = RoundedCornerShape(10.dp)
     var showMenu by remember { mutableStateOf(false) }
     Box {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 52.dp)
+                .heightIn(min = 44.dp)
                 .clip(shape)
                 .background(colors.cappuccino)
                 .border(
@@ -521,13 +536,13 @@ private fun QuickServerRow(
                     onDoubleClick = onDoubleClick,
                     onLongClick = { showMenu = true },
                 )
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(horizontal = 10.dp, vertical = 7.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ServerListFlag(flag = display.flag, height = 24.dp)
+                ServerListFlag(flag = display.flag, height = 20.dp)
                 ServerTitleWithProtocolBadge(
                     title = display.title,
                     protocolLabel = display.protocolLabel,
@@ -537,7 +552,7 @@ private fun QuickServerRow(
                 )
                 when {
                     isPinging && display.pingMs == null && display.pingText != "—" -> CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(14.dp),
                         strokeWidth = 2.dp,
                         color = colors.yellow,
                     )
@@ -545,7 +560,7 @@ private fun QuickServerRow(
                     display.pingText == "—" -> PingUnavailableLabel()
                     else -> Unit
                 }
-                ClevSelectionIndicator(selected = selected, size = 20.dp)
+                ClevSelectionIndicator(selected = selected, size = 16.dp)
             }
         }
         DropdownMenu(
