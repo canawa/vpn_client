@@ -12,6 +12,13 @@ import work.bavshield.vpn.data.ProxyNode
 import work.bavshield.vpn.data.XrayConfigBuilder
 import work.bavshield.vpn.util.AppLog
 
+data class VpnTrafficStats(
+    val downloadBytesPerSec: Long = 0L,
+    val uploadBytesPerSec: Long = 0L,
+    val downloadTotalBytes: Long = 0L,
+    val uploadTotalBytes: Long = 0L,
+)
+
 object VpnManager {
     @Volatile
     var userInitiatedDisconnect: Boolean = false
@@ -25,8 +32,13 @@ object VpnManager {
     private val _connectionElapsedMs = MutableStateFlow(0L)
     val connectionElapsedMs = _connectionElapsedMs.asStateFlow()
 
+    private val _trafficStats = MutableStateFlow(VpnTrafficStats())
+    val trafficStats = _trafficStats.asStateFlow()
+
     private var connectedSinceMs: Long? = null
     private var elapsedTickerJob: Job? = null
+    private var sessionUploadBytes = 0L
+    private var sessionDownloadBytes = 0L
 
     fun init() {
         VpnAutoReconnect.startNetworkWatcher()
@@ -37,6 +49,11 @@ object VpnManager {
             VpnStatus.Started -> {
                 if (connectedSinceMs == null) {
                     connectedSinceMs = System.currentTimeMillis()
+                    sessionUploadBytes = 0L
+                    sessionDownloadBytes = 0L
+                    _trafficStats.value = VpnTrafficStats()
+                    // Drain any counters from a previous session
+                    XrayCoreManager.queryProxyTrafficDelta()
                 }
                 startElapsedTicker()
                 VpnAutoReconnect.onConnected()
@@ -44,6 +61,9 @@ object VpnManager {
             VpnStatus.Stopped -> {
                 connectedSinceMs = null
                 _connectionElapsedMs.value = 0L
+                sessionUploadBytes = 0L
+                sessionDownloadBytes = 0L
+                _trafficStats.value = VpnTrafficStats()
                 stopElapsedTicker()
             }
             else -> Unit
@@ -58,6 +78,17 @@ object VpnManager {
             while (connectedSinceMs != null) {
                 val since = connectedSinceMs ?: break
                 _connectionElapsedMs.value = System.currentTimeMillis() - since
+
+                val (uploadDelta, downloadDelta) = XrayCoreManager.queryProxyTrafficDelta()
+                sessionUploadBytes += uploadDelta
+                sessionDownloadBytes += downloadDelta
+                _trafficStats.value = VpnTrafficStats(
+                    downloadBytesPerSec = downloadDelta,
+                    uploadBytesPerSec = uploadDelta,
+                    downloadTotalBytes = sessionDownloadBytes,
+                    uploadTotalBytes = sessionUploadBytes,
+                )
+
                 delay(1_000)
             }
         }

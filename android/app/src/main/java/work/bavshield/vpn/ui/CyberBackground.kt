@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -30,7 +29,11 @@ fun CyberBackground(
 ) {
     val intensity by animateFloatAsState(
         targetValue = if (connected) 1f else 0f,
-        animationSpec = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+        animationSpec = tween(
+            // Turn-on ~1.1s; turn-off longer so hexes clearly fade out
+            durationMillis = if (connected) 1100 else 1500,
+            easing = FastOutSlowInEasing,
+        ),
         label = "hexLit",
     )
     val strokePx = with(LocalDensity.current) { 0.85.dp.toPx() }
@@ -41,23 +44,6 @@ fun CyberBackground(
 
         val glowCenter = Offset(size.width / 2f, size.height * 0.34f)
         val glowRadius = size.minDimension * 0.55f
-
-        // Soft wash from shield glow — makes nearby hexes readable
-        if (intensity > 0.01f) {
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        HexLit.copy(alpha = 0.10f * intensity),
-                        HexLit.copy(alpha = 0.035f * intensity),
-                        Color.Transparent,
-                    ),
-                    center = glowCenter,
-                    radius = glowRadius,
-                ),
-                radius = glowRadius,
-                center = glowCenter,
-            )
-        }
 
         val hexW = hexRadius * 1.7320508f
         val hexH = hexRadius * 1.5f
@@ -80,8 +66,10 @@ fun CyberBackground(
                 // Smooth falloff curve so lit zone matches shield glow
                 val lit = (falloff * falloff) * intensity
 
-                val color = lerp(HexIdle, HexLit, lit).copy(
-                    alpha = 0.055f + 0.55f * lit,
+                // Idle: barely visible. Connected: whole grid readable + brighter near shield.
+                val alpha = 0.018f + 0.14f * intensity + 0.42f * lit
+                val color = lerp(HexIdle, HexLit, (0.12f * intensity) + (0.88f * lit)).copy(
+                    alpha = alpha,
                 )
                 drawPath(
                     path,

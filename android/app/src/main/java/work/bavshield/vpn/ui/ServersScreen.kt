@@ -51,12 +51,18 @@ fun ServersScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else if (nodes.isEmpty()) {
-            Text(
-                text = stringResource(R.string.servers_empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.servers_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = bavShieldColors().mocha,
+                )
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),

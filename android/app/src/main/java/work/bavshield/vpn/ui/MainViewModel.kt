@@ -49,6 +49,8 @@ data class MainUiState(
     val selectedNodeId: String? = null,
     val vpnStatus: VpnStatus = VpnStatus.Stopped,
     val connectionElapsedMs: Long = 0L,
+    val downloadBytesPerSec: Long = 0L,
+    val uploadBytesPerSec: Long = 0L,
     val isLoading: Boolean = false,
     val isPinging: Boolean = false,
     val nodePings: Map<String, PingState> = emptyMap(),
@@ -104,9 +106,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             VpnManager.status,
             VpnManager.lastError,
             VpnManager.connectionElapsedMs,
+            VpnManager.trafficStats,
             subscriptionUrlInput,
-        ) { vpnStatus, vpnError, elapsedMs, inputUrl ->
-            VpnUiState(vpnStatus, vpnError, elapsedMs, inputUrl)
+        ) { vpnStatus, vpnError, elapsedMs, traffic, inputUrl ->
+            VpnUiState(vpnStatus, vpnError, elapsedMs, traffic, inputUrl)
         },
         combine(isLoading, isPinging, nodePings, message, error) { loading, pinging, pings, info, localError ->
             LocalUiState(loading, pinging, pings, info, localError)
@@ -123,7 +126,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ) { savedData, vpnData, localData, settingsData, crash ->
         val (connectionSettings, autoUpdateInterval, pingInterval, pingHosts) = settingsData
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
-        val (vpnStatus, vpnError, connectionElapsedMs, inputUrl) = vpnData
+        val (vpnStatus, vpnError, connectionElapsedMs, traffic, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
 
         MainUiState(
@@ -132,6 +135,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             selectedNodeId = selectedNodeId ?: nodes.firstOrNull()?.id,
             vpnStatus = vpnStatus,
             connectionElapsedMs = connectionElapsedMs,
+            downloadBytesPerSec = traffic.downloadBytesPerSec,
+            uploadBytesPerSec = traffic.uploadBytesPerSec,
             isLoading = loading,
             isPinging = pinging,
             nodePings = pings,
@@ -655,6 +660,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val vpnStatus: VpnStatus,
         val vpnError: String?,
         val connectionElapsedMs: Long,
+        val traffic: work.bavshield.vpn.vpn.VpnTrafficStats,
         val inputUrl: String,
     )
 

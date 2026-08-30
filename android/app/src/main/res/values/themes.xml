@@ -3,7 +3,7 @@
     <style name="Theme.BavShieldVpn" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:fontFamily">@font/inter_bold</item>
+        <item name="android:fontFamily">@font/tektur_semibold</item>
     </style>
 
     <!--

@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import work.bavshield.vpn.R
+import work.bavshield.vpn.data.formatConnectionDuration
 import work.bavshield.vpn.vpn.VpnStatus
 
 enum class AppTab { Home, Servers }
@@ -407,18 +408,6 @@ fun ShieldConnectSwitch(
     }
 }
 
-private fun formatConnectionDuration(elapsedMs: Long): String {
-    val totalSeconds = (elapsedMs / 1_000).coerceAtLeast(0)
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format("%02d:%02d", minutes, seconds)
-    }
-}
-
 @Composable
 fun SelectedServerCard(
     display: ServerDisplay,
@@ -651,9 +640,9 @@ fun SubscriptionExpiredCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -668,6 +657,7 @@ fun SubscriptionExpiredCard(
             Text(
                 text = stringResource(R.string.subscription_expired_hint),
                 style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.error,
             )
             SubscriptionActionButton(

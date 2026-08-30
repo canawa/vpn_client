@@ -34,6 +34,20 @@ object XrayCoreManager {
 
     fun isRunning(): Boolean = coreController?.isRunning == true
 
+    /**
+     * Returns (uplinkBytes, downlinkBytes) since the previous query and resets counters.
+     * uplink = upload from device, downlink = download to device.
+     */
+    fun queryProxyTrafficDelta(): Pair<Long, Long> {
+        val core = coreController ?: return 0L to 0L
+        if (!core.isRunning) return 0L to 0L
+        return runCatching {
+            val uplink = core.queryStats("proxy", "uplink").coerceAtLeast(0L)
+            val downlink = core.queryStats("proxy", "downlink").coerceAtLeast(0L)
+            uplink to downlink
+        }.getOrElse { 0L to 0L }
+    }
+
     fun startLoop(config: String, tunFd: Int) {
         ensureController(XrayCoreCallback).startLoop(config, tunFd)
     }

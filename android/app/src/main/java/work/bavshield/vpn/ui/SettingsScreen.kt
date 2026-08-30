@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
@@ -124,6 +125,7 @@ fun SettingsScreen(
     isPinging: Boolean,
     onSiteClick: () -> Unit,
     onTelegramBotClick: () -> Unit,
+    onTelegramChannelClick: () -> Unit,
     onSupportClick: () -> Unit,
     onEmailClick: () -> Unit,
     onShowLogs: () -> Unit,
@@ -136,6 +138,10 @@ fun SettingsScreen(
             modifier = modifier,
             onPageChange = onPageChange,
             onCloseApp = onCloseApp,
+            onSupportClick = onSupportClick,
+            onSiteClick = onSiteClick,
+            onTelegramChannelClick = onTelegramChannelClick,
+            onTelegramBotClick = onTelegramBotClick,
         )
         SettingsPage.Language -> LanguageSettingsScreen(
             modifier = modifier,
@@ -165,6 +171,7 @@ fun SettingsScreen(
             onPageChange = onPageChange,
             onSiteClick = onSiteClick,
             onTelegramBotClick = onTelegramBotClick,
+            onTelegramChannelClick = onTelegramChannelClick,
             onSupportClick = onSupportClick,
             onEmailClick = onEmailClick,
         )
@@ -448,6 +455,7 @@ private fun AboutSettingsScreen(
     onPageChange: (SettingsPage) -> Unit,
     onSiteClick: () -> Unit,
     onTelegramBotClick: () -> Unit,
+    onTelegramChannelClick: () -> Unit,
     onSupportClick: () -> Unit,
     onEmailClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -480,6 +488,12 @@ private fun AboutSettingsScreen(
         )
         SettingsDivider()
         SettingsNavRow(
+            title = stringResource(R.string.home_open_channel),
+            icon = Icons.AutoMirrored.Filled.Send,
+            onClick = onTelegramChannelClick,
+        )
+        SettingsDivider()
+        SettingsNavRow(
             title = stringResource(R.string.about_bot),
             icon = Icons.AutoMirrored.Filled.Send,
             onClick = onTelegramBotClick,
@@ -487,7 +501,7 @@ private fun AboutSettingsScreen(
         SettingsDivider()
         SettingsNavRow(
             title = stringResource(R.string.about_support),
-            icon = Icons.Default.Info,
+            icon = Icons.Default.HeadsetMic,
             onClick = onSupportClick,
         )
         SettingsDivider()
@@ -508,7 +522,11 @@ private fun AboutSettingsScreen(
 @Composable
 private fun SettingsMainScreen(
     onPageChange: (SettingsPage) -> Unit,
-    onCloseApp: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") onCloseApp: () -> Unit,
+    onSupportClick: () -> Unit,
+    onSiteClick: () -> Unit,
+    onTelegramChannelClick: () -> Unit,
+    onTelegramBotClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -535,28 +553,39 @@ private fun SettingsMainScreen(
         )
         SettingsDivider()
         SettingsNavRow(
-            title = stringResource(R.string.settings_ping),
-            icon = Icons.Default.NetworkPing,
-            onClick = { onPageChange(SettingsPage.Ping) },
-        )
-        SettingsDivider()
-        SettingsNavRow(
             title = stringResource(R.string.settings_subscription),
             icon = Icons.Default.Link,
             onClick = { onPageChange(SettingsPage.Subscription) },
         )
         SettingsDivider()
         SettingsNavRow(
+            title = stringResource(R.string.about_support),
+            icon = Icons.Default.HeadsetMic,
+            onClick = onSupportClick,
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = stringResource(R.string.about_site),
+            icon = Icons.Default.Language,
+            onClick = onSiteClick,
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = stringResource(R.string.home_open_channel),
+            icon = Icons.AutoMirrored.Filled.Send,
+            onClick = onTelegramChannelClick,
+        )
+        SettingsDivider()
+        SettingsNavRow(
+            title = stringResource(R.string.about_bot),
+            icon = Icons.AutoMirrored.Filled.Send,
+            onClick = onTelegramBotClick,
+        )
+        SettingsDivider()
+        SettingsNavRow(
             title = stringResource(R.string.settings_about),
             icon = Icons.Default.Info,
             onClick = { onPageChange(SettingsPage.About) },
-        )
-        SettingsDivider()
-        SettingsActionRow(
-            title = stringResource(R.string.settings_close_app),
-            icon = Icons.Default.Cancel,
-            onClick = onCloseApp,
-            showChevron = false,
         )
     }
 }
@@ -814,7 +843,8 @@ private fun SettingsActionRow(
         )
         Text(
             text = title,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
             color = contentColor,
             modifier = Modifier
                 .weight(1f)

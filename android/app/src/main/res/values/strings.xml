@@ -17,6 +17,7 @@
     <string name="cd_back">Назад</string>
     <string name="cd_settings">Настройки</string>
     <string name="cd_refresh">Обновить подписку</string>
+    <string name="cd_ping">Проверить пинг серверов</string>
     <string name="cd_select_server">Выбрать сервер</string>
     <string name="cd_connect">Подключить</string>
     <string name="cd_disconnect">Отключить</string>
@@ -67,6 +68,8 @@
     <string name="home_server_online">ONLINE</string>
     <string name="home_open_channel">Канал</string>
     <string name="home_open_bot">Бот</string>
+    <string name="home_select_server">Выберите сервер</string>
+    <string name="home_error_support">Написать в поддержку</string>
     <string name="subscription_panel_title">Информация о подписке</string>
     <string name="subscription_days_left">Осталось дней</string>
     <string name="subscription_access">Доступ</string>
@@ -75,7 +78,7 @@
     <string name="pay_subscription">Оплатить подписку</string>
     <string name="pay_devices">Оплатить устройства</string>
     <string name="subscription_status_none">Подписка не добавлена</string>
-    <string name="servers_empty">Список серверов пуст. Добавьте подписку на главной.</string>
+    <string name="servers_empty">Список серверов пуст. Обновите подписку или напишите в поддержку.</string>
     <string name="server_fallback">Сервер %d</string>
     <string name="server_generic">Сервер</string>
     <string name="server_autoselect">Автовыбор</string>
