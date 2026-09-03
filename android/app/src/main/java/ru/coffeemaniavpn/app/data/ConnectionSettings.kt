@@ -16,6 +16,26 @@ enum class SplitTunnelAppsMode {
     ExcludeSelected,
 }
 
+enum class DnsMode {
+    /** Cloudflare 1.1.1.1 (по умолчанию) */
+    Cloudflare,
+
+    /** RemoteDns / DomesticDns из JSON профиля подписки */
+    Subscription,
+    ;
+
+    val label: String
+        get() = when (this) {
+            Cloudflare -> "Cloudflare DNS"
+            Subscription -> "DNS из JSON подписки"
+        }
+
+    companion object {
+        val DEFAULT: DnsMode = Cloudflare
+        const val CLOUDFLARE_DNS = "1.1.1.1"
+    }
+}
+
 data class ConnectionSettingsState(
     val sitesEnabled: Boolean = false,
     val sitesMode: SplitTunnelSitesMode = SplitTunnelSitesMode.ProxyOnly,
@@ -24,4 +44,5 @@ data class ConnectionSettingsState(
     val appsMode: SplitTunnelAppsMode = SplitTunnelAppsMode.IncludeOnly,
     val appPackages: Set<String> = emptySet(),
     val killSwitchEnabled: Boolean = false,
+    val dnsMode: DnsMode = DnsMode.DEFAULT,
 )

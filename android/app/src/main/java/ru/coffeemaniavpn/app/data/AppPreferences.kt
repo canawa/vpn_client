@@ -198,6 +198,7 @@ class AppPreferences(private val context: Context) {
             prefs[KEY_SPLIT_APPS_MODE] = settings.appsMode.name
             prefs[KEY_SPLIT_APP_PACKAGES] = json.encodeToString(settings.appPackages.toList())
             prefs[KEY_KILL_SWITCH_ENABLED] = settings.killSwitchEnabled
+            prefs[KEY_DNS_MODE] = settings.dnsMode.name
         }
         ConnectionSettingsStore.update(settings)
     }
@@ -221,6 +222,9 @@ class AppPreferences(private val context: Context) {
         val appsMode = runCatching {
             SplitTunnelAppsMode.valueOf(this[KEY_SPLIT_APPS_MODE] ?: SplitTunnelAppsMode.IncludeOnly.name)
         }.getOrDefault(SplitTunnelAppsMode.IncludeOnly)
+        val dnsMode = runCatching {
+            DnsMode.valueOf(this[KEY_DNS_MODE] ?: DnsMode.DEFAULT.name)
+        }.getOrDefault(DnsMode.DEFAULT)
 
         return ConnectionSettingsState(
             sitesEnabled = this[KEY_SPLIT_SITES_ENABLED] ?: false,
@@ -230,6 +234,7 @@ class AppPreferences(private val context: Context) {
             appsMode = appsMode,
             appPackages = packages,
             killSwitchEnabled = this[KEY_KILL_SWITCH_ENABLED] ?: false,
+            dnsMode = dnsMode,
         )
     }
 
@@ -247,6 +252,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_SPLIT_APPS_MODE = stringPreferencesKey("split_apps_mode")
         private val KEY_SPLIT_APP_PACKAGES = stringPreferencesKey("split_app_packages")
         private val KEY_KILL_SWITCH_ENABLED = booleanPreferencesKey("kill_switch_enabled")
+        private val KEY_DNS_MODE = stringPreferencesKey("dns_mode")
         private val KEY_APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
         private val KEY_SUB_AUTO_UPDATE_HOURS = intPreferencesKey("sub_auto_update_hours")
         private val KEY_SUB_LAST_AUTO_REFRESH_MS = longPreferencesKey("sub_last_auto_refresh_ms")

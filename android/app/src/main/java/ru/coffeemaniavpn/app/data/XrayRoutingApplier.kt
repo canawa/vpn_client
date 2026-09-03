@@ -32,7 +32,9 @@ object XrayRoutingApplier {
         routing.put("domainStrategy", "IPIfNonMatch")
         putFinalRule(routing, if (globalProxy) "proxy" else "direct")
 
-        applyProfileDns(config, profile)
+        if (ConnectionSettingsStore.state.dnsMode == DnsMode.Subscription) {
+            applyProfileDns(config, profile)
+        }
         AppLog.i("XrayRoutingApplier applied name=${profile.optString("Name")} rules=${merged.length()}")
     }
 
@@ -83,13 +85,14 @@ object XrayRoutingApplier {
         if (!settings.sitesEnabled || settings.siteDomains.isEmpty()) return
         val dns = config.optJSONObject("dns") ?: return
         val servers = dns.optJSONArray("servers") ?: JSONArray().also { dns.put("servers", it) }
+        val address = DnsMode.CLOUDFLARE_DNS
 
         val merged = JSONArray()
         settings.siteDomains.forEach { raw ->
             val domain = normalizeDomain(raw)
             if (domain.isBlank()) return@forEach
             merged.put(JSONObject().apply {
-                put("address", "8.8.8.8")
+                put("address", address)
                 put("domains", JSONArray().apply {
                     put("domain:$domain")
                     put("domain:.$domain")
@@ -151,13 +154,20 @@ object XrayRoutingApplier {
     private fun applyProfileDns(config: JSONObject, profile: JSONObject) {
         val remoteDns = profile.optString("RemoteDns").trim()
         val domesticDns = profile.optString("DomesticDns").trim()
-        if (remoteDns.isBlank() && domesticDns.isBlank()) return
+        if (remoteDns.isBlank() && domesticDns.isBlank()) {
+            AppLog.i("XrayRoutingApplier subscription DNS empty, keeping Cloudflare")
+            return
+        }
 
         val dns = config.optJSONObject("dns") ?: return
         val servers = JSONArray()
         if (domesticDns.isNotBlank()) servers.put(domesticDns)
         if (remoteDns.isNotBlank()) servers.put(remoteDns)
         dns.put("servers", servers)
+        AppLog.i(
+            "XrayRoutingApplier applied subscription DNS " +
+                "domestic=${domesticDns.isNotBlank()} remote=${remoteDns.isNotBlank()}",
+        )
     }
 
     private fun normalizeDomain(raw: String): String =

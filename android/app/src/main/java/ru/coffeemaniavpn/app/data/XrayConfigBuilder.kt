@@ -6,7 +6,6 @@ import org.json.JSONObject
 object XrayConfigBuilder {
     private const val TUN_ADDRESS = "172.19.0.1"
     private const val TUN_PREFIX = 30
-    private const val TUN_DNS = "8.8.8.8"
 
     fun build(node: ProxyNode): String {
         val config = buildBaseConfig(node)
@@ -20,12 +19,13 @@ object XrayConfigBuilder {
             node.isHysteria2 -> buildHysteria2Outbound(node)
             else -> buildVlessOutbound(node)
         }
+        val tunDns = DnsMode.CLOUDFLARE_DNS
 
         return JSONObject().apply {
             put("log", JSONObject().put("loglevel", "warning"))
-            put("dns", buildDns(node))
+            put("dns", buildDns(node, tunDns))
             put("inbounds", JSONArray().apply {
-                put(buildTunInbound())
+                put(buildTunInbound(tunDns))
             })
             put("outbounds", JSONArray().apply {
                 put(proxyOutbound)
@@ -36,7 +36,7 @@ object XrayConfigBuilder {
         }
     }
 
-    private fun buildDns(node: ProxyNode): JSONObject {
+    private fun buildDns(node: ProxyNode, primaryDns: String): JSONObject {
         val parentDomain = node.host.substringAfter('.', missingDelimiterValue = "")
             .takeIf { it.contains('.') }
 
@@ -52,9 +52,9 @@ object XrayConfigBuilder {
                     })
                     put("skipFallback", true)
                 })
-                put(TUN_DNS)
+                put(primaryDns)
                 put(JSONObject().apply {
-                    put("address", TUN_DNS)
+                    put("address", primaryDns)
                     put("domains", JSONArray().apply {
                         put("full:${node.host}")
                         parentDomain?.let { put("domain:.$it") }
@@ -65,7 +65,7 @@ object XrayConfigBuilder {
         }
     }
 
-    private fun buildTunInbound(): JSONObject {
+    private fun buildTunInbound(tunDns: String): JSONObject {
         return JSONObject().apply {
             put("tag", "tun-in")
             put("port", 0)
@@ -74,7 +74,7 @@ object XrayConfigBuilder {
                 put("name", "xray0")
                 put("mtu", 1500)
                 put("gateway", JSONArray().put("$TUN_ADDRESS/$TUN_PREFIX"))
-                put("dns", JSONArray().put(TUN_DNS))
+                put("dns", JSONArray().put(tunDns))
             })
             put("sniffing", JSONObject().apply {
                 put("enabled", true)

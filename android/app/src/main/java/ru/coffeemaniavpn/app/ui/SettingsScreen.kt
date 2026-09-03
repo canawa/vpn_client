@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsInputAntenna
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.HorizontalDivider
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ru.coffeemaniavpn.app.data.AppThemeMode
 import ru.coffeemaniavpn.app.data.ConnectionSettingsState
+import ru.coffeemaniavpn.app.data.DnsMode
 import ru.coffeemaniavpn.app.data.SubscriptionAutoUpdateInterval
 
 fun SettingsPage.parentPage(): SettingsPage? = when (this) {
@@ -202,6 +204,41 @@ private fun ConnectionMenuScreen(
                 )
             },
         )
+        SettingsDivider()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Dns,
+                contentDescription = null,
+                tint = colors.espresso,
+                modifier = Modifier.size(24.dp),
+            )
+            Text(
+                text = "Режим DNS",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = colors.espresso,
+                modifier = Modifier.padding(start = 16.dp),
+            )
+        }
+        DnsMode.entries.forEachIndexed { index, mode ->
+            SettingsThemeRadioRow(
+                title = mode.label,
+                selected = connectionSettings.dnsMode == mode,
+                onSelect = {
+                    if (connectionSettings.dnsMode != mode) {
+                        onSaveConnectionSettings(connectionSettings.copy(dnsMode = mode))
+                    }
+                },
+            )
+            if (index < DnsMode.entries.lastIndex) {
+                SettingsDivider()
+            }
+        }
     }
 }
 

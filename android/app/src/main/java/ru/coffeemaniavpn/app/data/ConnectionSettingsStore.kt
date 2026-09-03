@@ -17,7 +17,8 @@ object ConnectionSettingsStore {
             "ConnectionSettingsStore sites=${newState.sitesEnabled}/${newState.siteDomains.size} " +
                 "mode=${newState.sitesMode} " +
                 "apps=${newState.appsEnabled}/${newState.appPackages.size} " +
-                "killSwitch=${newState.killSwitchEnabled}",
+                "killSwitch=${newState.killSwitchEnabled} " +
+                "dnsMode=${newState.dnsMode}",
         )
     }
 
