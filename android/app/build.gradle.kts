@@ -28,7 +28,7 @@ android {
 
         buildConfigField("String", "SITE_URL", "\"https://cabinet.bavshield.work/\"")
         buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/BAVSVPN_bot\"")
-        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/BAVSVPN_bot\"")
+        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/BAVSHLDVPN\"")
         buildConfigField("String", "SUPPORT_URL", "\"https://t.me/EseCuloMexico\"")
         buildConfigField("String", "SUPPORT_EMAIL", "\"Bavshieldvpn@gmail.com\"")
         buildConfigField("String", "COPYRIGHT", "\"\\u00A9 Bavshield\"")
@@ -36,6 +36,8 @@ android {
         // Payment destinations are placeholders until the final endpoints are provided.
         buildConfigField("String", "PAY_SUBSCRIPTION_URL", "\"https://t.me/BAVSVPN_bot\"")
         buildConfigField("String", "PAY_DEVICES_URL", "\"https://t.me/BAVSVPN_bot\"")
+        // Purchase / registration page on the BAV Shield cabinet.
+        buildConfigField("String", "BUY_WEBSITE_URL", "\"https://cabinet.bavshield.work/\"")
     }
 
     signingConfigs {

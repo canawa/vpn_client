@@ -52,7 +52,7 @@
     <string name="home_action_pay">Pay</string>
     <string name="home_action_support">Support</string>
     <string name="home_action_tech_support">Tech. Support</string>
-    <string name="home_action_channel_bot">Channel / Bot</string>
+    <string name="home_action_channel_bot">Channel</string>
     <string name="home_action_subscription">Plan</string>
     <string name="home_vpn_off">VPN disconnected</string>
     <string name="home_vpn_on">VPN connected</string>
@@ -69,6 +69,10 @@
     <string name="home_error_support">Contact support</string>
     <string name="subscription_panel_title">Subscription info</string>
     <string name="subscription_days_left">Days left</string>
+    <string name="subscription_days_count">%1$d d</string>
+    <string name="subscription_traffic_left">Traffic left</string>
+    <string name="subscription_traffic_unlimited">Unlimited traffic</string>
+    <string name="subscription_info_unavailable">No data. Refresh subscription.</string>
     <string name="subscription_access">Access</string>
     <string name="subscription_active">ACTIVE</string>
     <string name="subscription_access_pro">PRO</string>
@@ -92,6 +96,10 @@
     <string name="settings_close_app">Close app</string>
     <string name="settings_connection_hint">Advanced connection options will appear after the INCY screenshots. Kill switch is available now.</string>
     <string name="ping_interval">Automatic ping</string>
+    <string name="ping_method">Ping method</string>
+    <string name="ping_method_tcp">TCP</string>
+    <string name="ping_method_http_get">HTTP GET</string>
+    <string name="ping_method_hint">TCP checks if the port opens. HTTP GET measures an HTTP request to the server host:port.</string>
     <string name="ping_now">Ping servers now</string>
     <string name="ping_test_hosts">Test servers</string>
     <string name="ping_test_hosts_hint">One address per line, for example 1.1.1.1:443</string>
@@ -155,6 +163,7 @@
     <string name="first_launch_tagline">Fast and stable access without borders</string>
     <string name="first_launch_paste">Paste from clipboard</string>
     <string name="first_launch_footer">The key is issued with your subscription</string>
+    <string name="error_buy_website_unavailable">The purchase page will be available soon</string>
 
     <string name="error_clipboard_empty">Clipboard is empty</string>
     <string name="error_link_pasted">Link pasted</string>

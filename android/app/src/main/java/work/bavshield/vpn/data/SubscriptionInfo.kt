@@ -43,6 +43,31 @@ data class SubscriptionInfo(
         if (expire <= 0) return false
         return expire * 1_000L <= nowMs
     }
+
+    fun remainingDays(nowMs: Long = System.currentTimeMillis()): Long? {
+        if (expire <= 0) return null
+        val remainingSec = expire - TimeUnit.MILLISECONDS.toSeconds(nowMs)
+        if (remainingSec <= 0) return 0L
+        return (remainingSec + 86_399) / 86_400
+    }
+
+    fun remainingTrafficBytes(): Long? {
+        if (isUnlimitedTraffic) return null
+        return (total - used).coerceAtLeast(0)
+    }
+
+    fun remainingTrafficFraction(): Float {
+        if (isUnlimitedTraffic || total <= 0) return 0f
+        return remainingTrafficBytes()?.toFloat()?.div(total.toFloat())?.coerceIn(0f, 1f) ?: 0f
+    }
+
+    /** Visual urgency: full bar at 30+ days left, drains toward expiry. */
+    fun daysProgressFraction(nowMs: Long = System.currentTimeMillis()): Float? {
+        if (expire <= 0) return null
+        val days = remainingDays(nowMs) ?: return null
+        if (days <= 0) return 0f
+        return (days / 30f).coerceIn(0f, 1f)
+    }
 }
 
 data class SubscriptionFetchResult(

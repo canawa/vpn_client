@@ -64,13 +64,21 @@ fun ServersScreen(
                 )
             }
         } else {
+            val context = LocalContext.current
+            val sortedNodes = remember(nodes, nodePings) {
+                ServerDisplayMapper.sortRows(
+                    nodes.map { node ->
+                        node to ServerDisplayMapper.map(context, node, nodePings[node.id])
+                    },
+                ).map { it.first }
+            }
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 8.dp),
             ) {
                 items(
-                    items = nodes,
+                    items = sortedNodes,
                     key = { it.id },
                     contentType = { "server" },
                 ) { node ->

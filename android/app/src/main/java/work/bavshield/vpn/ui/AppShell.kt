@@ -55,6 +55,7 @@ fun AppShell(
     onAppLanguageChange: (AppLanguage) -> Unit,
     onPingAutoIntervalChange: (work.bavshield.vpn.data.PingAutoInterval) -> Unit,
     onPingTestHostsChange: (String) -> Unit,
+    onPingMethodChange: (work.bavshield.vpn.data.PingMethod) -> Unit,
     onPingNow: () -> Unit,
     onEmailClick: () -> Unit,
 ) {
@@ -63,6 +64,7 @@ fun AppShell(
     var selectedTab by remember { mutableStateOf(AppTab.Home) }
     var showSettings by remember { mutableStateOf(false) }
     var settingsPage by remember { mutableStateOf(SettingsPage.Main) }
+    var settingsReturnToHome by remember { mutableStateOf(false) }
     var showDeleteSubscriptionConfirm by remember { mutableStateOf(false) }
 
     val hasSubscription = state.nodes.isNotEmpty()
@@ -72,6 +74,7 @@ fun AppShell(
             isLoading = state.isLoading,
             error = state.error,
             onPasteClick = onPasteLinkClick,
+            onBuyOnWebsiteClick = onBuyOnWebsiteClick,
         )
         return
     }
@@ -86,16 +89,25 @@ fun AppShell(
             showSettings ||
             selectedTab != AppTab.Home
 
+    fun closeSettings() {
+        showSettings = false
+        settingsPage = SettingsPage.Main
+        settingsReturnToHome = false
+    }
+
     fun navigateBack() {
         when {
             showDeleteSubscriptionConfirm -> showDeleteSubscriptionConfirm = false
             showSettings -> {
-                val parent = settingsPage.parentPage()
-                if (parent != null) {
-                    settingsPage = parent
+                if (settingsReturnToHome && settingsPage == SettingsPage.Subscription) {
+                    closeSettings()
                 } else {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
+                    val parent = settingsPage.parentPage()
+                    if (parent != null) {
+                        settingsPage = parent
+                    } else {
+                        closeSettings()
+                    }
                 }
             }
             selectedTab != AppTab.Home -> selectedTab = AppTab.Home
@@ -136,6 +148,7 @@ fun AppShell(
                                 showBackButton = true,
                                 onBackClick = { navigateBack() },
                                 onSettingsClick = {
+                                    settingsReturnToHome = false
                                     settingsPage = SettingsPage.Main
                                     showSettings = true
                                 },
@@ -151,6 +164,7 @@ fun AppShell(
                 page = settingsPage,
                 onPageChange = { settingsPage = it },
                 hasSubscription = hasSubscription,
+                subscriptionInfo = state.subscriptionInfo,
                 connectionSettings = state.connectionSettings,
                 onSaveConnectionSettings = onSaveConnectionSettings,
                 subscriptionAutoUpdateInterval = state.subscriptionAutoUpdateInterval,
@@ -161,6 +175,8 @@ fun AppShell(
                 onPingAutoIntervalChange = onPingAutoIntervalChange,
                 pingTestHosts = state.pingTestHosts,
                 onPingTestHostsChange = onPingTestHostsChange,
+                pingMethod = state.pingMethod,
+                onPingMethodChange = onPingMethodChange,
                 onPingNow = onPingNow,
                 isPinging = state.isPinging,
                 onSiteClick = onBuyOnWebsiteClick,
@@ -169,19 +185,16 @@ fun AppShell(
                 onSupportClick = onSupportClick,
                 onEmailClick = onEmailClick,
                 onPasteLink = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
+                    closeSettings()
                     onPasteLinkClick()
                 },
                 onRefreshSubscription = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
+                    closeSettings()
                     onRefreshSubscription()
                 },
                 onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
                 onBuyOnWebsite = {
-                    showSettings = false
-                    settingsPage = SettingsPage.Main
+                    closeSettings()
                     onBuyOnWebsiteClick()
                 },
                 onShowLogs = onShowLogs,
@@ -200,18 +213,21 @@ fun AppShell(
                     onConnectToNode = onConnectToNode,
                     onPasteLinkClick = onPasteLinkClick,
                     onSiteClick = onBuyOnWebsiteClick,
-                    onTelegramBotClick = onTelegramBotClick,
                     onTelegramChannelClick = onTelegramChannelClick,
+                    onTelegramBotClick = onTelegramBotClick,
                     onSupportClick = onSupportClick,
                     onSettingsClick = {
+                        settingsReturnToHome = false
                         settingsPage = SettingsPage.Main
                         showSettings = true
                     },
                     onSubscriptionClick = {
+                        settingsReturnToHome = true
                         settingsPage = SettingsPage.Subscription
                         showSettings = true
                     },
                     onRefreshSubscription = onRefreshSubscription,
+                    onPingClick = onPingNow,
                 )
                 AppTab.Servers -> ServersScreen(
                     modifier = Modifier.padding(padding),
@@ -244,7 +260,7 @@ fun AppShell(
                 TextButton(
                     onClick = {
                         showDeleteSubscriptionConfirm = false
-                        showSettings = false
+                        closeSettings()
                         onDeleteSubscriptionClick()
                     },
                 ) {

@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -61,20 +64,23 @@ import work.bavshield.vpn.R
 import work.bavshield.vpn.data.AppLanguage
 import work.bavshield.vpn.data.ConnectionSettingsState
 import work.bavshield.vpn.data.PingAutoInterval
+import work.bavshield.vpn.data.PingMethod
 import work.bavshield.vpn.data.PingState
 import work.bavshield.vpn.data.ServerPinger
 import work.bavshield.vpn.data.SubscriptionAutoUpdateInterval
+import work.bavshield.vpn.data.SubscriptionInfo
+import work.bavshield.vpn.data.formatTrafficBytes
 
 fun SettingsPage.parentPage(): SettingsPage? = when (this) {
     SettingsPage.SplitTunnelSites,
     SettingsPage.SplitTunnelApps,
     -> SettingsPage.Tunnel
-    SettingsPage.Logs -> SettingsPage.About
     SettingsPage.Language,
     SettingsPage.Connection,
     SettingsPage.Tunnel,
     SettingsPage.Ping,
     SettingsPage.Subscription,
+    SettingsPage.Logs,
     SettingsPage.About,
     -> SettingsPage.Main
     SettingsPage.Main -> null
@@ -107,6 +113,7 @@ fun SettingsScreen(
     page: SettingsPage,
     onPageChange: (SettingsPage) -> Unit,
     hasSubscription: Boolean,
+    subscriptionInfo: work.bavshield.vpn.data.SubscriptionInfo?,
     connectionSettings: ConnectionSettingsState,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
     onPasteLink: () -> Unit,
@@ -121,6 +128,8 @@ fun SettingsScreen(
     onPingAutoIntervalChange: (PingAutoInterval) -> Unit,
     pingTestHosts: String,
     onPingTestHostsChange: (String) -> Unit,
+    pingMethod: PingMethod,
+    onPingMethodChange: (PingMethod) -> Unit,
     onPingNow: () -> Unit,
     isPinging: Boolean,
     onSiteClick: () -> Unit,
@@ -137,11 +146,6 @@ fun SettingsScreen(
         SettingsPage.Main -> SettingsMainScreen(
             modifier = modifier,
             onPageChange = onPageChange,
-            onCloseApp = onCloseApp,
-            onSupportClick = onSupportClick,
-            onSiteClick = onSiteClick,
-            onTelegramChannelClick = onTelegramChannelClick,
-            onTelegramBotClick = onTelegramBotClick,
         )
         SettingsPage.Language -> LanguageSettingsScreen(
             modifier = modifier,
@@ -152,6 +156,10 @@ fun SettingsScreen(
             modifier = modifier,
             connectionSettings = connectionSettings,
             onSaveConnectionSettings = onSaveConnectionSettings,
+            pingMethod = pingMethod,
+            onPingMethodChange = onPingMethodChange,
+            pingAutoInterval = pingAutoInterval,
+            onPingAutoIntervalChange = onPingAutoIntervalChange,
         )
         SettingsPage.Tunnel -> TunnelMenuScreen(
             modifier = modifier,
@@ -163,6 +171,8 @@ fun SettingsScreen(
             onIntervalChange = onPingAutoIntervalChange,
             testHosts = pingTestHosts,
             onTestHostsChange = onPingTestHostsChange,
+            pingMethod = pingMethod,
+            onPingMethodChange = onPingMethodChange,
             isPinging = isPinging,
             onPingNow = onPingNow,
         )
@@ -188,6 +198,7 @@ fun SettingsScreen(
         SettingsPage.Subscription -> SubscriptionSettingsScreen(
             modifier = modifier,
             hasSubscription = hasSubscription,
+            subscriptionInfo = subscriptionInfo,
             autoUpdateInterval = subscriptionAutoUpdateInterval,
             onAutoUpdateIntervalChange = onSubscriptionAutoUpdateIntervalChange,
             onPasteLink = onPasteLink,
@@ -222,10 +233,15 @@ fun SettingsDivider() {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ConnectionMenuScreen(
     connectionSettings: ConnectionSettingsState,
     onSaveConnectionSettings: (ConnectionSettingsState) -> Unit,
+    pingMethod: PingMethod,
+    onPingMethodChange: (PingMethod) -> Unit,
+    pingAutoInterval: PingAutoInterval,
+    onPingAutoIntervalChange: (PingAutoInterval) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = bavShieldColors()
@@ -256,7 +272,94 @@ private fun ConnectionMenuScreen(
                 )
             },
         )
+        SettingsDivider()
+        Text(
+            text = stringResource(R.string.ping_method),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            color = colors.espresso,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+        )
+        Text(
+            text = stringResource(R.string.ping_method_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.mocha,
+            modifier = Modifier.padding(horizontal = 20.dp),
+        )
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PingMethod.entries.forEach { method ->
+                ChoiceChip(
+                    selected = pingMethod == method,
+                    label = pingMethodLabel(method),
+                    onClick = { onPingMethodChange(method) },
+                )
+            }
+        }
+        SettingsDivider()
+        Text(
+            text = stringResource(R.string.ping_interval),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            color = colors.espresso,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+        )
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PingAutoInterval.entries.forEach { value ->
+                ChoiceChip(
+                    selected = pingAutoInterval == value,
+                    label = pingIntervalLabel(value),
+                    onClick = { onPingAutoIntervalChange(value) },
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun ChoiceChip(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+) {
+    val colors = bavShieldColors()
+    val background = if (selected) colors.espresso else colors.cappuccino
+    val contentColor = if (selected) colors.milkFoam else colors.espresso
+    val borderColor = if (selected) colors.espresso else colors.latte
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(background)
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = contentColor,
+        )
+    }
+}
+
+@Composable
+private fun pingMethodLabel(method: PingMethod): String = when (method) {
+    PingMethod.TCP -> stringResource(R.string.ping_method_tcp)
+    PingMethod.HTTP_GET -> stringResource(R.string.ping_method_http_get)
 }
 
 @Composable
@@ -290,6 +393,8 @@ private fun PingSettingsScreen(
     onIntervalChange: (PingAutoInterval) -> Unit,
     testHosts: String,
     onTestHostsChange: (String) -> Unit,
+    pingMethod: PingMethod,
+    onPingMethodChange: (PingMethod) -> Unit,
     isPinging: Boolean,
     onPingNow: () -> Unit,
     modifier: Modifier = Modifier,
@@ -306,6 +411,30 @@ private fun PingSettingsScreen(
             .verticalScroll(rememberScrollState()),
     ) {
         Text(
+            text = stringResource(R.string.ping_method),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            color = colors.espresso,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+        )
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PingMethod.entries.forEach { method ->
+                ChoiceChip(
+                    selected = pingMethod == method,
+                    label = pingMethodLabel(method),
+                    onClick = { onPingMethodChange(method) },
+                )
+            }
+        }
+        SettingsDivider()
+        Text(
             text = stringResource(R.string.ping_interval),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
@@ -320,26 +449,11 @@ private fun PingSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             PingAutoInterval.entries.forEach { value ->
-                val selected = interval == value
-                val background = if (selected) colors.espresso else colors.cappuccino
-                val contentColor = if (selected) colors.milkFoam else colors.espresso
-                val borderColor = if (selected) colors.espresso else colors.latte
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(background)
-                        .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-                        .clickable(role = Role.Button) { onIntervalChange(value) }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = pingIntervalLabel(value),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor,
-                    )
-                }
+                ChoiceChip(
+                    selected = interval == value,
+                    label = pingIntervalLabel(value),
+                    onClick = { onIntervalChange(value) },
+                )
             }
         }
 
@@ -387,7 +501,7 @@ private fun PingSettingsScreen(
                     }
                     hosts.forEach { (host, port) ->
                         val key = "$host:$port"
-                        val state = ServerPinger.pingHost(host, port)
+                        val state = ServerPinger.pingHost(host, port, pingMethod)
                         testPings = testPings + (key to state)
                     }
                 }
@@ -522,11 +636,6 @@ private fun AboutSettingsScreen(
 @Composable
 private fun SettingsMainScreen(
     onPageChange: (SettingsPage) -> Unit,
-    @Suppress("UNUSED_PARAMETER") onCloseApp: () -> Unit,
-    onSupportClick: () -> Unit,
-    onSiteClick: () -> Unit,
-    onTelegramChannelClick: () -> Unit,
-    onTelegramBotClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -559,33 +668,9 @@ private fun SettingsMainScreen(
         )
         SettingsDivider()
         SettingsNavRow(
-            title = stringResource(R.string.about_support),
-            icon = Icons.Default.HeadsetMic,
-            onClick = onSupportClick,
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = stringResource(R.string.about_site),
-            icon = Icons.Default.Language,
-            onClick = onSiteClick,
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = stringResource(R.string.home_open_channel),
-            icon = Icons.AutoMirrored.Filled.Send,
-            onClick = onTelegramChannelClick,
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = stringResource(R.string.about_bot),
-            icon = Icons.AutoMirrored.Filled.Send,
-            onClick = onTelegramBotClick,
-        )
-        SettingsDivider()
-        SettingsNavRow(
-            title = stringResource(R.string.settings_about),
-            icon = Icons.Default.Info,
-            onClick = { onPageChange(SettingsPage.About) },
+            title = stringResource(R.string.settings_logs),
+            icon = Icons.Default.BugReport,
+            onClick = { onPageChange(SettingsPage.Logs) },
         )
     }
 }
@@ -628,6 +713,7 @@ private data class SettingsAction(
 @Composable
 private fun SubscriptionSettingsScreen(
     hasSubscription: Boolean,
+    subscriptionInfo: SubscriptionInfo?,
     autoUpdateInterval: SubscriptionAutoUpdateInterval,
     onAutoUpdateIntervalChange: (SubscriptionAutoUpdateInterval) -> Unit,
     onPasteLink: () -> Unit,
@@ -649,6 +735,10 @@ private fun SubscriptionSettingsScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
+        if (hasSubscription) {
+            SubscriptionInfoPanel(subscriptionInfo = subscriptionInfo)
+            SettingsDivider()
+        }
         SubscriptionAutoUpdateButtons(
             selectedInterval = autoUpdateInterval,
             onIntervalChange = onAutoUpdateIntervalChange,
@@ -667,6 +757,136 @@ private fun SubscriptionSettingsScreen(
             if (index < actions.lastIndex) {
                 SettingsDivider()
             }
+        }
+    }
+}
+
+@Composable
+private fun SubscriptionInfoPanel(
+    subscriptionInfo: SubscriptionInfo?,
+) {
+    val colors = bavShieldColors()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.subscription_panel_title),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            color = colors.espresso,
+        )
+
+        if (subscriptionInfo == null) {
+            Text(
+                text = stringResource(R.string.subscription_info_unavailable),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.mocha,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+            return
+        }
+
+        if (subscriptionInfo.hasTitle) {
+            Text(
+                text = subscriptionInfo.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.mocha,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        when {
+            subscriptionInfo.expire <= 0 -> {
+                SubscriptionProgressRow(
+                    label = stringResource(R.string.subscription_days_left),
+                    value = stringResource(R.string.subscription_unlimited),
+                    progress = 1f,
+                )
+            }
+            else -> {
+                val daysLeft = subscriptionInfo.remainingDays() ?: 0L
+                val expired = daysLeft <= 0L
+                SubscriptionProgressRow(
+                    label = stringResource(R.string.subscription_days_left),
+                    value = if (expired) {
+                        stringResource(R.string.subscription_expired)
+                    } else {
+                        stringResource(R.string.subscription_days_count, daysLeft)
+                    },
+                    progress = subscriptionInfo.daysProgressFraction() ?: 0f,
+                    expired = expired,
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        if (subscriptionInfo.isUnlimitedTraffic) {
+            Text(
+                text = stringResource(R.string.subscription_traffic_unlimited),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.mocha,
+            )
+        } else {
+            val remaining = subscriptionInfo.remainingTrafficBytes() ?: 0L
+            SubscriptionProgressRow(
+                label = stringResource(R.string.subscription_traffic_left),
+                value = formatTrafficBytes(remaining),
+                progress = subscriptionInfo.remainingTrafficFraction(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SubscriptionProgressRow(
+    label: String,
+    value: String,
+    progress: Float,
+    expired: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val colors = bavShieldColors()
+    val barColor = if (expired) colors.error else colors.espresso
+    val fillFraction = progress.coerceIn(0f, 1f)
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.mocha,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = barColor,
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(colors.cappuccino),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fillFraction)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(barColor),
+            )
         }
     }
 }
@@ -696,7 +916,7 @@ private fun SubscriptionAutoUpdateButtons(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            SubscriptionAutoUpdateInterval.entries.forEach { interval ->
+            SubscriptionAutoUpdateInterval.selectable.forEach { interval ->
                 val selected = selectedInterval == interval
                 val background = if (selected) colors.espresso else colors.cappuccino
                 val contentColor = if (selected) colors.milkFoam else colors.espresso
@@ -766,16 +986,16 @@ private fun subscriptionItems(
 ): List<SettingsAction> = buildList {
     add(
         SettingsAction(
-            title = stringResource(R.string.subscription_buy_website),
-            icon = Icons.Default.ShoppingCart,
-            onClick = onBuyOnWebsite,
+            title = stringResource(R.string.subscription_paste_link),
+            icon = Icons.Default.ContentPaste,
+            onClick = onPasteLink,
         ),
     )
     add(
         SettingsAction(
-            title = stringResource(R.string.subscription_paste_link),
-            icon = Icons.Default.ContentPaste,
-            onClick = onPasteLink,
+            title = stringResource(R.string.subscription_buy_website),
+            icon = Icons.Default.ShoppingCart,
+            onClick = onBuyOnWebsite,
         ),
     )
     add(

@@ -25,6 +25,7 @@ import work.bavshield.vpn.R
 import work.bavshield.vpn.data.AppPreferences
 import work.bavshield.vpn.data.ConnectionSettingsState
 import work.bavshield.vpn.data.PingAutoInterval
+import work.bavshield.vpn.data.PingMethod
 import work.bavshield.vpn.data.PingState
 import work.bavshield.vpn.data.ProxyNode
 import work.bavshield.vpn.data.ServerPinger
@@ -64,6 +65,7 @@ data class MainUiState(
         SubscriptionAutoUpdateInterval.DEFAULT,
     val pingAutoInterval: PingAutoInterval = PingAutoInterval.DEFAULT,
     val pingTestHosts: String = AppPreferences.DEFAULT_PING_TEST_HOSTS,
+    val pingMethod: PingMethod = PingMethod.DEFAULT,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -119,12 +121,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             preferences.subscriptionAutoUpdateInterval,
             preferences.pingAutoInterval,
             preferences.pingTestHosts,
-        ) { connectionSettings, autoUpdateInterval, pingInterval, pingHosts ->
-            SettingsUiState(connectionSettings, autoUpdateInterval, pingInterval, pingHosts)
+            preferences.pingMethod,
+        ) { connectionSettings, autoUpdateInterval, pingInterval, pingHosts, pingMethod ->
+            SettingsUiState(
+                connectionSettings = connectionSettings,
+                subscriptionAutoUpdateInterval = autoUpdateInterval,
+                pingAutoInterval = pingInterval,
+                pingTestHosts = pingHosts,
+                pingMethod = pingMethod,
+            )
         },
         startupCrash,
     ) { savedData, vpnData, localData, settingsData, crash ->
-        val (connectionSettings, autoUpdateInterval, pingInterval, pingHosts) = settingsData
+        val (connectionSettings, autoUpdateInterval, pingInterval, pingHosts, pingMethod) = settingsData
         val (savedUrl, nodes, selectedNodeId, subscriptionInfo) = savedData
         val (vpnStatus, vpnError, connectionElapsedMs, traffic, inputUrl) = vpnData
         val (loading, pinging, pings, info, localError) = localData
@@ -148,6 +157,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             subscriptionAutoUpdateInterval = autoUpdateInterval,
             pingAutoInterval = pingInterval,
             pingTestHosts = pingHosts,
+            pingMethod = pingMethod,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -181,6 +191,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     AppLog.w("orphaned nodes without saved subscription url, clearing")
                     preferences.clearNodes()
                 }
+            }
+        }
+        viewModelScope.launch {
+            preferences.pingMethod.collect { method ->
+                ServerPinger.method = method
             }
         }
         viewModelScope.launch {
@@ -222,6 +237,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setSubscriptionAutoUpdateInterval(interval: SubscriptionAutoUpdateInterval) {
+        if (interval == SubscriptionAutoUpdateInterval.OFF) return
         viewModelScope.launch(Dispatchers.IO) {
             preferences.setSubscriptionAutoUpdateInterval(interval)
         }
@@ -236,6 +252,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setPingTestHosts(raw: String) {
         viewModelScope.launch(Dispatchers.IO) {
             preferences.setPingTestHosts(raw)
+        }
+    }
+
+    fun setPingMethod(method: PingMethod) {
+        viewModelScope.launch(Dispatchers.IO) {
+            preferences.setPingMethod(method)
         }
     }
 
@@ -312,7 +334,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isPinging.value = true
             nodePings.value = nodes.associate { it.id to PingState.Loading }
             try {
-                ServerPinger.pingAll(nodes) { nodeId, state ->
+                ServerPinger.pingAll(nodes, method = ServerPinger.method) { nodeId, state ->
                     nodePings.value = nodePings.value + (nodeId to state)
                 }
             } finally {
@@ -684,5 +706,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val subscriptionAutoUpdateInterval: SubscriptionAutoUpdateInterval,
         val pingAutoInterval: PingAutoInterval = PingAutoInterval.DEFAULT,
         val pingTestHosts: String = AppPreferences.DEFAULT_PING_TEST_HOSTS,
+        val pingMethod: PingMethod = PingMethod.DEFAULT,
     )
 }

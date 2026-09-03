@@ -19,8 +19,11 @@ enum class SubscriptionAutoUpdateInterval(val hours: Int) {
         val DEFAULT = SIX_HOURS
 
         fun fromStoredHours(hours: Int?): SubscriptionAutoUpdateInterval {
-            if (hours == null) return DEFAULT
+            if (hours == null || hours == 0) return DEFAULT
             return entries.find { it.hours == hours } ?: DEFAULT
         }
+
+        val selectable: List<SubscriptionAutoUpdateInterval> =
+            entries.filter { it != OFF }
     }
 }

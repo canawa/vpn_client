@@ -4,7 +4,8 @@
     <color name="brand_green">#39FF88</color>
     <color name="brand_green_bright">#39FF88</color>
     <color name="brand_dark">#050807</color>
+    <color name="brand_gold">#C99629</color>
 
-    <color name="ic_launcher_background">@color/brand_dark</color>
-    <color name="splash_background">@color/brand_dark</color>
+    <color name="ic_launcher_background">@color/brand_gold</color>
+    <color name="splash_background">@color/brand_gold</color>
 </resources>

@@ -35,6 +35,7 @@ fun FirstLaunchScreen(
     isLoading: Boolean,
     error: String?,
     onPasteClick: () -> Unit,
+    onBuyOnWebsiteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = bavShieldColors()
@@ -105,6 +106,26 @@ fun FirstLaunchScreen(
                         fontWeight = FontWeight.Bold,
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clip(buttonShape)
+                    .background(colors.cappuccino.copy(alpha = 0.35f))
+                    .border(1.dp, colors.espresso.copy(alpha = 0.65f), buttonShape)
+                    .clickable(enabled = !isLoading, onClick = onBuyOnWebsiteClick),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.subscription_buy_website),
+                    color = colors.espresso,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
 
             if (!error.isNullOrBlank()) {

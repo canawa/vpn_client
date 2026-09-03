@@ -191,6 +191,10 @@ class AppPreferences(private val context: Context) {
         .map { prefs -> prefs[KEY_PING_TEST_HOSTS] ?: DEFAULT_PING_TEST_HOSTS }
         .flowOn(Dispatchers.IO)
 
+    val pingMethod: Flow<PingMethod> = context.dataStore.data
+        .map { prefs -> PingMethod.fromStored(prefs[KEY_PING_METHOD]) }
+        .flowOn(Dispatchers.IO)
+
     suspend fun setPingAutoInterval(interval: PingAutoInterval) {
         AppLog.i("setPingAutoInterval ${interval.logLabel}")
         context.dataStore.edit { prefs ->
@@ -201,6 +205,14 @@ class AppPreferences(private val context: Context) {
     suspend fun setPingTestHosts(raw: String) {
         context.dataStore.edit { prefs ->
             prefs[KEY_PING_TEST_HOSTS] = raw
+        }
+    }
+
+    suspend fun setPingMethod(method: PingMethod) {
+        AppLog.i("setPingMethod ${method.logLabel}")
+        ServerPinger.method = method
+        context.dataStore.edit { prefs ->
+            prefs[KEY_PING_METHOD] = method.name
         }
     }
 
@@ -270,6 +282,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_SUB_LAST_AUTO_REFRESH_MS = longPreferencesKey("sub_last_auto_refresh_ms")
         private val KEY_PING_AUTO_MINUTES = intPreferencesKey("ping_auto_minutes")
         private val KEY_PING_TEST_HOSTS = stringPreferencesKey("ping_test_hosts")
+        private val KEY_PING_METHOD = stringPreferencesKey("ping_method")
 
         const val DEFAULT_PING_TEST_HOSTS = "1.1.1.1:443\n8.8.8.8:443"
     }

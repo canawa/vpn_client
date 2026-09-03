@@ -86,6 +86,45 @@ fun CyberSettingsButton(
 }
 
 @Composable
+fun CyberRefreshButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
+) {
+    val colors = bavShieldColors()
+    Box(
+        modifier = modifier.size(40.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = colors.espresso,
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF070B09))
+                    .border(1.dp, colors.espresso.copy(alpha = 0.55f), CircleShape)
+                    .clickable(enabled = enabled, onClick = onClick),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = stringResource(R.string.cd_refresh),
+                    tint = colors.espresso.copy(alpha = if (enabled) 1f else 0.38f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun BavShieldSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
@@ -701,7 +740,7 @@ fun SubscriptionCard(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SubscriptionActionButton(
-                    text = stringResource(R.string.subscription_paste_link),
+                    text = stringResource(R.string.first_launch_paste),
                     icon = Icons.Default.ContentPaste,
                     onClick = onPasteLinkClick,
                     modifier = Modifier.fillMaxWidth(),

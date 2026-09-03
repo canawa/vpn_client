@@ -5,6 +5,8 @@ import androidx.compose.runtime.Immutable
 import work.bavshield.vpn.R
 import work.bavshield.vpn.data.PingState
 import work.bavshield.vpn.data.ProxyNode
+import java.text.Collator
+import java.util.Locale
 
 @Immutable
 data class ServerDisplay(
@@ -14,12 +16,17 @@ data class ServerDisplay(
     val protocolLabel: String,
     val pingText: String,
     val pingMs: Int?,
+    val isAutoSelect: Boolean = false,
+    val isBypassGroup: Boolean = false,
 )
 
 object ServerDisplayMapper {
     /** Первый emoji-флаг в названии (нулевая позиция / первый токен до пробела). */
     private val firstFlagRegex = Regex("^(\\p{Regional_Indicator}{2}|\\p{Extended_Pictographic})")
     private val ipv4Regex = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
+    private val titleCollator: Collator = Collator.getInstance(Locale("ru", "RU")).apply {
+        strength = Collator.PRIMARY
+    }
 
     private fun isAutoSelect(name: String, title: String): Boolean {
         val haystack = "$name $title".lowercase()
@@ -27,6 +34,19 @@ object ServerDisplayMapper {
             haystack.contains("autoselect") ||
             haystack.contains("auto select") ||
             haystack.contains("auto-select")
+    }
+
+    /** Обход БС / списки / special servers without a country flag. */
+    private fun isBypassGroup(name: String, title: String, hasCountryFlag: Boolean): Boolean {
+        val haystack = "$name $title".lowercase()
+        if (haystack.contains("обход") ||
+            haystack.contains("bypass") ||
+            haystack.contains("списки") ||
+            Regex("""(^|[^a-zа-яё])бс([^a-zа-яё]|$)""").containsMatchIn(haystack)
+        ) {
+            return true
+        }
+        return !hasCountryFlag
     }
 
     private fun isIpv4Address(value: String): Boolean {
@@ -53,10 +73,11 @@ object ServerDisplayMapper {
             ?: trimmed.substringBefore(' ').trim().takeIf { it.isNotEmpty() }
         val withoutFlag = trimmed.removePrefix(parsedFlag.orEmpty()).trim()
         val autoSelect = isAutoSelect(trimmed, withoutFlag.substringBefore("|").trim())
+        val hasCountryFlag = !autoSelect && FlagUtils.emojiToCountryCode(parsedFlag.orEmpty()) != null
         val flag = when {
-            autoSelect -> FlagUtils.EU_FLAG
-            FlagUtils.emojiToCountryCode(parsedFlag.orEmpty()) != null -> parsedFlag!!
-            else -> FlagUtils.EU_FLAG
+            autoSelect -> FlagUtils.PIRATE_FLAG
+            hasCountryFlag -> parsedFlag!!
+            else -> FlagUtils.PIRATE_FLAG
         }
 
         val title = withoutFlag.substringBefore("|").trim().let { candidate ->
@@ -92,6 +113,24 @@ object ServerDisplayMapper {
             protocolLabel = node.protocolLabel(),
             pingText = pingText,
             pingMs = pingMs,
+            isAutoSelect = autoSelect,
+            isBypassGroup = !autoSelect && isBypassGroup(trimmed, title, hasCountryFlag),
         )
     }
+
+    /**
+     * Order: автовыбор → страны A–Я → обход БС / без страны.
+     * Inside each group — alphabetical (ru).
+     */
+    fun <T> sortRows(rows: List<Pair<T, ServerDisplay>>): List<Pair<T, ServerDisplay>> =
+        rows.sortedWith(
+            compareBy<Pair<T, ServerDisplay>> { (_, display) ->
+                when {
+                    display.isAutoSelect -> 0
+                    display.isBypassGroup -> 2
+                    else -> 1
+                }
+            }.thenBy(titleCollator) { it.second.title }
+                .thenBy(titleCollator) { it.second.subtitle },
+        )
 }

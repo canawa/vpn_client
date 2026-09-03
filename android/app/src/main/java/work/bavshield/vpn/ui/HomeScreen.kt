@@ -12,10 +12,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,6 +26,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,14 +37,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +60,6 @@ import kotlinx.coroutines.flow.filter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -78,6 +77,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import work.bavshield.vpn.R
 import work.bavshield.vpn.data.PingState
 import work.bavshield.vpn.data.ProxyNode
@@ -91,7 +92,6 @@ private object HomeMotion {
     const val FadeOutMs = 280
     const val ShrinkMs = 480
     const val PressMs = 140
-    const val ArrowMs = 480
 }
 
 private val NeonPanel = Color(0xFF0B120E)
@@ -106,12 +106,13 @@ fun HomeScreen(
     onConnectToNode: (String) -> Unit,
     onPasteLinkClick: () -> Unit,
     onSiteClick: () -> Unit,
-    onTelegramBotClick: () -> Unit,
     onTelegramChannelClick: () -> Unit,
+    onTelegramBotClick: () -> Unit,
     onSupportClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onSubscriptionClick: () -> Unit,
     onRefreshSubscription: () -> Unit,
+    onPingClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = bavShieldColors()
@@ -124,11 +125,9 @@ fun HomeScreen(
         subscriptionExpired -> isConnected
         else -> isConnected || canConnect
     }
-    var showServers by remember { mutableStateOf(true) }
-    var channelMenu by remember { mutableStateOf(false) }
+    var showServers by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = showServers || channelMenu) {
-        channelMenu = false
+    BackHandler(enabled = showServers) {
         showServers = false
     }
 
@@ -142,20 +141,32 @@ fun HomeScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = 10.dp)
                 .height(48.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CyberSettingsButton(onClick = onSettingsClick)
-            Image(
-                painter = painterResource(R.drawable.bav_logo),
-                contentDescription = stringResource(R.string.app_name),
-                contentScale = ContentScale.Fit,
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(36.dp)
-                    .padding(horizontal = 8.dp),
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.bav_logo),
+                    contentDescription = stringResource(R.string.app_name),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.height(36.dp),
+                )
+            }
+            CyberRefreshButton(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    onRefreshSubscription()
+                },
+                enabled = hasSubscription && !state.isLoading,
+                isLoading = state.isLoading,
             )
-            Spacer(modifier = Modifier.size(40.dp))
         }
 
         state.error?.let { error ->
@@ -180,39 +191,40 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Status only while connected / connecting — no «VPN отключён»
-        if (state.vpnStatus == VpnStatus.Started ||
-            state.vpnStatus == VpnStatus.Starting ||
-            state.vpnStatus == VpnStatus.Stopping
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(76.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            VpnStatusRow(vpnStatus = state.vpnStatus)
+            androidx.compose.animation.AnimatedVisibility(
+                visible = state.vpnStatus == VpnStatus.Started ||
+                    state.vpnStatus == VpnStatus.Starting,
+                enter = fadeIn(animationSpec = tween(HomeMotion.FadeInMs, easing = FastOutSlowInEasing)),
+                exit = fadeOut(animationSpec = tween(HomeMotion.FadeOutMs, easing = FastOutSlowInEasing)),
+            ) {
+                ConnectionLiveStats(
+                    elapsedMs = state.connectionElapsedMs,
+                    downloadBytesPerSec = state.downloadBytesPerSec,
+                    uploadBytesPerSec = state.uploadBytesPerSec,
+                )
+            }
+            androidx.compose.animation.AnimatedVisibility(
+                visible = state.vpnStatus == VpnStatus.Stopped,
+                enter = fadeIn(animationSpec = tween(HomeMotion.FadeInMs, easing = FastOutSlowInEasing)),
+                exit = fadeOut(animationSpec = tween(HomeMotion.FadeOutMs, easing = FastOutSlowInEasing)),
+            ) {
+                Text(
+                    text = stringResource(R.string.home_tap_shield),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.mocha,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+            }
         }
 
-        AnimatedVisibility(
-            visible = state.vpnStatus == VpnStatus.Started ||
-                state.vpnStatus == VpnStatus.Starting,
-            enter = fadeIn(animationSpec = tween(HomeMotion.FadeInMs, easing = FastOutSlowInEasing)),
-            exit = fadeOut(animationSpec = tween(HomeMotion.FadeOutMs, easing = FastOutSlowInEasing)),
-        ) {
-            ConnectionLiveStats(
-                elapsedMs = state.connectionElapsedMs,
-                downloadBytesPerSec = state.downloadBytesPerSec,
-                uploadBytesPerSec = state.uploadBytesPerSec,
-                modifier = Modifier.padding(top = 10.dp),
-            )
-        }
-
-        if (state.vpnStatus == VpnStatus.Stopped) {
-            Text(
-                text = stringResource(R.string.home_tap_shield),
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.mocha,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(22.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -230,48 +242,14 @@ fun HomeScreen(
                 onClick = onSiteClick,
                 modifier = Modifier.weight(1f),
             )
-            Box(modifier = Modifier.weight(1f)) {
-                CyberMenuButton(
-                    label = stringResource(R.string.home_action_channel_bot),
-                    iconPainter = painterResource(R.drawable.ic_telegram),
-                    onClick = { channelMenu = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    iconSize = 28.dp,
-                    labelColor = Color.White,
-                )
-                DropdownMenu(
-                    expanded = channelMenu,
-                    onDismissRequest = { channelMenu = false },
-                    modifier = Modifier
-                        .background(Color(0xFF0A100E))
-                        .border(1.dp, colors.espresso.copy(alpha = 0.22f), RoundedCornerShape(10.dp)),
-                ) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                stringResource(R.string.home_open_channel),
-                                color = colors.espresso,
-                            )
-                        },
-                        onClick = {
-                            channelMenu = false
-                            onTelegramChannelClick()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                stringResource(R.string.home_open_bot),
-                                color = colors.espresso,
-                            )
-                        },
-                        onClick = {
-                            channelMenu = false
-                            onTelegramBotClick()
-                        },
-                    )
-                }
-            }
+            CyberMenuButton(
+                label = stringResource(R.string.home_action_channel_bot),
+                iconPainter = painterResource(R.drawable.ic_telegram),
+                onClick = onTelegramChannelClick,
+                modifier = Modifier.weight(1f),
+                iconSize = 28.dp,
+                labelColor = Color.White,
+            )
             CyberMenuButton(
                 label = stringResource(R.string.home_action_subscription),
                 iconPainter = painterResource(R.drawable.ic_credit_card),
@@ -285,44 +263,18 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         CyberServersToggle(
-            expanded = showServers,
+            selectedDisplay = selectedDisplay,
+            isPinging = state.isPinging,
+            pingEnabled = state.nodes.isNotEmpty(),
+            onPingClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                onPingClick()
+            },
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                showServers = !showServers
+                showServers = true
             },
         )
-
-        AnimatedVisibility(
-            visible = showServers,
-            enter = fadeIn(
-                animationSpec = tween(HomeMotion.FadeInMs, easing = FastOutSlowInEasing),
-            ) + expandVertically(
-                animationSpec = tween(HomeMotion.ExpandMs, easing = FastOutSlowInEasing),
-                expandFrom = Alignment.Top,
-            ),
-            exit = fadeOut(
-                animationSpec = tween(HomeMotion.FadeOutMs, easing = FastOutSlowInEasing),
-            ) + shrinkVertically(
-                animationSpec = tween(HomeMotion.ShrinkMs, easing = FastOutSlowInEasing),
-                shrinkTowards = Alignment.Top,
-            ),
-        ) {
-            CyberServerList(
-                nodes = state.nodes,
-                selectedNodeId = state.selectedNodeId,
-                nodePings = state.nodePings,
-                vpnStatus = state.vpnStatus,
-                onSelectNode = onSelectNode,
-                onConnectToNode = onConnectToNode,
-                onRefreshSubscription = onRefreshSubscription,
-                onSupportClick = onSupportClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .heightIn(max = 420.dp)
-                    .verticalScroll(rememberScrollState()),
-            )
-        }
 
         if (hasSubscription && subscriptionExpired) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -341,46 +293,26 @@ fun HomeScreen(
             )
         }
     }
-}
 
-@Composable
-private fun VpnStatusRow(vpnStatus: VpnStatus) {
-    val colors = bavShieldColors()
-    val infinite = rememberInfiniteTransition(label = "statusPulse")
-    val pulse by infinite.animateFloat(
-        initialValue = 0.45f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "statusDotPulse",
-    )
-    val (labelRes, dotColor, pulsing) = when (vpnStatus) {
-        VpnStatus.Started -> Triple(R.string.home_vpn_on, colors.espresso, false)
-        VpnStatus.Starting -> Triple(R.string.home_vpn_connecting, colors.espresso, true)
-        VpnStatus.Stopping -> Triple(R.string.home_vpn_disconnecting, colors.mocha, false)
-        VpnStatus.Stopped -> Triple(R.string.home_vpn_off, colors.mocha, false)
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(RoundedCornerShape(50))
-                .background(dotColor.copy(alpha = if (pulsing) pulse else 1f)),
-        )
-        Text(
-            text = stringResource(labelRes),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = if (vpnStatus == VpnStatus.Started || vpnStatus == VpnStatus.Starting) {
-                colors.espresso
-            } else {
-                colors.mocha
+    if (showServers) {
+        ServersPickerDialog(
+            nodes = state.nodes,
+            selectedNodeId = state.selectedNodeId,
+            nodePings = state.nodePings,
+            vpnStatus = state.vpnStatus,
+            isPinging = state.isPinging,
+            onDismiss = { showServers = false },
+            onPingClick = onPingClick,
+            onSelectNode = { id ->
+                onSelectNode(id)
+                showServers = false
             },
+            onConnectToNode = { id ->
+                onConnectToNode(id)
+                showServers = false
+            },
+            onRefreshSubscription = onRefreshSubscription,
+            onSupportClick = onSupportClick,
         )
     }
 }
@@ -516,50 +448,255 @@ private fun CyberMenuButton(
 
 @Composable
 private fun CyberServersToggle(
-    expanded: Boolean,
+    selectedDisplay: ServerDisplay?,
+    isPinging: Boolean,
+    pingEnabled: Boolean,
+    onPingClick: () -> Unit,
     onClick: () -> Unit,
 ) {
     val colors = bavShieldColors()
     val shape = RoundedCornerShape(14.dp)
-    val arrowRotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(durationMillis = HomeMotion.ArrowMs, easing = FastOutSlowInEasing),
-        label = "serversArrow",
-    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 52.dp)
+            .heightIn(min = 56.dp)
             .clip(shape)
             .background(Color(0xFF070B09))
             .border(1.dp, colors.espresso.copy(alpha = 0.55f), shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 15.dp, vertical = 12.dp),
+            .padding(end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = Icons.Default.Dns,
-            contentDescription = null,
-            tint = colors.espresso,
-            modifier = Modifier.size(22.dp),
-        )
-        Text(
-            text = stringResource(R.string.home_servers),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = colors.espresso,
+        Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 10.dp),
-        )
+                .clickable(onClick = onClick)
+                .padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (selectedDisplay != null) {
+                ServerListFlag(flag = selectedDisplay.flag, height = 22.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.home_servers),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.mocha,
+                    )
+                    Text(
+                        text = selectedDisplay.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.espresso,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Text(
+                    text = selectedDisplay.pingText.ifBlank { "—" },
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = selectedDisplay.pingMs?.let { BavShieldColors.pingColor(it) }
+                        ?: colors.espresso,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Dns,
+                    contentDescription = null,
+                    tint = colors.espresso,
+                    modifier = Modifier.size(22.dp),
+                )
+                Text(
+                    text = stringResource(R.string.home_select_server),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.espresso,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        CyberServerActionButton(
+            loading = isPinging,
+            enabled = pingEnabled && !isPinging,
+            onClick = onPingClick,
+            contentDescription = stringResource(R.string.cd_ping),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Bolt,
+                contentDescription = null,
+                tint = bavShieldColors().espresso.copy(
+                    alpha = if (pingEnabled && !isPinging) 1f else 0.38f,
+                ),
+                modifier = Modifier.size(22.dp),
+            )
+        }
         Icon(
             imageVector = Icons.Default.KeyboardArrowDown,
             contentDescription = null,
             tint = colors.espresso,
             modifier = Modifier
-                .size(22.dp)
-                .rotate(arrowRotation),
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onClick)
+                .padding(9.dp),
         )
+    }
+}
+
+@Composable
+private fun ServersPickerDialog(
+    nodes: List<ProxyNode>,
+    selectedNodeId: String?,
+    nodePings: Map<String, PingState>,
+    vpnStatus: VpnStatus,
+    isPinging: Boolean,
+    onDismiss: () -> Unit,
+    onPingClick: () -> Unit,
+    onSelectNode: (String) -> Unit,
+    onConnectToNode: (String) -> Unit,
+    onRefreshSubscription: () -> Unit,
+    onSupportClick: () -> Unit,
+) {
+    val colors = bavShieldColors()
+    val view = LocalView.current
+    val popupShape = RoundedCornerShape(18.dp)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.55f))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .heightIn(max = 520.dp)
+                    .clip(popupShape)
+                    .background(Color(0xFF0A100D))
+                    .border(1.dp, colors.espresso.copy(alpha = 0.35f), popupShape)
+                    .clickable(enabled = false, onClick = {})
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.home_servers),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.espresso,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 6.dp),
+                    )
+                    if (isPinging) {
+                        Box(
+                            modifier = Modifier.size(40.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = colors.espresso,
+                            )
+                        }
+                    } else {
+                        IconButton(
+                            onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                onPingClick()
+                            },
+                            enabled = nodes.isNotEmpty(),
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Bolt,
+                                contentDescription = stringResource(R.string.cd_ping),
+                                tint = colors.espresso.copy(
+                                    alpha = if (nodes.isNotEmpty()) 1f else 0.38f,
+                                ),
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.cd_back),
+                            tint = colors.espresso,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                CyberServerList(
+                    nodes = nodes,
+                    selectedNodeId = selectedNodeId,
+                    nodePings = nodePings,
+                    vpnStatus = vpnStatus,
+                    onSelectNode = onSelectNode,
+                    onConnectToNode = onConnectToNode,
+                    onRefreshSubscription = {
+                        onDismiss()
+                        onRefreshSubscription()
+                    },
+                    onSupportClick = {
+                        onDismiss()
+                        onSupportClick()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 440.dp)
+                        .verticalScroll(rememberScrollState()),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CyberServerActionButton(
+    loading: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val colors = bavShieldColors()
+    if (loading) {
+        Box(
+            modifier = modifier.size(40.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = colors.espresso,
+            )
+        }
+    } else {
+        Box(
+            modifier = modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Color(0xFF0D1711))
+                .clickable(enabled = enabled, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            content()
+        }
     }
 }
 
@@ -714,16 +851,11 @@ private fun CyberServerList(
     val context = LocalContext.current
     val colors = bavShieldColors()
     val view = LocalView.current
-    val autoselect = stringResource(R.string.server_autoselect)
-    val rows = remember(nodes, nodePings, autoselect) {
-        nodes.map { node ->
-            node to ServerDisplayMapper.map(context, node, nodePings[node.id])
-        }.sortedWith(
-            compareBy(
-                { it.second.title != autoselect },
-                { it.second.flag },
-                { it.second.title.lowercase() },
-            ),
+    val rows = remember(nodes, nodePings) {
+        ServerDisplayMapper.sortRows(
+            nodes.map { node ->
+                node to ServerDisplayMapper.map(context, node, nodePings[node.id])
+            },
         )
     }
     val pickingEnabled = vpnStatus != VpnStatus.Starting && vpnStatus != VpnStatus.Stopping

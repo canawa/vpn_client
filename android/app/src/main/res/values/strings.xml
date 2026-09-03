@@ -55,7 +55,7 @@
     <string name="home_action_pay">Оплата</string>
     <string name="home_action_support">Поддержка</string>
     <string name="home_action_tech_support">Тех. Поддержка</string>
-    <string name="home_action_channel_bot">Канал / Бот</string>
+    <string name="home_action_channel_bot">Канал</string>
     <string name="home_action_subscription">Подписка</string>
     <string name="home_vpn_off">VPN отключён</string>
     <string name="home_vpn_on">VPN подключён</string>
@@ -72,6 +72,10 @@
     <string name="home_error_support">Написать в поддержку</string>
     <string name="subscription_panel_title">Информация о подписке</string>
     <string name="subscription_days_left">Осталось дней</string>
+    <string name="subscription_days_count">%1$d дн.</string>
+    <string name="subscription_traffic_left">Осталось трафика</string>
+    <string name="subscription_traffic_unlimited">Безлимитный трафик</string>
+    <string name="subscription_info_unavailable">Нет данных. Обновите подписку.</string>
     <string name="subscription_access">Доступ</string>
     <string name="subscription_active">АКТИВНА</string>
     <string name="subscription_access_pro">PRO</string>
@@ -95,6 +99,10 @@
     <string name="settings_close_app">Закрыть приложение</string>
     <string name="settings_connection_hint">Расширенные параметры появятся после скриншотов INCY. Сейчас доступен kill switch.</string>
     <string name="ping_interval">Автообновление пинга</string>
+    <string name="ping_method">Метод пинга</string>
+    <string name="ping_method_tcp">TCP</string>
+    <string name="ping_method_http_get">HTTP GET</string>
+    <string name="ping_method_hint">TCP — проверка открытия порта. HTTP GET — HTTP-запрос к хосту:порту сервера.</string>
     <string name="ping_now">Проверить серверы сейчас</string>
     <string name="ping_test_hosts">Тест-серверы</string>
     <string name="ping_test_hosts_hint">По одному адресу в строке, например 1.1.1.1:443</string>
@@ -161,6 +169,7 @@
     <string name="first_launch_tagline">Быстрый и стабильный доступ без границ</string>
     <string name="first_launch_paste">Вставить из буфера</string>
     <string name="first_launch_footer">Ключ выдаётся вместе с подпиской</string>
+    <string name="error_buy_website_unavailable">Страница покупки скоро будет доступна</string>
 
     <string name="error_clipboard_empty">Буфер обмена пуст</string>
     <string name="error_link_pasted">Ссылка вставлена</string>

@@ -1,5 +1,6 @@
 package work.bavshield.vpn.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -12,12 +13,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
+import work.bavshield.vpn.R
 
 @Composable
 fun ServerListFlag(
@@ -43,7 +46,9 @@ fun ServerFlag(
     showShadow: Boolean = false,
 ) {
     val countryCode = FlagUtils.resolveCountryCode(flag)
-    val fallbackFlag = if (FlagUtils.emojiToCountryCode(flag) != null) flag else FlagUtils.EU_FLAG
+    val imageUrl = FlagUtils.flagImageUrl(flag)
+    val isPirate = countryCode == null
+    val displayFlag = if (isPirate) FlagUtils.PIRATE_FLAG else flag
     val width = height * 4 / 3
     val shape = RoundedCornerShape(6.dp)
     val imageModifier = modifier
@@ -58,9 +63,19 @@ fun ServerFlag(
         )
         .clip(shape)
 
+    if (isPirate || imageUrl == null) {
+        Image(
+            painter = painterResource(R.drawable.flag_pirate),
+            contentDescription = displayFlag,
+            modifier = imageModifier,
+            contentScale = ContentScale.Crop,
+        )
+        return
+    }
+
     SubcomposeAsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
-            .data(FlagUtils.flagImageUrl(flag))
+            .data(imageUrl)
             .crossfade(crossfade)
             .memoryCacheKey(countryCode)
             .diskCacheKey(countryCode)
@@ -68,8 +83,12 @@ fun ServerFlag(
         contentDescription = flag,
         modifier = imageModifier,
         contentScale = ContentScale.Crop,
-        loading = { FlagEmojiFallback(flag = fallbackFlag, width = width, height = height) },
-        error = { FlagEmojiFallback(flag = fallbackFlag, width = width, height = height) },
+        loading = {
+            FlagEmojiFallback(flag = displayFlag, width = width, height = height)
+        },
+        error = {
+            FlagEmojiFallback(flag = displayFlag, width = width, height = height)
+        },
     )
 }
 
@@ -78,9 +97,10 @@ private fun FlagEmojiFallback(
     flag: String,
     width: Dp,
     height: Dp,
+    modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .width(width)
             .height(height),
         contentAlignment = Alignment.Center,

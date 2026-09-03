@@ -1,10 +1,12 @@
 package work.bavshield.vpn.ui
 
 object FlagUtils {
-    const val EU_FLAG = "🇪🇺"
-    private const val EU_CODE = "eu"
+    /** Fallback for auto-select / unknown country. */
+    const val PIRATE_FLAG = "🏴‍☠️"
 
     fun emojiToCountryCode(flag: String): String? {
+        if (flag.trim() == PIRATE_FLAG) return null
+
         val codePoints = flag.trim().codePoints().toArray()
         if (codePoints.size != 2) return null
 
@@ -19,7 +21,10 @@ object FlagUtils {
         }.lowercase()
     }
 
-    fun resolveCountryCode(flag: String): String = emojiToCountryCode(flag) ?: EU_CODE
+    fun resolveCountryCode(flag: String): String? = emojiToCountryCode(flag)
 
-    fun flagImageUrl(flag: String): String = "https://flagcdn.com/w160/${resolveCountryCode(flag)}.png"
+    fun flagImageUrl(flag: String): String? {
+        val code = resolveCountryCode(flag) ?: return null
+        return "https://flagcdn.com/w160/$code.png"
+    }
 }

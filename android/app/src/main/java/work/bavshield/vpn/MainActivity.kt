@@ -127,7 +127,7 @@ class MainActivity : ComponentActivity() {
                         onShowLogs = { showLogs = true },
                         onDownloadLogs = ::downloadLogs,
                         onPasteLinkClick = viewModel::pasteSubscriptionFromClipboard,
-                        onBuyOnWebsiteClick = ::openSite,
+                        onBuyOnWebsiteClick = ::openBuyOnWebsite,
                         onTelegramBotClick = ::openTelegramBot,
                         onSupportClick = ::openSupport,
                         onPaySubscriptionClick = ::openPaySubscription,
@@ -140,6 +140,7 @@ class MainActivity : ComponentActivity() {
                         onAppLanguageChange = ::applyLanguage,
                         onPingAutoIntervalChange = viewModel::setPingAutoInterval,
                         onPingTestHostsChange = viewModel::setPingTestHosts,
+                        onPingMethodChange = viewModel::setPingMethod,
                         onPingNow = viewModel::pingAllNodes,
                         onEmailClick = ::openSupportEmail,
                     )
@@ -251,6 +252,15 @@ class MainActivity : ComponentActivity() {
     private fun openTelegramBot() = openUrl(BuildConfig.TELEGRAM_BOT_URL)
 
     private fun openSite() = openUrl(BuildConfig.SITE_URL)
+
+    private fun openBuyOnWebsite() {
+        val url = BuildConfig.BUY_WEBSITE_URL.trim()
+        if (url.isBlank()) {
+            toast(getString(R.string.error_buy_website_unavailable))
+            return
+        }
+        openUrl(url)
+    }
 
     private fun openSupport() = openUrl(BuildConfig.SUPPORT_URL)
 
