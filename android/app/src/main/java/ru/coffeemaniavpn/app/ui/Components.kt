@@ -15,6 +15,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
@@ -54,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -696,22 +699,60 @@ fun PromoBanner(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    metrics: PromoBannerMetrics.Spec? = null,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        shadowElevation = 8.dp,
-        color = Color.Transparent,
-    ) {
-        Image(
-            painter = painterResource(imageRes),
-            contentDescription = contentDescription,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp)),
-            contentScale = ContentScale.FillWidth,
+    val configuration = LocalConfiguration.current
+    val painter = painterResource(imageRes)
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val spec = metrics ?: PromoBannerMetrics.compute(
+            widthDp = maxWidth.value,
+            heightDp = when {
+                maxHeight.value.isFinite() && maxHeight.value < Float.POSITIVE_INFINITY / 2f ->
+                    maxHeight.value
+                else -> configuration.screenHeightDp.toFloat()
+            },
         )
+        val intrinsic = painter.intrinsicSize
+        val aspectRatio = if (
+            intrinsic.width.isFinite() &&
+            intrinsic.height.isFinite() &&
+            intrinsic.width > 0f &&
+            intrinsic.height > 0f
+        ) {
+            intrinsic.width / intrinsic.height
+        } else {
+            770f / 205f
+        }
+        val contentWidth = PromoBannerMetrics.resolveContentWidthDp(maxWidth.value, spec)
+        val fitted = PromoBannerMetrics.fitInside(
+            maxWidthDp = contentWidth,
+            maxHeightDp = spec.maxHeightDp,
+            aspectRatio = aspectRatio,
+        )
+
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Surface(
+                modifier = Modifier
+                    .width(fitted.widthDp.dp)
+                    .height(fitted.heightDp.dp),
+                onClick = onClick,
+                shape = RoundedCornerShape(12.dp),
+                shadowElevation = 8.dp,
+                color = Color.Transparent,
+            ) {
+                Image(
+                    painter = painter,
+                    contentDescription = contentDescription,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.FillBounds,
+                )
+            }
+        }
     }
 }
 
@@ -719,12 +760,14 @@ fun PromoBanner(
 fun WebsiteBanner(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    metrics: PromoBannerMetrics.Spec? = null,
 ) {
     PromoBanner(
         imageRes = R.drawable.banner_go_web,
         contentDescription = "Управляйте ключами на сайте coffeemaniavpn.ru",
         onClick = onClick,
         modifier = modifier,
+        metrics = metrics,
     )
 }
 
@@ -732,12 +775,14 @@ fun WebsiteBanner(
 fun TelegramChannelBanner(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    metrics: PromoBannerMetrics.Spec? = null,
 ) {
     PromoBanner(
         imageRes = R.drawable.banner_got_tg,
         contentDescription = "Перейти в Telegram-канал",
         onClick = onClick,
         modifier = modifier,
+        metrics = metrics,
     )
 }
 

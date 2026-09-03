@@ -3,9 +3,11 @@ package ru.coffeemaniavpn.app.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,109 +44,122 @@ fun HomeScreen(
         else -> isConnected || canConnect
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
-            .padding(top = 32.dp, bottom = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(32.dp),
-    ) {
-        state.startupCrash?.let {
-            ErrorBanner(text = "Последний краш: $it")
-        }
-        state.error?.let { ErrorBanner(text = it) }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            SectionLabel("Статус")
-            Text(
-                text = if (subscriptionExpired) "Подписка истекла" else statusHeadline(state.vpnStatus),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = if (subscriptionExpired) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    coffemaniaColors().espresso
-                },
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val bannerMetrics = remember(maxWidth, maxHeight) {
+            PromoBannerMetrics.compute(
+                widthDp = maxWidth.value,
+                heightDp = maxHeight.value,
             )
-            if (hasSubscription) {
-                state.subscriptionInfo?.expireLabel()?.let { expireText ->
-                    Text(
-                        text = expireText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (subscriptionExpired) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            coffemaniaColors().mocha
-                        },
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                }
-            }
-            if (!subscriptionExpired) {
-                if (selectedDisplay != null) {
-                    SelectedServerCard(
-                        display = selectedDisplay,
-                        onClick = onOpenServers,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp),
-                        emphasized = true,
-                    )
-                } else if (hasSubscription) {
-                    EmptyServerHint(
-                        onClick = onOpenServers,
-                        modifier = Modifier.padding(top = 12.dp),
-                    )
-                }
-            }
         }
 
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(top = 32.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp),
         ) {
-            BrewConnectButton(
-                vpnStatus = state.vpnStatus,
-                connectionElapsedMs = state.connectionElapsedMs,
-                enabled = connectEnabled,
-                onClick = {
-                    if (isConnected) onDisconnectClick() else onConnectClick()
-                },
-            )
-
-            if (hasSubscription && subscriptionExpired) {
-                SubscriptionExpiredCard(
-                    onRenewTelegramClick = onRenewTelegramClick,
-                    onRenewWebsiteClick = onBuyOnWebsiteClick,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            state.startupCrash?.let {
+                ErrorBanner(text = "Последний краш: $it")
             }
-        }
+            state.error?.let { ErrorBanner(text = it) }
 
-        if (!hasSubscription) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                SectionLabel("Подписка")
-                SubscriptionCard(
-                    onPasteLinkClick = onPasteLinkClick,
-                    onBuyOnWebsiteClick = onBuyOnWebsiteClick,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                SectionLabel("Статус")
+                Text(
+                    text = if (subscriptionExpired) "Подписка истекла" else statusHeadline(state.vpnStatus),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (subscriptionExpired) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        coffemaniaColors().espresso
+                    },
                 )
-                state.message?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = coffemaniaColors().mocha,
-                        modifier = Modifier.padding(top = 12.dp, start = 8.dp),
+                if (hasSubscription) {
+                    state.subscriptionInfo?.expireLabel()?.let { expireText ->
+                        Text(
+                            text = expireText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (subscriptionExpired) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                coffemaniaColors().mocha
+                            },
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                }
+                if (!subscriptionExpired) {
+                    if (selectedDisplay != null) {
+                        SelectedServerCard(
+                            display = selectedDisplay,
+                            onClick = onOpenServers,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp),
+                            emphasized = true,
+                        )
+                    } else if (hasSubscription) {
+                        EmptyServerHint(
+                            onClick = onOpenServers,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                BrewConnectButton(
+                    vpnStatus = state.vpnStatus,
+                    connectionElapsedMs = state.connectionElapsedMs,
+                    enabled = connectEnabled,
+                    onClick = {
+                        if (isConnected) onDisconnectClick() else onConnectClick()
+                    },
+                )
+
+                if (hasSubscription && subscriptionExpired) {
+                    SubscriptionExpiredCard(
+                        onRenewTelegramClick = onRenewTelegramClick,
+                        onRenewWebsiteClick = onBuyOnWebsiteClick,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
-        }
 
-        WebsiteBanner(onClick = onBuyOnWebsiteClick)
+            if (!hasSubscription) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    SectionLabel("Подписка")
+                    SubscriptionCard(
+                        onPasteLinkClick = onPasteLinkClick,
+                        onBuyOnWebsiteClick = onBuyOnWebsiteClick,
+                    )
+                    state.message?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = coffemaniaColors().mocha,
+                            modifier = Modifier.padding(top = 12.dp, start = 8.dp),
+                        )
+                    }
+                }
+            }
+
+            WebsiteBanner(
+                onClick = onBuyOnWebsiteClick,
+                modifier = Modifier.heightIn(max = bannerMetrics.maxHeightDp.dp),
+                metrics = bannerMetrics,
+            )
+        }
     }
 }
 

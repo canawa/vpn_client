@@ -1,10 +1,12 @@
 package ru.coffeemaniavpn.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,50 +36,65 @@ fun ServersScreen(
 ) {
     val subscriptionExpired = subscriptionInfo?.isExpired() == true
 
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
             .padding(top = 16.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        if (subscriptionExpired) {
-            SubscriptionExpiredCard(
-                onRenewTelegramClick = onRenewTelegramClick,
-                onRenewWebsiteClick = onBuyOnWebsiteClick,
-                modifier = Modifier.fillMaxWidth(),
+        val bannerMetrics = remember(maxWidth, maxHeight) {
+            PromoBannerMetrics.compute(
+                widthDp = maxWidth.value,
+                heightDp = maxHeight.value,
             )
-        } else if (nodes.isEmpty()) {
-            Text(
-                text = "Список серверов пуст. Добавьте подписку на главной.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 8.dp),
-            ) {
-                items(
-                    items = nodes,
-                    key = { it.id },
-                    contentType = { "server" },
-                ) { node ->
-                    ServerListItem(
-                        node = node,
-                        ping = nodePings[node.id],
-                        selected = node.id == selectedNodeId,
-                        enabled = enabled,
-                        onSelectNode = onSelectNode,
-                        onConnectToNode = onConnectToNode,
-                    )
-                }
-            }
         }
 
-        TelegramChannelBanner(onClick = onTelegramChannelClick)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (subscriptionExpired) {
+                SubscriptionExpiredCard(
+                    onRenewTelegramClick = onRenewTelegramClick,
+                    onRenewWebsiteClick = onBuyOnWebsiteClick,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else if (nodes.isEmpty()) {
+                Text(
+                    text = "Список серверов пуст. Добавьте подписку на главной.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f, fill = true),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 8.dp),
+                ) {
+                    items(
+                        items = nodes,
+                        key = { it.id },
+                        contentType = { "server" },
+                    ) { node ->
+                        ServerListItem(
+                            node = node,
+                            ping = nodePings[node.id],
+                            selected = node.id == selectedNodeId,
+                            enabled = enabled,
+                            onSelectNode = onSelectNode,
+                            onConnectToNode = onConnectToNode,
+                        )
+                    }
+                }
+            }
+
+            TelegramChannelBanner(
+                onClick = onTelegramChannelClick,
+                modifier = Modifier.heightIn(max = bannerMetrics.maxHeightDp.dp),
+                metrics = bannerMetrics,
+            )
+        }
     }
 }
 
