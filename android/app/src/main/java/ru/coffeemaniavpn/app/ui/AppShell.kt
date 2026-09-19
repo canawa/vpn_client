@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -95,72 +96,80 @@ fun AppShell(
         navigateBack()
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = coffemaniaColors().milkFoam,
-        contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = {
+    Box(modifier = Modifier.fillMaxSize()) {
+        HushSiteBackground(modifier = Modifier.fillMaxSize())
+
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets.safeDrawing,
+            topBar = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.statusBars),
+                )
+            },
+        ) { padding ->
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars),
-            )
-        },
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
-        ) {
-            // Home остаётся в composition под настройками — таймер/трафик не «замирают».
-            HomeScreen(
-                state = state,
-                onConnectClick = onConnectClick,
-                onDisconnectClick = onDisconnectClick,
-                onPasteLinkClick = onPasteLinkClick,
-                onScanQrClick = onScanQrClick,
-                onOpenSettings = { showSettings = true },
-                onSelectNode = onSelectNode,
-                onConnectToNode = onConnectToNode,
-                onToggleFavorite = onToggleFavorite,
-                onPingNode = onPingNode,
-                onRefreshPing = onRefreshPing,
-                onRefreshConfig = onRefreshConfig,
-                onReorderFilters = onReorderFilters,
-            )
-            AnimatedVisibility(
-                visible = showSettings,
-                enter = fadeIn(ClevMotion.settingsEnterSpec),
-                exit = fadeOut(ClevMotion.settingsExitSpec),
+                    .padding(padding)
+                    .fillMaxSize(),
             ) {
-                ClevSettingsHost(
+                HomeScreen(
                     state = state,
-                    onClose = { showSettings = false },
-                    onSaveConnectionSettings = onSaveConnectionSettings,
-                    onUpdateConnectionSettings = onUpdateConnectionSettings,
-                    onAddCustomRule = onAddCustomRule,
-                    onRemoveCustomRule = onRemoveCustomRule,
-                    onRefreshSubscription = onRefreshSubscription,
-                    onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
-                    onTrafficRoutingModeChange = onTrafficRoutingModeChange,
-                    onLanguageChange = onLanguageChange,
-                    modifier = Modifier.fillMaxSize(),
+                    onConnectClick = onConnectClick,
+                    onDisconnectClick = onDisconnectClick,
+                    onPasteLinkClick = onPasteLinkClick,
+                    onScanQrClick = onScanQrClick,
+                    onOpenSettings = { showSettings = true },
+                    onSelectNode = onSelectNode,
+                    onConnectToNode = onConnectToNode,
+                    onToggleFavorite = onToggleFavorite,
+                    onPingNode = onPingNode,
+                    onRefreshPing = onRefreshPing,
+                    onRefreshConfig = onRefreshConfig,
+                    onReorderFilters = onReorderFilters,
                 )
-            }
 
-            AnimatedVisibility(
-                visible = showNetworkLostToast,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 2 }),
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .zIndex(10f)
-                    .padding(top = 8.dp),
-            ) {
-                ClevInAppToast(
-                    text = stringResource(R.string.network_lost_notification),
-                )
+                AnimatedVisibility(
+                    visible = showNetworkLostToast,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 2 }),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .zIndex(10f)
+                        .padding(top = 8.dp),
+                ) {
+                    ClevInAppToast(
+                        text = stringResource(R.string.network_lost_notification),
+                    )
+                }
             }
+        }
+
+        // Поверх Scaffold edge-to-edge — без просвета под status bar
+        AnimatedVisibility(
+            visible = showSettings,
+            enter = fadeIn(ClevMotion.settingsEnterSpec),
+            exit = fadeOut(ClevMotion.settingsExitSpec),
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(20f),
+        ) {
+            ClevSettingsHost(
+                state = state,
+                onClose = { showSettings = false },
+                onSaveConnectionSettings = onSaveConnectionSettings,
+                onUpdateConnectionSettings = onUpdateConnectionSettings,
+                onAddCustomRule = onAddCustomRule,
+                onRemoveCustomRule = onRemoveCustomRule,
+                onRefreshSubscription = onRefreshSubscription,
+                onDeleteSubscription = { showDeleteSubscriptionConfirm = true },
+                onTrafficRoutingModeChange = onTrafficRoutingModeChange,
+                onLanguageChange = onLanguageChange,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 

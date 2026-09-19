@@ -939,7 +939,7 @@ fun WebsiteBanner(
 ) {
     PromoBanner(
         imageRes = R.drawable.banner_go_web,
-        contentDescription = "POROZOFF VPN — porozoffvpn.ru",
+        contentDescription = "HUSH VPN — hushvpn.net",
         onClick = onClick,
         modifier = modifier,
     )
@@ -952,7 +952,7 @@ fun TelegramChannelBanner(
 ) {
     PromoBanner(
         imageRes = R.drawable.banner_got_tg,
-        contentDescription = "VPN в Telegram — @porozoffvpn_bot",
+        contentDescription = "Поддержка — @Vpn_hush",
         onClick = onClick,
         modifier = modifier,
     )

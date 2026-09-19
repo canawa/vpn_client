@@ -14,7 +14,7 @@ import ru.coffeemaniavpn.app.R
 
 class ServiceNotification(private val service: Service) {
     private val notificationId = 1
-    private val channelId = "clevvpn_status"
+    private val channelId = "hushvpn_status"
     private val legacySilentChannelId = "coffemania_vpn"
 
     private val flags =

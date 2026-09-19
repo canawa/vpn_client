@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,8 +19,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -64,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import ru.coffeemaniavpn.app.BuildConfig
 import ru.coffeemaniavpn.app.R
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -133,7 +137,8 @@ fun ClevSettingsHost(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.milkFoam),
+            .background(CoffemaniaColors.Background)
+            .windowInsetsPadding(WindowInsets.statusBars),
     ) {
         Row(
             modifier = Modifier
@@ -920,9 +925,9 @@ private fun ClevSubscriptionTab(
     val colors = coffemaniaColors()
     val context = LocalContext.current
     val info = state.subscriptionInfo
-    val supportUrl = info?.supportURL?.takeIf { it.isNotBlank() }
-        ?: stringResource(R.string.clev_support_url)
-    val buyBotUrl = stringResource(R.string.clev_buy_bot_url)
+    // Бот покупки и поддержка — разные контакты.
+    val buyBotUrl = BuildConfig.TELEGRAM_BOT_URL
+    val supportUrl = BuildConfig.TELEGRAM_SUPPORT_URL
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(

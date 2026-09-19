@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.lerp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -69,7 +70,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -84,9 +84,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.decode.SvgDecoder
-import coil.request.ImageRequest
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.formatTrafficBytes
 import ru.coffeemaniavpn.app.vpn.VpnStatus
@@ -100,14 +97,12 @@ fun ClevLogo(
     modifier: Modifier = Modifier,
     height: Dp = 28.dp,
 ) {
-    val context = LocalContext.current
-    AsyncImage(
-        model = ImageRequest.Builder(context)
-            .data("file:///android_asset/logo_mark.svg")
-            .decoderFactory(SvgDecoder.Factory())
-            .build(),
-        contentDescription = "ClevVPN",
-        modifier = modifier.height(height),
+    Image(
+        painter = painterResource(R.drawable.ic_logo),
+        contentDescription = "HUSH VPN",
+        modifier = modifier
+            .height(height)
+            .clip(RoundedCornerShape(percent = 20)),
         contentScale = ContentScale.Fit,
     )
 }
@@ -147,27 +142,36 @@ fun YellowCircleIconButton(
 @Composable
 fun ClevLogoFull(
     modifier: Modifier = Modifier,
-    logoHeight: Dp = 22.dp,
+    logoHeight: Dp = 40.dp,
 ) {
     val colors = coffemaniaColors()
-    Row(
+    val titleSize = (logoHeight.value * 0.55f).coerceIn(18f, 28f).sp
+    Text(
+        text = buildAnnotatedString {
+            withStyle(
+                SpanStyle(
+                    color = colors.espresso,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = HushDisplayFontFamily,
+                    letterSpacing = (-0.4f).sp,
+                ),
+            ) {
+                append("HUSH")
+            }
+            withStyle(
+                SpanStyle(
+                    color = colors.yellow,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = HushDisplayFontFamily,
+                    letterSpacing = (-0.4f).sp,
+                ),
+            ) {
+                append(" VPN")
+            }
+        },
+        fontSize = titleSize,
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        ClevLogo(height = logoHeight)
-        Text(
-            text = buildAnnotatedString {
-                withStyle(SpanStyle(color = colors.espresso, fontWeight = FontWeight.Bold)) {
-                    append("Clev")
-                }
-                withStyle(SpanStyle(color = colors.yellow, fontWeight = FontWeight.Bold)) {
-                    append("VPN")
-                }
-            },
-            fontSize = (logoHeight.value * 0.82f).sp,
-        )
-    }
+    )
 }
 
 @Composable
@@ -331,7 +335,7 @@ fun ClevConnectButton(
             rings.forEachIndexed { index, ringScale ->
                 val r = this.size.minDimension / 2f * ringScale
                 drawCircle(
-                    color = Color(0xFF2A2A31).copy(alpha = 0.35f - index * 0.08f),
+                    color = Color(0xFF2A4570).copy(alpha = 0.35f - index * 0.08f),
                     radius = r,
                     style = Stroke(width = 1.dp.toPx()),
                     center = center,
@@ -342,14 +346,14 @@ fun ClevConnectButton(
         Canvas(modifier = Modifier.size(ringSize)) {
             val stroke = 3.dp.toPx()
             drawCircle(
-                color = Color(0xFF2A2A31).copy(alpha = 0.55f),
+                color = Color(0xFF2A4570).copy(alpha = 0.55f),
                 style = Stroke(width = stroke),
             )
 
             if (uiStatus == ConnectUiStatus.On && ringFill.value > 0f) {
                 drawArc(
                     brush = Brush.sweepGradient(
-                        listOf(Color(0xFFFAC300), Color(0xFFE39A00), Color(0xFFFAC300)),
+                        listOf(Color(0xFF38CCFF), Color(0xFF1FA6FF), Color(0xFF38CCFF)),
                     ),
                     startAngle = -90f,
                     sweepAngle = 360f * ringFill.value,
@@ -362,7 +366,7 @@ fun ClevConnectButton(
                 rotate(cometAngle.value) {
                     drawArc(
                         brush = Brush.sweepGradient(
-                            listOf(Color.Transparent, Color(0xFFFAC300).copy(alpha = 0.7f), Color.White),
+                            listOf(Color.Transparent, Color(0xFF38CCFF).copy(alpha = 0.7f), Color.White),
                         ),
                         startAngle = -90f,
                         sweepAngle = 360f * 0.18f,
@@ -380,7 +384,7 @@ fun ClevConnectButton(
                         brush = Brush.sweepGradient(
                             listOf(
                                 Color.Transparent,
-                                Color(0xFFE39A00).copy(alpha = 0.5f),
+                                Color(0xFF1FA6FF).copy(alpha = 0.5f),
                                 Color.White,
                             ),
                         ),
@@ -403,14 +407,14 @@ fun ClevConnectButton(
                 .clip(CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            val plateYellow = Color(0xFFF5C400)
-            val plateAmber = Color(0xFFE8A200)
-            val bezelHi = lerp(Color(0xFF4A4A54), Color(0xFFFFE082), plateOnProgress * 0.7f)
-            val bezelLo = lerp(Color(0xFF141418), Color(0xFFD48900), plateOnProgress * 0.85f)
-            val wellTop = lerp(Color(0xFF07070A), Color(0xFFA87400), plateOnProgress * 0.7f)
-            val wellBot = lerp(Color(0xFF22222C), Color(0xFFE8B020), plateOnProgress * 0.85f)
-            val floorHi = lerp(Color(0xFF2C2C36), plateYellow, plateOnProgress)
-            val floorLo = lerp(Color(0xFF16161C), plateAmber, plateOnProgress)
+            val plateYellow = Color(0xFF38CCFF)
+            val plateAmber = Color(0xFF1FA6FF)
+            val bezelHi = lerp(Color(0xFF3A5A88), Color(0xFFA9E7FF), plateOnProgress * 0.7f)
+            val bezelLo = lerp(Color(0xFF0A1430), Color(0xFF2A5BFF), plateOnProgress * 0.85f)
+            val wellTop = lerp(Color(0xFF05091A), Color(0xFF0E1D44), plateOnProgress * 0.7f)
+            val wellBot = lerp(Color(0xFF0A1430), Color(0xFF1FA6FF), plateOnProgress * 0.85f)
+            val floorHi = lerp(Color(0xFF12204A), plateYellow, plateOnProgress)
+            val floorLo = lerp(Color(0xFF0A1430), plateAmber, plateOnProgress)
             val insetShadowAlpha = 0.55f * (1f - plateOnProgress * 0.35f)
             val rimGlowAlpha = 0.06f + plateOnProgress * 0.06f
 

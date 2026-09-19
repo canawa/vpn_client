@@ -10,28 +10,37 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.LocalTextStyle
 
 /**
- * Палитра ClevVPN: чёрный фон + жёлтый акцент (как Theme.swift).
- * API coffemaniaColors() сохранён для совместимости вызовов.
+ * Палитра HUSH VPN с [hushvpn.net](https://www.hushvpn.net):
+ * navy-фон, cyan-акцент, красный CTA-градиент.
+ * Имена Yellow/Amber сохранены — ими пользуются Clev-компоненты.
  */
 object CoffemaniaColors {
-    val Background = Color(0xFF0B0B0D)
-    val Surface = Color(0xFF16161A)
-    val SurfaceLight = Color(0xFF1F1F25)
-    val Stroke = Color(0xFF2A2A31)
+    val Background = Color(0xFF05091A)
+    /** Как --panel на сайте: слегка просвечивает волны. */
+    val Surface = Color(0xF00E1938)
+    val SurfaceLight = Color(0xF012224A)
+    /** --line */
+    val Stroke = Color(0x4878A0DC)
 
-    val Yellow = Color(0xFFFFC400)
-    val Amber = Color(0xFFD18700)
-    val LogoYellow = Color(0xFFFAC300)
-    val LogoAmber = Color(0xFFE39A00)
+    /** Cyan primary (site --cyan / --cyan-2). */
+    val Yellow = Color(0xFF38CCFF)
+    val Amber = Color(0xFF1FA6FF)
+    val LogoYellow = Color(0xFF38CCFF)
+    val LogoAmber = Color(0xFF2A5BFF)
 
-    val TextPrimary = Color(0xFFF2F2F5)
-    val TextSecondary = Color(0xFF9A9AA3)
+    val TextPrimary = Color(0xFFF5F8FF)
+    val TextSecondary = Color(0xFFC2D0E8)
 
-    val Green = Color(0xFF30D158)
+    val Green = Color(0xFF37E0A0)
     val Orange = Color(0xFFFF9F0A)
-    val Red = Color(0xFFFF453A)
+    val Red = Color(0xFFFF2E50)
+    val BrandRed = Color(0xFFFF2E50)
+    val BrandRedDeep = Color(0xFFE5163F)
 
     val YellowGradient = Brush.linearGradient(listOf(Yellow, Amber))
+    val BrandGradient = Brush.linearGradient(
+        listOf(Color(0xFFFF627C), Color(0xFFFF2E50), Color(0xFFE5163F)),
+    )
 
     // Aliases used across existing UI
     val MilkFoam = Background
@@ -41,7 +50,7 @@ object CoffemaniaColors {
     val Latte = Stroke
     val OnBackground = TextPrimary
     val Primary = Yellow
-    val OnPrimary = Color(0xFF0B0B0D)
+    val OnPrimary = Color(0xFF05091A)
     val OnSurface = TextPrimary
     val OnSurfaceVariant = TextSecondary
     val SurfaceBright = SurfaceLight
@@ -65,10 +74,9 @@ object CoffemaniaColors {
     val OnTertiary = Background
     val TertiaryContainer = SurfaceLight
     val OnTertiaryContainer = TextPrimary
-    val BrandRed = Red
     val Error = Red
     val OnError = Color(0xFFFFFFFF)
-    val ErrorContainer = Color(0xFF3A1010)
+    val ErrorContainer = Color(0xFF3A1018)
     val OnErrorContainer = Color(0xFFFFD6DC)
     val PingGood = Green
     val PingMedium = Orange

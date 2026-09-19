@@ -158,7 +158,7 @@ fun HomeScreen(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize().background(colors.milkFoam)) {
+    Box(modifier = modifier.fillMaxSize()) {
         StatusGlow(status = glow)
         Column(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -172,7 +172,7 @@ fun HomeScreen(
                         .padding(top = 4.dp),
                 ) {
                     ClevLogoFull(
-                        logoHeight = 22.dp,
+                        logoHeight = 48.dp,
                         modifier = Modifier.align(Alignment.Center),
                     )
                     IconButton(
@@ -359,38 +359,38 @@ fun ActivationScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.milkFoam)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(modifier = Modifier.weight(1f))
-        ClevLogo(height = 72.dp)
-        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = buildAnnotatedString {
-                append("Clev")
-                addStyle(
+                withStyle(
                     SpanStyle(
                         color = colors.espresso,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = HushDisplayFontFamily,
                         fontSize = 34.sp,
+                        letterSpacing = (-0.5f).sp,
                     ),
-                    0,
-                    4,
-                )
-                append("VPN")
-                addStyle(
+                ) {
+                    append("HUSH")
+                }
+                withStyle(
                     SpanStyle(
                         color = colors.yellow,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = HushDisplayFontFamily,
                         fontSize = 34.sp,
+                        letterSpacing = (-0.5f).sp,
                     ),
-                    4,
-                    7,
-                )
+                ) {
+                    append(" VPN")
+                }
             },
+            textAlign = TextAlign.Center,
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.clev_tagline),
             color = colors.mocha,
@@ -406,7 +406,7 @@ fun ActivationScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.linearGradient(listOf(colors.yellow, colors.amber)))
+                    .background(CoffemaniaColors.BrandGradient)
                     .clickable(enabled = !isLoading, onClick = onPasteLinkClick)
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center,
@@ -414,13 +414,13 @@ fun ActivationScreen(
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
-                        color = Color.Black,
+                        color = Color.White,
                         strokeWidth = 2.dp,
                     )
                 } else {
                     Text(
                         text = stringResource(R.string.clev_paste_clipboard),
-                        color = Color.Black,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         textAlign = TextAlign.Center,
@@ -432,7 +432,7 @@ fun ActivationScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.5.dp, colors.espresso.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
-                    .background(colors.milkFoam)
+                    .background(colors.cappuccino.copy(alpha = 0.55f))
                     .clickable(enabled = !isLoading, onClick = onScanQrClick)
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center,

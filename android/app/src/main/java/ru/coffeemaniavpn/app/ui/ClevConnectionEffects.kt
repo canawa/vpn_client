@@ -55,7 +55,7 @@ fun ConnectBurst(
                 val alpha = 0.55f * (1f - t)
                 scale(ringScale, pivot = center) {
                     drawCircle(
-                        color = Color(0xFFFAC300).copy(alpha = alpha),
+                        color = Color(0xFF38CCFF).copy(alpha = alpha),
                         radius = base / 2f,
                         center = center,
                         style = Stroke(width = 2.dp.toPx()),
@@ -70,7 +70,7 @@ fun ConnectBurst(
                     brush = Brush.radialGradient(
                         colors = listOf(
                             Color.White.copy(alpha = 0.95f * flashAlpha),
-                            Color(0xFFFAC300).copy(alpha = 0.4f * flashAlpha),
+                            Color(0xFF38CCFF).copy(alpha = 0.4f * flashAlpha),
                             Color.Transparent,
                         ),
                         center = center,

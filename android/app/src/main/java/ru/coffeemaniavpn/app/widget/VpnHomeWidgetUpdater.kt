@@ -59,7 +59,7 @@ object VpnHomeWidgetUpdater {
 
     private val colorText = Color.parseColor("#F2F2F5")
     private val colorMuted = Color.parseColor("#8A8A93")
-    private val colorYellow = Color.parseColor("#FFC400")
+    private val colorYellow = Color.parseColor("#38CCFF")
 
     fun updateAll(context: Context) {
         VpnHomeWidgetAnimator.ensureStarted(context)

@@ -12,15 +12,16 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "ru.porozoffvpn.app"
+        applicationId = "net.hushvpn.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.0.9"
-        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://porozoffvpn.ru\"")
-        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://porozoffvpn.ru\"")
-        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/porozoffvpn_bot\"")
-        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/porozoffvpn_bot\"")
+        versionCode = 1
+        versionName = "1.0.0"
+        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://www.hushvpn.net\"")
+        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://www.hushvpn.net\"")
+        buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/Vpn_hush\"")
+        buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/VPNhush_bot\"")
+        buildConfigField("String", "TELEGRAM_SUPPORT_URL", "\"https://t.me/Vpn_hush\"")
     }
 
     signingConfigs {
@@ -79,7 +80,7 @@ android {
         if (buildType.name == "release") {
             outputs.configureEach {
                 (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
-                    .outputFileName = "clevvpn.apk"
+                    .outputFileName = "hushvpn.apk"
             }
         }
     }

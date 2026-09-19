@@ -5,7 +5,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-private fun clevStyle(
+/** Типографика в духе iOS: SF Pro, плотные веса, чуть отрицательный трекинг у заголовков. */
+private fun iosStyle(
     weight: FontWeight,
     size: Float,
     lineHeight: Float,
@@ -19,18 +20,19 @@ private fun clevStyle(
 )
 
 val CoffemaniaTypography = Typography(
-    headlineLarge = clevStyle(FontWeight.Bold, 28f, 36f, -0.02f),
-    headlineMedium = clevStyle(FontWeight.Bold, 22f, 28f),
-    titleMedium = clevStyle(FontWeight.Bold, 16f, 24f),
-    bodyLarge = clevStyle(FontWeight.Bold, 16f, 24f),
-    bodyMedium = clevStyle(FontWeight.Bold, 14f, 20f),
-    bodySmall = clevStyle(FontWeight.Bold, 12f, 16f),
-    labelSmall = clevStyle(FontWeight.Bold, 12f, 16f, 0.2f),
-    labelMedium = clevStyle(FontWeight.Bold, 14f, 20f),
+    headlineLarge = iosStyle(FontWeight.Bold, 28f, 34f, -0.4f),
+    headlineMedium = iosStyle(FontWeight.Bold, 22f, 28f, -0.3f),
+    titleMedium = iosStyle(FontWeight.SemiBold, 17f, 22f, -0.2f),
+    bodyLarge = iosStyle(FontWeight.Normal, 17f, 22f, -0.2f),
+    bodyMedium = iosStyle(FontWeight.Normal, 15f, 20f, -0.1f),
+    bodySmall = iosStyle(FontWeight.Normal, 13f, 18f, -0.1f),
+    labelSmall = iosStyle(FontWeight.SemiBold, 13f, 18f, -0.1f),
+    labelMedium = iosStyle(FontWeight.SemiBold, 15f, 20f, -0.1f),
 )
 
-/** Стиль по умолчанию для Text без MaterialTheme.typography. */
+/** Стиль по умолчанию для Text без MaterialTheme.typography — как iOS body. */
 val ClevTextStyle = TextStyle(
     fontFamily = ClevFontFamily,
-    fontWeight = FontWeight.Bold,
+    fontWeight = FontWeight.SemiBold,
+    letterSpacing = (-0.2f).sp,
 )

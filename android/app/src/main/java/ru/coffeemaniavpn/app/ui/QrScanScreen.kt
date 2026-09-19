@@ -156,7 +156,7 @@ fun QrScanScreen(
 private fun QrScanGuide(
     modifier: Modifier = Modifier,
 ) {
-    val frameColor = Color(0xFFFFC400)
+    val frameColor = Color(0xFF38CCFF)
     val dimColor = Color.Black.copy(alpha = 0.52f)
     val cornerLength = 32.dp
     val strokeWidth = 5.dp

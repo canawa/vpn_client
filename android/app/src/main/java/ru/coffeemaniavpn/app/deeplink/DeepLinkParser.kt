@@ -7,7 +7,7 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
 object DeepLinkParser {
-    val supportedSchemes = setOf("clevvpn")
+    val supportedSchemes = setOf("hushvpn", "hush")
 
     fun parse(uri: Uri): DeepLinkAction? {
         val scheme = uri.scheme?.lowercase() ?: return null
@@ -45,8 +45,8 @@ object DeepLinkParser {
     }
 
     /**
-     * clevvpn://tv-import?host=&port=&token=
-     * clevvpn://tv-import/?host=&port=&token=
+     * hushvpn://tv-import?host=&port=&token=
+     * hushvpn://tv-import/?host=&port=&token=
      */
     private fun parseTvImport(uri: Uri): DeepLinkAction? {
         val host = uri.getQueryParameter("host")?.trim().orEmpty()

@@ -39,10 +39,10 @@ object WidgetConnectButtonRenderer {
     private const val MAX_BITMAP_PX = 512
 
     private val mocha = 0xFF9A9AA3.toInt()
-    private val logoYellow = 0xFFFAC300.toInt()
+    private val logoYellow = 0xFF38CCFF.toInt()
     private val stroke = 0xFF2A2A31.toInt()
-    private val plateYellow = 0xFFF5C400.toInt()
-    private val plateAmber = 0xFFE8A200.toInt()
+    private val plateYellow = 0xFF38CCFF.toInt()
+    private val plateAmber = 0xFF1FA6FF.toInt()
 
     fun render(
         context: Context,
@@ -100,7 +100,7 @@ object WidgetConnectButtonRenderer {
         for (i in 0..2) {
             val expand = 1f + i * 0.12f + alpha * 0.2f
             paint.color = ColorUtils.setAlphaComponent(
-                0xFFFAC300.toInt(),
+                0xFF38CCFF.toInt(),
                 ((alpha * (0.35f - i * 0.1f)) * 255).toInt().coerceIn(0, 255),
             )
             canvas.drawCircle(cx, cy, r * expand, paint)
@@ -128,10 +128,10 @@ object WidgetConnectButtonRenderer {
             shader = RadialGradient(
                 cx, cy, outerR,
                 intArrayOf(
-                    ColorUtils.setAlphaComponent(0xFFFFC400.toInt(), 0),
-                    ColorUtils.setAlphaComponent(0xFFFFC400.toInt(), (0.22f * a * 255).toInt()),
-                    ColorUtils.setAlphaComponent(0xFFFAC300.toInt(), (0.10f * a * 255).toInt()),
-                    ColorUtils.setAlphaComponent(0xFFFAC300.toInt(), 0),
+                    ColorUtils.setAlphaComponent(0xFF38CCFF.toInt(), 0),
+                    ColorUtils.setAlphaComponent(0xFF38CCFF.toInt(), (0.22f * a * 255).toInt()),
+                    ColorUtils.setAlphaComponent(0xFF38CCFF.toInt(), (0.10f * a * 255).toInt()),
+                    ColorUtils.setAlphaComponent(0xFF38CCFF.toInt(), 0),
                 ),
                 floatArrayOf(0.55f, 0.78f, 0.90f, 1f),
                 Shader.TileMode.CLAMP,
@@ -144,10 +144,10 @@ object WidgetConnectButtonRenderer {
             strokeCap = Paint.Cap.ROUND
             strokeWidth = stroke
         }
-        ringPaint.color = ColorUtils.setAlphaComponent(0xFFFFC400.toInt(), (0.92f * a * 255).toInt())
+        ringPaint.color = ColorUtils.setAlphaComponent(0xFF38CCFF.toInt(), (0.92f * a * 255).toInt())
         canvas.drawCircle(cx, cy, midR, ringPaint)
         ringPaint.strokeWidth = (stroke * 0.75f).coerceAtLeast(2f)
-        ringPaint.color = ColorUtils.setAlphaComponent(0xFFFAC300.toInt(), (0.55f * a * 255).toInt())
+        ringPaint.color = ColorUtils.setAlphaComponent(0xFF38CCFF.toInt(), (0.55f * a * 255).toInt())
         canvas.drawCircle(cx, cy, outerR * 0.94f, ringPaint)
     }
 
@@ -188,14 +188,14 @@ object WidgetConnectButtonRenderer {
             val bezel = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
                 strokeWidth = (4.5f * density).coerceAtLeast(5f)
-                color = 0xFFD48900.toInt()
+                color = 0xFF1FA6FF.toInt()
             }
             canvas.drawCircle(cx, cy, r, bezel)
             val yellow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
                 strokeWidth = (2.6f * density).coerceAtLeast(3f)
                 strokeCap = Paint.Cap.ROUND
-                color = 0xFFFAC300.toInt()
+                color = 0xFF38CCFF.toInt()
             }
             canvas.drawCircle(cx, cy, r, yellow)
             return
@@ -209,7 +209,7 @@ object WidgetConnectButtonRenderer {
         canvas.drawCircle(cx, cy, r, base)
 
         if (anim.ringFill > 0.001f) {
-            val colors = intArrayOf(0xFFFAC300.toInt(), 0xFFE39A00.toInt(), 0xFFFAC300.toInt())
+            val colors = intArrayOf(0xFF38CCFF.toInt(), 0xFF1FA6FF.toInt(), 0xFF38CCFF.toInt())
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
                 strokeWidth = 2.4f * density
@@ -226,7 +226,7 @@ object WidgetConnectButtonRenderer {
         if (anim.showComet && anim.ringFill < 0.999f) {
             val colors = intArrayOf(
                 0x00FFFFFF,
-                ColorUtils.setAlphaComponent(0xFFFAC300.toInt(), (0.7f * 255).toInt()),
+                ColorUtils.setAlphaComponent(0xFF38CCFF.toInt(), (0.7f * 255).toInt()),
                 0xFFFFFFFF.toInt(),
             )
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -247,9 +247,9 @@ object WidgetConnectButtonRenderer {
             canvas.rotate(anim.spinAngle, cx, cy)
             val colors = intArrayOf(
                 0x00FFFFFF,
-                ColorUtils.setAlphaComponent(0xFFE39A00.toInt(), (0.25f * 255).toInt()),
-                0xFFE39A00.toInt(),
-                0xFFFAC300.toInt(),
+                ColorUtils.setAlphaComponent(0xFF1FA6FF.toInt(), (0.25f * 255).toInt()),
+                0xFF1FA6FF.toInt(),
+                0xFF38CCFF.toInt(),
                 0xFFFFFFFF.toInt(),
             )
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -278,13 +278,13 @@ object WidgetConnectButtonRenderer {
         val top = cy - r
         val t = plateOn.coerceIn(0f, 1f)
 
-        // Как в ClevConnectButton: мягкий золотой колодец без пересвета/banding
-        val bezelHi = lerpColor(0xFF4A4A54.toInt(), 0xFFFFE082.toInt(), t * 0.7f)
-        val bezelLo = lerpColor(0xFF141418.toInt(), 0xFFD48900.toInt(), t * 0.85f)
-        val wellTop = lerpColor(0xFF07070A.toInt(), 0xFFA87400.toInt(), t * 0.7f)
-        val wellBot = lerpColor(0xFF22222C.toInt(), 0xFFE8B020.toInt(), t * 0.85f)
-        val floorHi = lerpColor(0xFF2C2C36.toInt(), plateYellow, t)
-        val floorLo = lerpColor(0xFF16161C.toInt(), plateAmber, t)
+        // Как в ClevConnectButton: cyan-колодец в палитре HUSH
+        val bezelHi = lerpColor(0xFF3A5A88.toInt(), 0xFFA9E7FF.toInt(), t * 0.7f)
+        val bezelLo = lerpColor(0xFF0A1430.toInt(), 0xFF2A5BFF.toInt(), t * 0.85f)
+        val wellTop = lerpColor(0xFF05091A.toInt(), 0xFF0E1D44.toInt(), t * 0.7f)
+        val wellBot = lerpColor(0xFF0A1430.toInt(), 0xFF1FA6FF.toInt(), t * 0.85f)
+        val floorHi = lerpColor(0xFF12204A.toInt(), plateYellow, t)
+        val floorLo = lerpColor(0xFF0A1430.toInt(), plateAmber, t)
         val insetShadowAlpha = 0.55f * (1f - t * 0.35f)
         val rimGlowAlpha = 0.06f + t * 0.06f
 
