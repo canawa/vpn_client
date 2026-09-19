@@ -266,31 +266,52 @@ object SubscriptionParser {
 
         val settings = outbound.optJSONObject("settings") ?: return null
         val stream = outbound.optJSONObject("streamSettings") ?: JSONObject()
+        val network = stream.optString("network").lowercase()
         val hysteria = stream.optJSONObject("hysteriaSettings")
             ?: stream.optJSONObject("hysteria2Settings")
+            ?: outbound.optJSONObject("hysteriaSettings")
+            ?: outbound.optJSONObject("hysteria2Settings")
             ?: JSONObject()
+        val server0 = settings.optJSONArray("servers")?.optJSONObject(0)
 
         val version = when {
             settings.has("version") -> settings.optInt("version")
             hysteria.has("version") -> hysteria.optInt("version")
             protocol == "hysteria2" -> 2
+            network == "hysteria" || network == "hysteria2" -> 2
+            hysteria.length() > 0 -> 2
             else -> 1
         }
         if (version != 2) return null
 
         val host = settings.optString("address")
             .ifBlank { settings.optString("server") }
-        val port = when {
-            settings.has("port") -> settings.optInt("port")
-            settings.has("server_port") -> settings.optInt("server_port")
-            else -> 443
-        }
+            .ifBlank { server0?.optString("address").orEmpty() }
+            .ifBlank { server0?.optString("server").orEmpty() }
+            .ifBlank { server0?.optString("host").orEmpty() }
+        val port = PortSpec.firstPort(
+            when {
+                settings.has("port") -> settings.opt("port")
+                settings.has("server_port") -> settings.opt("server_port")
+                server0?.has("port") == true -> server0.opt("port")
+                server0?.has("server_port") == true -> server0.opt("server_port")
+                else -> null
+            },
+            default = 443,
+        )
         val auth = hysteria.optString("auth")
             .ifBlank { settings.optString("auth") }
             .ifBlank { settings.optString("password") }
             .ifBlank { hysteria.optString("password") }
+            .ifBlank { server0?.optString("password").orEmpty() }
+            .ifBlank { server0?.optString("auth").orEmpty() }
 
-        if (host.isBlank() || auth.isBlank()) return null
+        if (host.isBlank() || auth.isBlank()) {
+            AppLog.w(
+                "SubscriptionParser HS2 skip name=$profileName hostBlank=${host.isBlank()} authBlank=${auth.isBlank()}",
+            )
+            return null
+        }
 
         val tls = stream.optJSONObject("tlsSettings") ?: JSONObject()
         val obfs = hysteria.optJSONObject("obfs")
@@ -407,7 +428,16 @@ object SubscriptionParser {
     private fun parseSingBoxHysteria2(outbound: JSONObject, profileName: String): ProxyNode? {
         val host = outbound.optString("server")
             .ifBlank { outbound.optString("address") }
-        val port = readPort(outbound, "server_port", default = 443)
+        val port = PortSpec.firstPort(
+            when {
+                outbound.has("server_port") -> outbound.opt("server_port")
+                outbound.has("port") -> outbound.opt("port")
+                (outbound.optJSONArray("server_ports")?.length() ?: 0) > 0 ->
+                    outbound.optJSONArray("server_ports")?.opt(0)
+                else -> null
+            },
+            default = 443,
+        )
         val password = outbound.optString("password")
             .ifBlank { outbound.optString("auth") }
             .ifBlank {

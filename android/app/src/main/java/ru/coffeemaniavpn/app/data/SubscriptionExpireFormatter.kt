@@ -35,12 +35,20 @@ object SubscriptionExpireFormatter {
         if (remainingSec <= 0) {
             return App.instance.getString(R.string.subscription_expired)
         }
+        return App.instance.getString(R.string.subscription_expires_in, formatRemainingShort(remainingSec))
+    }
+
+    /** Короткий остаток для карточки: «12 дней», «3 часа». */
+    fun formatRemainingShort(remainingSec: Long): String {
+        if (remainingSec <= 0) {
+            return App.instance.getString(R.string.subscription_expired)
+        }
         val parts = if (locale().language == "ru") {
             buildPartsRu(remainingSec)
         } else {
             buildPartsEn(remainingSec)
         }
-        return App.instance.getString(R.string.subscription_expires_in, joinParts(parts))
+        return joinParts(parts)
     }
 
     fun formatUpdatedAt(epochMs: Long): String? {

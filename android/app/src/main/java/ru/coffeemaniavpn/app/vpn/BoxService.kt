@@ -154,14 +154,7 @@ class BoxService(
             return
         }
 
-        val healthy = waitForProxyHealthy()
-        if (!healthy) {
-            if (VpnManager.status.value != VpnStatus.Stopping) {
-                stopServiceWithError("Сервер не отвечает через прокси. Попробуйте другой.")
-            }
-            return
-        }
-
+        // Сразу Started: measureDelay без таймаута мог вечно держать Starting.
         VpnManager.setStatus(VpnStatus.Started)
         AppLog.i("BoxService started xrayRunning=${XrayCoreManager.isRunning()}")
         startConnectionWatchdog()
@@ -169,18 +162,29 @@ class BoxService(
             activeNotification = notification
             notification.show(connectedNotificationText(connected = true))
         }
+
+        GlobalScope.launch(Dispatchers.IO) {
+            val healthy = waitForProxyHealthy()
+            if (!healthy) {
+                AppLog.w("BoxService soft health check failed after start (tunnel already up)")
+            }
+        }
     }
 
     /** Несколько попыток measureDelay — grpc/handshake может занять пару секунд. */
     private suspend fun waitForProxyHealthy(): Boolean {
         for (attempt in 0 until HEALTH_ATTEMPTS) {
             delay(if (attempt == 0) HEALTH_FIRST_DELAY_MS else HEALTH_RETRY_DELAY_MS)
-            if (VpnManager.status.value == VpnStatus.Stopping) return false
+            if (VpnManager.status.value == VpnStatus.Stopping ||
+                VpnManager.status.value == VpnStatus.Stopped
+            ) {
+                return false
+            }
             if (!XrayCoreManager.isRunning()) {
                 AppLog.w("BoxService proxy health: core not running attempt=${attempt + 1}")
                 continue
             }
-            val delayMs = XrayCoreManager.measureDelayAny()
+            val delayMs = XrayCoreManager.measureDelayAny(timeoutMs = HEALTH_PROBE_TIMEOUT_MS)
             if (delayMs != null && delayMs > 0) {
                 AppLog.i("BoxService proxy health ok delayMs=$delayMs attempt=${attempt + 1}")
                 return true
@@ -271,7 +275,7 @@ class BoxService(
                         false
                     }
                     else -> {
-                        val delayMs = XrayCoreManager.measureDelayAny()
+                        val delayMs = XrayCoreManager.measureDelayAny(timeoutMs = HEALTH_PROBE_TIMEOUT_MS)
                         if (delayMs != null && delayMs > 0) {
                             true
                         } else {
@@ -304,9 +308,10 @@ class BoxService(
     }
 
     companion object {
-        private const val HEALTH_ATTEMPTS = 4
-        private const val HEALTH_FIRST_DELAY_MS = 1_500L
-        private const val HEALTH_RETRY_DELAY_MS = 1_200L
+        private const val HEALTH_ATTEMPTS = 3
+        private const val HEALTH_FIRST_DELAY_MS = 800L
+        private const val HEALTH_RETRY_DELAY_MS = 1_000L
+        private const val HEALTH_PROBE_TIMEOUT_MS = 4_000L
         private const val WATCHDOG_INITIAL_DELAY_MS = 30_000L
         private const val WATCHDOG_INTERVAL_MS = 30_000L
         private const val WATCHDOG_FAILURE_THRESHOLD = 2

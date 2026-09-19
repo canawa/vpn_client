@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,9 +27,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -48,19 +52,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import android.content.Intent
+import android.net.Uri
+import ru.coffeemaniavpn.app.BuildConfig
 import ru.coffeemaniavpn.app.R
 import ru.coffeemaniavpn.app.data.HomeFilterOrder
 import ru.coffeemaniavpn.app.data.PingState
+import ru.coffeemaniavpn.app.data.SubscriptionInfo
 import ru.coffeemaniavpn.app.vpn.VpnStatus
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -70,9 +80,6 @@ private fun ServerCategory.label(): String = stringResource(
     when (this) {
         ServerCategory.BYPASS -> R.string.clev_cat_bypass
         ServerCategory.AUTO -> R.string.clev_auto
-        ServerCategory.SPEED -> R.string.clev_cat_speed
-        ServerCategory.YOUTUBE -> R.string.clev_cat_youtube
-        ServerCategory.GAMING -> R.string.clev_cat_gaming
     },
 )
 
@@ -172,7 +179,7 @@ fun HomeScreen(
                         .padding(top = 4.dp),
                 ) {
                     ClevLogoFull(
-                        logoHeight = 48.dp,
+                        logoHeight = 68.dp,
                         modifier = Modifier.align(Alignment.Center),
                     )
                     IconButton(
@@ -209,63 +216,20 @@ fun HomeScreen(
                     )
                 }
 
-                if (subscriptionExpired) {
-                    Text(
-                        text = stringResource(R.string.clev_subscription_expired),
-                        color = colors.error,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-
                 // Компактная панель подписки — больше места под список серверов.
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                     val screenW = maxWidth
                     val outerMargin = screenW * 0.05f
-                    val panelW = screenW - outerMargin * 2
-                    val corner = panelW * 0.035f
-                    val padX = panelW * 0.04f
-                    val padTop = panelW * 0.022f
-                    val padBottom = panelW * 0.02f
-                    val lineGap = panelW * 0.004f
-                    val sectionGap = panelW * 0.018f
                     val outerVertical = screenW * 0.012f
 
-                    ClevCard(
-                        cornerRadius = corner,
+                    HomeSubscriptionCard(
+                        state = state,
+                        onRefreshPing = onRefreshPing,
+                        onRefreshConfig = onRefreshConfig,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = outerMargin, vertical = outerVertical),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    start = padX,
-                                    end = padX,
-                                    top = padTop,
-                                    bottom = padBottom,
-                                ),
-                        ) {
-                            state.subscriptionInfo
-                                ?.takeIf { it.hasAnnounce }
-                                ?.let { info ->
-                                    SubscriptionAnnounceContent(
-                                        text = info.announce,
-                                        lineSpacing = lineGap,
-                                        hintSpacing = lineGap * 0.5f,
-                                        compact = true,
-                                    )
-                                    Spacer(modifier = Modifier.height(sectionGap))
-                                }
-                            HomeInfoBar(
-                                state = state,
-                                onRefreshPing = onRefreshPing,
-                                onRefreshConfig = onRefreshConfig,
-                            )
-                        }
-                    }
+                    )
                 }
 
                 LazyRow(
@@ -363,33 +327,7 @@ fun ActivationScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(modifier = Modifier.weight(1f))
-        Text(
-            text = buildAnnotatedString {
-                withStyle(
-                    SpanStyle(
-                        color = colors.espresso,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = HushDisplayFontFamily,
-                        fontSize = 34.sp,
-                        letterSpacing = (-0.5f).sp,
-                    ),
-                ) {
-                    append("HUSH")
-                }
-                withStyle(
-                    SpanStyle(
-                        color = colors.yellow,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = HushDisplayFontFamily,
-                        fontSize = 34.sp,
-                        letterSpacing = (-0.5f).sp,
-                    ),
-                ) {
-                    append(" VPN")
-                }
-            },
-            textAlign = TextAlign.Center,
-        )
+        ClevLogoFull(logoHeight = 62.dp)
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.clev_tagline),
@@ -478,29 +416,232 @@ fun ActivationScreen(
 }
 
 @Composable
-private fun HomeInfoBar(
+private fun HomeSubscriptionCard(
     state: MainUiState,
     onRefreshPing: () -> Unit,
     onRefreshConfig: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val colors = coffemaniaColors()
+    val context = LocalContext.current
     val info = state.subscriptionInfo
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        InfoBarTrafficCluster(
-            onPingClick = onRefreshPing,
-            pinging = state.isPinging,
-            used = info?.used,
-            modifier = Modifier.weight(1f),
-        )
+    val expired = info?.isExpired() == true
+    val title = when {
+        info?.hasTitle == true -> info.title
+        else -> stringResource(R.string.clev_subscription_default_title)
+    }
+    val accent = colors.yellow
+    val cardShape = RoundedCornerShape(16.dp)
+    val accountUrl = BuildConfig.SUBSCRIPTION_STORE_URL.ifBlank { "https://hushvpn.net/" }
 
-        InfoBarExpiryCluster(
-            expireLabel = info?.expireCalendarLabel(),
-            onRefreshClick = onRefreshConfig,
-            refreshing = state.isLoading,
-        )
+    Column(
+        modifier = modifier
+            .clip(cardShape)
+            .background(colors.cappuccino)
+            .border(1.dp, colors.latte, cardShape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    runCatching {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(accountUrl)),
+                        )
+                    }
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(accent),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "H",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = colors.espresso,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(
+                        if (expired) R.string.clev_subscription_expired
+                        else R.string.clev_subscription_active,
+                    ),
+                    color = if (expired) colors.error else colors.mocha,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = colors.mocha.copy(alpha = 0.75f),
+                modifier = Modifier.size(22.dp),
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = info?.expireRemainingShortLabel()
+                        ?: stringResource(R.string.clev_expire_unknown),
+                    color = if (expired) colors.error else colors.espresso,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                )
+                Text(
+                    text = info?.trafficLabel() ?: "— / —",
+                    color = colors.mocha,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            HomeSubscriptionProgressBar(
+                info = info,
+                accent = accent,
+                track = colors.latte,
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            HomeSubscriptionActionButton(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.clev_ping_action),
+                filled = false,
+                accent = accent,
+                enabled = !state.isPinging && state.nodes.isNotEmpty(),
+                loading = state.isPinging,
+                onClick = onRefreshPing,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Speed,
+                        contentDescription = null,
+                        tint = colors.espresso,
+                        modifier = Modifier.size(15.dp),
+                    )
+                },
+            )
+            HomeSubscriptionActionButton(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.clev_update_action),
+                filled = true,
+                accent = accent,
+                enabled = !state.isLoading,
+                loading = state.isLoading,
+                onClick = onRefreshConfig,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(15.dp),
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeSubscriptionProgressBar(
+    info: SubscriptionInfo?,
+    accent: Color,
+    track: Color,
+) {
+    val fraction = when {
+        info == null -> 0f
+        info.isUnlimitedTraffic -> if (info.used > 0) 0.08f else 0f
+        else -> info.usageFraction.coerceIn(0f, 1f)
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(5.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(track),
+    ) {
+        if (fraction > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(accent),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeSubscriptionActionButton(
+    text: String,
+    filled: Boolean,
+    accent: Color,
+    enabled: Boolean,
+    loading: Boolean,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = coffemaniaColors()
+    val shape = RoundedCornerShape(12.dp)
+    val bg = if (filled) accent else Color.Transparent
+    val borderColor = if (filled) Color.Transparent else colors.latte
+    val contentColor = if (filled) Color.White else colors.espresso
+
+    Row(
+        modifier = modifier
+            .height(42.dp)
+            .clip(shape)
+            .background(bg)
+            .border(1.dp, borderColor, shape)
+            .clickable(enabled = enabled && !loading, onClick = onClick)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(15.dp),
+                strokeWidth = 1.75.dp,
+                color = contentColor,
+            )
+        } else {
+            icon()
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = text,
+                color = contentColor,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

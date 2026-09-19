@@ -9,6 +9,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import ru.coffeemaniavpn.app.App
 import ru.coffeemaniavpn.app.util.AppLog
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 object XrayCoreManager {
@@ -77,18 +80,29 @@ object XrayCoreManager {
     }
 
     /** Задержка до URL через текущий прокси-outbound (мс), для проверки после подключения. */
-    fun measureDelay(url: String = HEALTH_CHECK_URLS.first()): Long? {
+    fun measureDelay(url: String = HEALTH_CHECK_URLS.first(), timeoutMs: Long = 4_000L): Long? {
         val controller = coreController ?: return null
         if (!controller.isRunning) return null
-        return runCatching { controller.measureDelay(url) }
-            .onFailure { AppLog.w("measureDelay failed url=$url", it) }
-            .getOrNull()
+        val executor = Executors.newSingleThreadExecutor()
+        return try {
+            val future = executor.submit<Long> { controller.measureDelay(url) }
+            val result = future.get(timeoutMs, TimeUnit.MILLISECONDS)
+            if (result > 0) result else null
+        } catch (t: TimeoutException) {
+            AppLog.w("measureDelay timeout url=$url timeoutMs=$timeoutMs")
+            null
+        } catch (t: Throwable) {
+            AppLog.w("measureDelay failed url=$url", t)
+            null
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     /** Пробует несколько URL — gstatic иногда недоступен через часть серверов. */
-    fun measureDelayAny(): Long? {
+    fun measureDelayAny(timeoutMs: Long = 4_000L): Long? {
         for (url in HEALTH_CHECK_URLS) {
-            val delay = measureDelay(url)
+            val delay = measureDelay(url, timeoutMs = timeoutMs)
             if (delay != null && delay > 0) return delay
         }
         return null

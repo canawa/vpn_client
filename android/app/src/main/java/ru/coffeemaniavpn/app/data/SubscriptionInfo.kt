@@ -74,6 +74,16 @@ data class SubscriptionInfo(
         return SubscriptionExpireFormatter.formatRemaining(remainingSec)
     }
 
+    /** Короткий остаток для карточки подписки: «12 дней». */
+    fun expireRemainingShortLabel(nowMs: Long = System.currentTimeMillis()): String {
+        if (expire <= 0) {
+            return "∞"
+        }
+        val nowSec = TimeUnit.MILLISECONDS.toSeconds(nowMs)
+        val remainingSec = expire - nowSec
+        return SubscriptionExpireFormatter.formatRemainingShort(remainingSec)
+    }
+
     /** Дата окончания для info-bar: «26 октября 2027 г.» */
     fun expireCalendarLabel(): String? {
         if (expire <= 0) return null

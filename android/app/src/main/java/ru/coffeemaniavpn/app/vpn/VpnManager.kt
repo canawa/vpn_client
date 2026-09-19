@@ -44,10 +44,10 @@ object VpnManager {
 
     internal fun setStatus(value: VpnStatus) {
         val previous = _status.value
-        if (previous != value) {
-            AppLog.i("VpnManager status $previous -> $value")
-            VpnDiagnostics.snapshot("status-$value")
-        }
+        if (previous == value) return
+        AppLog.i("VpnManager status $previous -> $value")
+        _status.value = value
+        VpnDiagnostics.snapshot("status-$value")
         when (value) {
             VpnStatus.Started -> {
                 if (connectedSinceMs == null) {
@@ -64,10 +64,7 @@ object VpnManager {
             }
             else -> Unit
         }
-        _status.value = value
-        if (previous != value) {
-            runCatching { VpnHomeWidgetUpdater.updateAll(App.instance) }
-        }
+        runCatching { VpnHomeWidgetUpdater.updateAll(App.instance) }
     }
 
     private fun startElapsedTicker() {

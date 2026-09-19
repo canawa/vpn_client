@@ -33,6 +33,8 @@ object CoffemaniaColors {
 
     val Green = Color(0xFF37E0A0)
     val Orange = Color(0xFFFF9F0A)
+    /** --red-2 с сайта: мягкий розовый для «Мимо VPN». */
+    val Pink = Color(0xFFFF5A76)
     val Red = Color(0xFFFF2E50)
     val BrandRed = Color(0xFFFF2E50)
     val BrandRedDeep = Color(0xFFE5163F)
@@ -127,6 +129,7 @@ data class CoffemaniaExtraColors(
     val logoYellow: Color = CoffemaniaColors.LogoYellow,
     val green: Color = CoffemaniaColors.Green,
     val orange: Color = CoffemaniaColors.Orange,
+    val pink: Color = CoffemaniaColors.Pink,
 )
 
 val LocalCoffemaniaExtraColors = staticCompositionLocalOf { clevExtraColors() }

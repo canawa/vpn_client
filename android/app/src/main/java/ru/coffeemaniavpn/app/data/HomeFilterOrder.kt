@@ -10,9 +10,6 @@ object HomeFilterOrder {
     val DEFAULT: List<String> = listOf(
         ALL_ID,
         "BYPASS",
-        "SPEED",
-        "YOUTUBE",
-        "GAMING",
     )
 
     fun normalize(stored: List<String>): List<String> {

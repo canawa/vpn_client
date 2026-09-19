@@ -75,6 +75,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -144,32 +145,59 @@ fun ClevLogoFull(
     modifier: Modifier = Modifier,
     logoHeight: Dp = 40.dp,
 ) {
-    val colors = coffemaniaColors()
-    val titleSize = (logoHeight.value * 0.55f).coerceIn(18f, 28f).sp
+    val titleSize = (logoHeight.value * 0.55f).coerceIn(18f, 38f).sp
+    val shift = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        // Непрерывный цикл без Restart: нет рывка на стыке 1→0.
+        while (true) {
+            val next = shift.value + 1f
+            shift.animateTo(
+                targetValue = next,
+                animationSpec = tween(durationMillis = 14_000, easing = LinearEasing),
+            )
+            if (shift.value > 100f) {
+                shift.snapTo(shift.value % 1f)
+            }
+        }
+    }
+    // Замкнутая палитра: конец плавно возвращается к началу.
+    val band = listOf(
+        Color(0xFFF2F8FF),
+        Color(0xFF9AE0FF),
+        Color(0xFF38CCFF),
+        Color(0xFF6B8CFF),
+        Color(0xFFB28BFF),
+        Color(0xFFFF6B8A),
+        Color(0xFFFF2E50),
+        Color(0xFFFF6B8A),
+        Color(0xFFB28BFF),
+        Color(0xFF6B8CFF),
+        Color(0xFF38CCFF),
+        Color(0xFF9AE0FF),
+        Color(0xFFF2F8FF),
+    )
+    val gradientColors = band + band.drop(1)
+    val phase = shift.value % 1f
+    // Наклон ≈ −π/3 (−60°).
+    val angle = (-kotlin.math.PI / 3.0).toFloat()
+    val dirX = kotlin.math.cos(angle)
+    val dirY = kotlin.math.sin(angle)
+    val period = 900f
+    val center = Offset(phase * period * dirX, phase * period * dirY)
+    val brush = Brush.linearGradient(
+        colors = gradientColors,
+        start = Offset(center.x - period * dirX, center.y - period * dirY),
+        end = Offset(center.x + period * dirX, center.y + period * dirY),
+    )
     Text(
-        text = buildAnnotatedString {
-            withStyle(
-                SpanStyle(
-                    color = colors.espresso,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = HushDisplayFontFamily,
-                    letterSpacing = (-0.4f).sp,
-                ),
-            ) {
-                append("HUSH")
-            }
-            withStyle(
-                SpanStyle(
-                    color = colors.yellow,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = HushDisplayFontFamily,
-                    letterSpacing = (-0.4f).sp,
-                ),
-            ) {
-                append(" VPN")
-            }
-        },
-        fontSize = titleSize,
+        text = "HUSH VPN",
+        style = TextStyle(
+            brush = brush,
+            fontSize = titleSize,
+            fontWeight = FontWeight.Bold,
+            fontFamily = HushDisplayFontFamily,
+            letterSpacing = (-0.8f).sp,
+        ),
         modifier = modifier,
     )
 }

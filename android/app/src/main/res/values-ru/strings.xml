@@ -35,9 +35,6 @@
     <string name="clev_auto_fastest">Авто — самый быстрый сервер</string>
     <string name="clev_start">Старт</string>
     <string name="clev_cat_bypass">Обходы</string>
-    <string name="clev_cat_speed">Скорость</string>
-    <string name="clev_cat_youtube">Ютуб</string>
-    <string name="clev_cat_gaming">Игровые</string>
     <string name="clev_settings">Настройки</string>
     <string name="clev_apps">Приложения</string>
     <string name="clev_rules">Правила</string>
@@ -89,6 +86,9 @@
     <string name="clev_traffic_mode_smart">Умный режим</string>
     <string name="clev_traffic_mode_custom">Свои правила</string>
     <string name="clev_subscription_expired">Подписка истекла</string>
+    <string name="clev_subscription_active">Подписка активна</string>
+    <string name="clev_ping_action">ПРОПИНГОВАТЬ</string>
+    <string name="clev_update_action">ОБНОВИТЬ</string>
     <string name="clev_ping_ms">%d мс</string>
     <string name="clev_delete_subscription_title">Удалить подписку?</string>
     <string name="clev_delete_subscription_message">Ссылка и список серверов будут удалены с устройства.</string>

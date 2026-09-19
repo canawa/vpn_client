@@ -732,7 +732,7 @@ private fun ClevRulesTab(
             ClevRuleTargetChip(
                 label = stringResource(R.string.clev_rule_bypass),
                 selected = newTarget == RoutingRuleTarget.Direct,
-                selectedColor = colors.orange,
+                selectedColor = colors.pink,
                 onClick = { newTarget = RoutingRuleTarget.Direct },
                 modifier = Modifier.weight(1f),
             )
@@ -901,7 +901,7 @@ private fun ClevRuleRow(
                     R.string.clev_rule_via_vpn
                 },
             ),
-            color = if (rule.target == RoutingRuleTarget.Direct) colors.orange else colors.green,
+            color = if (rule.target == RoutingRuleTarget.Direct) colors.pink else colors.green,
             fontSize = 11.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

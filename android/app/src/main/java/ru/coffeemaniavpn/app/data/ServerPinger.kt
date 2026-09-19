@@ -81,8 +81,10 @@ object ServerPinger {
             // UDP/QUIC: полный TCP-таймаут на hy2-порт съедает бюджет и не даёт дойти до 443/80.
             PingNetworkBypass.udpProbe(target, node.port, UDP_PROBE_TIMEOUT_MS)?.let { return it }
             tcpConnectTime(target, node.port, HY2_PORT_TCP_TIMEOUT_MS)?.let { return it }
-            for (fallbackPort in listOf(443, 80)) {
+            // Часто multi-port/hop слушает основной 443 рядом с hop-диапазоном.
+            for (fallbackPort in listOf(443, 80, 8443)) {
                 if (fallbackPort != node.port) {
+                    PingNetworkBypass.udpProbe(target, fallbackPort, UDP_PROBE_TIMEOUT_MS)?.let { return it }
                     tcpConnectTime(target, fallbackPort)?.let { return it }
                 }
             }

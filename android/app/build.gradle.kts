@@ -17,8 +17,8 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
-        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://www.hushvpn.net\"")
-        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://www.hushvpn.net\"")
+        buildConfigField("String", "SUBSCRIPTION_STORE_URL", "\"https://hushvpn.net/\"")
+        buildConfigField("String", "SUBSCRIPTION_REGISTER_URL", "\"https://hushvpn.net/\"")
         buildConfigField("String", "TELEGRAM_CHANNEL_URL", "\"https://t.me/Vpn_hush\"")
         buildConfigField("String", "TELEGRAM_BOT_URL", "\"https://t.me/VPNhush_bot\"")
         buildConfigField("String", "TELEGRAM_SUPPORT_URL", "\"https://t.me/Vpn_hush\"")
